@@ -95,21 +95,38 @@ export function handleWhatsAppLogin(): void {
 async function handleLoginSuccess(user: any): Promise<void> {
     console.log('User logged in:', user.uid);
 
+    // Step 1: Check if user profile exists in Firestore
+    let isNewUser = false;
+    let profileComplete = false;
+    let userName = user.displayName || '';
+
     try {
-        // Check if user profile exists and is complete
         const userRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userRef);
 
-        const isNewUser = !userDoc.exists();
+        isNewUser = !userDoc.exists();
 
-        // Profile is complete if:
-        // 1. profileCompleted flag is true, OR
-        // 2. User has existing name AND dob (for legacy users without the flag)
-        const userData = userDoc.data();
-        const hasProfileData = userData?.name && userData?.dob;
-        const profileComplete = userData?.profileCompleted === true || hasProfileData;
+        if (!isNewUser) {
+            const userData = userDoc.data();
+            // Profile is complete if:
+            // 1. profileCompleted flag is true, OR
+            // 2. User has existing name AND dob (for legacy users without the flag)
+            const hasProfileData = userData?.name && userData?.dob;
+            profileComplete = userData?.profileCompleted === true || !!hasProfileData;
+            userName = userData?.name || user.displayName || 'Member';
+        }
+    } catch (readError) {
+        console.error('Error reading user profile:', readError);
+        // If we can't read the profile, assume existing user and go to /you
+        // This prevents the "Almost There" page from showing incorrectly
+        showToast(`Welcome back, ${user.displayName || 'Member'}! ✨`, 'success');
+        restoreLoginState();
+        goto('/you');
+        return;
+    }
 
-        // Save basic login info
+    // Step 2: Save/update basic login info (non-blocking — don't let failures stop navigation)
+    try {
         await saveUserProfile(user.uid, {
             name: user.displayName || '',
             email: user.email || '',
@@ -117,24 +134,20 @@ async function handleLoginSuccess(user: any): Promise<void> {
             provider: 'google',
             lastLogin: serverTimestamp()
         });
-
-        if (isNewUser || !profileComplete) {
-            // New user or incomplete profile - redirect to profile completion
-            showToast('Welcome! Please complete your profile ✨', 'success');
-            goto('/complete-profile');
-        } else {
-            // Existing user with complete profile
-            showToast(`Welcome back, ${userData?.name || user.displayName || 'Member'}! ✨`, 'success');
-
-            // Restore any pending action
-            restoreLoginState();
-
-            // Navigate to account page
-            goto('/you');
-        }
     } catch (saveError) {
-        console.error('Error saving user profile after login:', saveError);
-        showToast('Login successful, but profile update failed.', 'error');
+        // Log but don't block — the user is already authenticated
+        console.warn('Could not update profile data in Firestore:', saveError);
+    }
+
+    // Step 3: Route based on profile status
+    if (isNewUser || !profileComplete) {
+        // New user or incomplete profile → ask for extra info
+        showToast('Welcome! Please complete your profile ✨', 'success');
+        goto('/complete-profile');
+    } else {
+        // Existing user with complete profile → go straight to account
+        showToast(`Welcome back, ${userName}! ✨`, 'success');
+        restoreLoginState();
         goto('/you');
     }
 }

@@ -9,6 +9,7 @@
 	import { initAuth } from '$lib/stores/auth';
 	import { page } from '$app/state';
 	import { restoreScrollPosition, saveScrollPosition, scrollPositions } from '$lib/stores/scroll';
+	import { checkMagicLink } from '$lib/services/authService';
 
 	import { theme, THEME_COLORS } from '$lib/stores/theme';
 
@@ -27,6 +28,9 @@
 
 	onMount(async () => {
 		initAuth();
+
+		// Handle magic link tokens on ANY page (consume.js redirects to /?token=...)
+		await checkMagicLink();
 
 		// Check for desktop environment to load simulator
 		const isDesktopDevice = window.matchMedia('(min-width: 768px)').matches;
