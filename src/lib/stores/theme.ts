@@ -3,6 +3,12 @@ import { browser } from '$app/environment';
 
 export type Theme = 'gold' | 'glitch' | 'clean';
 
+export const THEME_COLORS: Record<Theme, string> = {
+    gold: '#000000',
+    glitch: '#E6E6FA',
+    clean: '#F9F9F9'
+};
+
 const getInitialTheme = (): Theme => {
     if (browser) {
         const stored = localStorage.getItem('theme') as Theme;

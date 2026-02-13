@@ -29,6 +29,7 @@
 
 	async function loadBookings(uid: string) {
 		loading = true;
+
 		try {
 			const q = query(collection(db, 'bookings'), where('userId', '==', uid));
 			const snapshot = await getDocs(q);
@@ -47,7 +48,7 @@
 			bookings = tempBookings;
 			calculateCounts();
 			applyFilter('all');
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error loading bookings:', error);
 		} finally {
 			loading = false;
