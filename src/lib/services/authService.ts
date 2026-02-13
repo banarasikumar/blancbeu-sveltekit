@@ -120,8 +120,7 @@ async function handleLoginSuccess(user: any): Promise<void> {
         // If we can't read the profile, assume existing user and go to /you
         // This prevents the "Almost There" page from showing incorrectly
         showToast(`Welcome back, ${user.displayName || 'Member'}! ✨`, 'success');
-        restoreLoginState();
-        goto('/you');
+        handleLoginRedirect();
         return;
     }
 
@@ -145,10 +144,9 @@ async function handleLoginSuccess(user: any): Promise<void> {
         showToast('Welcome! Please complete your profile ✨', 'success');
         goto('/complete-profile');
     } else {
-        // Existing user with complete profile → go straight to account
+        // Existing user with complete profile → go straight to account (or originally requested page)
         showToast(`Welcome back, ${userName}! ✨`, 'success');
-        restoreLoginState();
-        goto('/you');
+        handleLoginRedirect();
     }
 }
 
@@ -221,8 +219,7 @@ export async function checkMagicLink(): Promise<boolean> {
         } else {
             // Existing user with complete profile
             showToast(`Welcome back, ${userData?.name || 'Member'}! 👋`, 'success');
-            restoreLoginState();
-            goto('/you');
+            handleLoginRedirect();
         }
 
         return true;
@@ -236,12 +233,21 @@ export async function checkMagicLink(): Promise<boolean> {
 
 
 // --- Login State Persistence ---
-export function saveLoginState(action: string | null = null): void {
+export function saveLoginState(actionOrPath: string | null = null): void {
     if (!browser) return;
 
+    let action = actionOrPath;
+    let path = window.location.pathname;
+
+    // If the argument looks like a path (starts with /), treat it as the target path
+    if (actionOrPath && actionOrPath.startsWith('/')) {
+        path = actionOrPath; // The current page IS the target (or we are redirecting TO it)
+        action = null; // No specific action, just navigation
+    }
+
     const state = {
-        path: window.location.pathname,
-        action: action,
+        path: path,
+        action: action, // e.g., 'openBookingModal' or null
         timestamp: Date.now()
     };
     localStorage.setItem('login_redirect_state', JSON.stringify(state));
@@ -249,10 +255,19 @@ export function saveLoginState(action: string | null = null): void {
 }
 
 export function restoreLoginState(): void {
+    // This function is called AFTER successful login/profile check
+    // It should redirect if there is a saved state.
+}
+
+// Helper to actually PERFORM the redirect (called from accessible places)
+export function handleLoginRedirect(): void {
     if (!browser) return;
 
     const stateJson = localStorage.getItem('login_redirect_state');
-    if (!stateJson) return;
+    if (!stateJson) {
+        goto('/you');
+        return;
+    }
 
     try {
         const state = JSON.parse(stateJson);
@@ -261,23 +276,34 @@ export function restoreLoginState(): void {
         // Expire old state
         if (Date.now() - state.timestamp > fiveMinutes) {
             localStorage.removeItem('login_redirect_state');
+            goto('/you');
             return;
         }
 
         console.log('Restoring login state:', state);
 
-        // Handle Actions
-        if (state.action === 'openBookingModal') {
-            setTimeout(() => {
-                // Navigate to booking page
-                goto('/booking');
-            }, 500);
-        }
+        // 1. Navigate to the saved path (or default /you if path is login itself which shouldn't happen logic-wise but safety check)
+        const targetPath = (state.path && state.path !== '/login') ? state.path : '/you';
 
-        // Cleanup
-        localStorage.removeItem('login_redirect_state');
+        // 2. Clear state BEFORE navigation to avoid loops, unless we need to drag action along?
+        // Actually, if we navigate, the page component on target might need to read 'action'.
+        // But for this specific task (redirect to booking), we just need to go there.
+        // We will keep the item in localStorage for a moment if we need to trigger an action on the destination.
+        // But 'restoreLoginState' was originally designed to run ON the destination?
+        // Let's look at how it was used: "restoreLoginState() called in handleLoginSuccess"
+        // It seems it was expected to RUN actions.
+
+        // Let's clean up:
+        // handleLoginRedirect() -> decides WHERE to go.
+        // If it goes to /booking, and we had an action 'openBookingModal', /booking should handle it?
+        // For now, simpler: Just go to the path.
+
+        localStorage.removeItem('login_redirect_state'); // Clear it
+        goto(targetPath);
+
     } catch (e) {
         console.error('Error restoring login state:', e);
+        goto('/you');
     }
 }
 

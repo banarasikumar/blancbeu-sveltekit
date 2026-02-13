@@ -53,10 +53,22 @@
 		autoplayInterval = setInterval(nextSlide, 5000);
 	};
 
+	import { saveLoginState } from '$lib/services/authService';
+
 	const handleBookAppointment = () => {
 		if ($user) {
 			goto('/booking');
 		} else {
+			saveLoginState('booking_intent'); // Use a flag or path
+			// Actually, let's just save the path directly for simplicity in authService
+			// But authService.ts has saveLoginState implementation that takes an 'action'
+			// Let's check authService.ts again to match its API.
+			// It takes (action: string | null).
+			// We'll update authService to handle paths better, but for now let's pass a custom action 'redirect:/booking'
+			// Or better, let's just update authService first to be cleaner.
+			// Re-reading plan: "Modify handleBookAppointment, call saveLoginState('/booking')"
+			// I will follow the plan and update authService to match.
+			saveLoginState('/booking');
 			goto('/login');
 		}
 	};

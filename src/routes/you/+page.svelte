@@ -8,6 +8,7 @@
 	import { onAuthStateChanged } from 'firebase/auth';
 	import type { User } from 'firebase/auth';
 	import { LogOut, Camera, Calendar, Clock, ChevronRight } from 'lucide-svelte';
+	import { logout } from '$lib/services/authService';
 
 	// UI Components
 	import TierProgress from '$lib/components/you/TierProgress.svelte';
@@ -18,6 +19,7 @@
 	let latestBooking: any = null;
 	let loading = true;
 	let unsubscribe: () => void;
+	let isLoggingOut = false;
 
 	// Mock Data for Premium Feel (Could be loaded from Firestore later)
 	const MOCK_POINTS = 4550;
@@ -35,8 +37,11 @@
 				console.log('Fetching latest booking for:', user.uid);
 				fetchLatestBooking(user.uid);
 			} else {
-				console.log('Redirecting to login...');
-				goto('/login');
+				// Only redirect if NOT intentionally logging out
+				if (!isLoggingOut) {
+					console.log('Redirecting to login...');
+					goto('/login');
+				}
 			}
 		});
 	});
@@ -101,8 +106,8 @@
 
 	const handleLogout = async () => {
 		if (confirm('Are you sure you want to sign out?')) {
-			await signOut(auth);
-			// Redirect is handled by the auth listener above
+			isLoggingOut = true; // Prevent auto-redirect to /login
+			await logout();
 		}
 	};
 
@@ -134,6 +139,9 @@
 	function getServiceName(service: any) {
 		if (!service) return 'Service';
 		return typeof service === 'string' ? service : service.name;
+	}
+	function editProfile() {
+		alert('Edit Profile feature coming soon!');
 	}
 </script>
 

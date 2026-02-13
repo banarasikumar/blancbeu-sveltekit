@@ -9,7 +9,8 @@
 		handleGoogleLogin,
 		handleWhatsAppLogin,
 		checkRedirectLogin,
-		checkMagicLink
+		checkMagicLink,
+		handleLoginRedirect
 	} from '$lib/services/authService';
 
 	let loading = true;
@@ -17,20 +18,21 @@
 	let isLoggingIn = false;
 
 	onMount(async () => {
-		// Check for redirect result from Google auth
-		await checkRedirectLogin();
-
-		// Check for magic link token in URL
-		await checkMagicLink();
-
-		// Set up auth state listener
+		// Set up auth state listener IMMEDIATELY
+		// This ensures the UI updates to "Guest View" or "Logged In" without waiting for redirect checks
 		unsubscribe = onAuthStateChanged(auth, (currentUser) => {
 			loading = false;
 			if (currentUser) {
 				// Redirect if logged in
-				goto('/you');
+				handleLoginRedirect();
 			}
 		});
+
+		// Check for redirect result from Google auth (Non-blocking for UI)
+		await checkRedirectLogin();
+
+		// Check for magic link token in URL (Non-blocking for UI)
+		await checkMagicLink();
 	});
 
 	onDestroy(() => {

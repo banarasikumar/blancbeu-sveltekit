@@ -12,11 +12,11 @@ let toastId = 0;
 
 export function showToast(message: string, type: 'success' | 'error' | 'logout' = 'success') {
     const id = ++toastId;
-    
+
     toasts.update(all => [...all, { message, type, id }]);
-    
-    // Auto-dismiss after 3 seconds
+
+    // Auto-dismiss after 5 seconds
     setTimeout(() => {
         toasts.update(all => all.filter(t => t.id !== id));
-    }, 3000);
+    }, 5000);
 }
