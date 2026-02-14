@@ -112,7 +112,7 @@
 <style>
 	.service-filter-bar {
 		position: sticky;
-		top: 64px; /* Adjust based on header height */
+		top: 56px; /* Adjust based on header height */
 		z-index: 90;
 		background: rgba(var(--color-bg-primary-rgb), 0.85); /* Proper theme glass */
 		backdrop-filter: blur(12px);
@@ -120,7 +120,7 @@
 		padding: 10px 0;
 		margin-bottom: 20px;
 		border-bottom: 1px solid rgba(var(--color-accent-gold-rgb), 0.1);
-		scroll-margin-top: 54px; /* Tight fit: 64px header - 10px visual adjustment */
+		scroll-margin-top: 46px; /* Tight fit: 56px header - 10px visual adjustment */
 	}
 
 	.filter-wrapper {

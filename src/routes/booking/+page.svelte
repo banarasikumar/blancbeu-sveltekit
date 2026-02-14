@@ -2399,12 +2399,12 @@
 	/* Booking Details Card (Combined Services, Requests, DateTime) */
 	.booking-details-card {
 		background: var(--color-surface);
-		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		padding: 16px;
-		margin-bottom: 20px;
+		margin-bottom: 24px;
+		border: 1px solid var(--color-border);
 	}
-	.booking-details-card .card-header {
+	.card-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -2616,5 +2616,125 @@
 		border-top-color: black;
 		border-radius: 50%;
 		animation: spin 0.8s linear infinite;
+	}
+
+	/* --- VISIBILITY FIX FOR LIGHT THEMES (Clean & Glitch) --- */
+	/* 
+	   Problem: In light themes, the picker modals can be too pale, and text contrast might be low.
+       Fix: Force specific high-contrast overrides when data-theme="clean" or "glitch" (if light variant) is active.
+	*/
+
+	:global([data-theme='clean']) .custom-picker-modal,
+	:global([data-theme='glitch']) .custom-picker-modal {
+		background: rgba(255, 255, 255, 0.95);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		box-shadow:
+			0 10px 40px rgba(0, 0, 0, 0.15),
+			0 0 0 1px rgba(0, 0, 0, 0.05); /* Extra visibility ring */
+	}
+
+	/* LIGHT THEME BACKDROP override */
+	:global([data-theme='clean']) .modal-backdrop,
+	:global([data-theme='glitch']) .modal-backdrop {
+		background: rgba(0, 0, 0, 0.3); /* Lighter dark overlay */
+		backdrop-filter: blur(12px); /* Glass blur */
+		-webkit-backdrop-filter: blur(12px);
+	}
+
+	:global([data-theme='clean']) .picker-header h3,
+	:global([data-theme='glitch']) .picker-header h3 {
+		color: #1a1a1a; /* Almost Black */
+		font-weight: 800;
+	}
+
+	/* Navigation Arrows */
+	:global([data-theme='clean']) .nav-arrow-btn,
+	:global([data-theme='glitch']) .nav-arrow-btn {
+		background: #f0f0f0;
+		border: 1px solid #ddd;
+		color: #333;
+	}
+	:global([data-theme='clean']) .nav-arrow-btn:hover,
+	:global([data-theme='glitch']) .nav-arrow-btn:hover {
+		background: #e0e0e0;
+		color: #000;
+	}
+
+	/* Weekdays */
+	:global([data-theme='clean']) .weekdays-grid span,
+	:global([data-theme='glitch']) .weekdays-grid span {
+		color: #666; /* Darker gray for readability */
+		font-weight: 700;
+	}
+
+	/* Calendar Days */
+	:global([data-theme='clean']) .cal-day:not(.isPadding),
+	:global([data-theme='glitch']) .cal-day:not(.isPadding) {
+		color: #333;
+		font-weight: 500;
+	}
+	:global([data-theme='clean']) .cal-day.disabled,
+	:global([data-theme='glitch']) .cal-day.disabled {
+		color: #ccc;
+		background: transparent;
+	}
+
+	/* GREEN SLOTS FOR LIGHT THEME */
+	:global([data-theme='clean']) .cal-day.available,
+	:global([data-theme='glitch']) .cal-day.available {
+		background: rgba(76, 175, 80, 0.12); /* Light Green Tint */
+		border: 1px solid rgba(76, 175, 80, 0.3); /* Green Border */
+		color: #1b5e20; /* Dark Green Text for contrast */
+		font-weight: 600;
+	}
+	:global([data-theme='clean']) .cal-day.available:hover,
+	:global([data-theme='glitch']) .cal-day.available:hover {
+		background: rgba(76, 175, 80, 0.25);
+		color: #000;
+		border-color: rgba(76, 175, 80, 0.6);
+	}
+
+	/* Selected Day/Time - CRITICAL: Force White Text */
+	:global([data-theme='clean']) .cal-day.selected,
+	:global([data-theme='glitch']) .cal-day.selected,
+	:global([data-theme='clean']) .time-slot.selected,
+	:global([data-theme='glitch']) .time-slot.selected {
+		color: #ffffff !important;
+		/* Keep theme's main color for background (Gold/Purple) but ensure text is white */
+		font-weight: 800;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		border: none; /* remove green/gray border if any */
+	}
+
+	/* Time Slots */
+	:global([data-theme='clean']) .time-slot,
+	:global([data-theme='glitch']) .time-slot {
+		background: rgba(76, 175, 80, 0.12); /* Light Green Tint */
+		border: 1px solid rgba(76, 175, 80, 0.3);
+		color: #1b5e20;
+		font-weight: 600;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
+	:global([data-theme='clean']) .time-slot:hover,
+	:global([data-theme='glitch']) .time-slot:hover {
+		background: rgba(76, 175, 80, 0.25);
+		border-color: rgba(76, 175, 80, 0.6);
+		color: #000;
+	}
+
+	/* Summary Modal Light Theme Overrides */
+	:global([data-theme='clean']) .summary-modal,
+	:global([data-theme='glitch']) .summary-modal {
+		background: #ffffff;
+		border: 1px solid #e0e0e0;
+	}
+	:global([data-theme='clean']) .summary-header,
+	:global([data-theme='glitch']) .summary-header {
+		background: #f9f9f9;
+		border-bottom: 1px solid #eee;
+	}
+	:global([data-theme='clean']) .summary-header h3,
+	:global([data-theme='glitch']) .summary-header h3 {
+		color: #000;
 	}
 </style>

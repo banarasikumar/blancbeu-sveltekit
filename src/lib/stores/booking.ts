@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import type { Service } from '$lib/data/services';
+import type { Service } from '$lib/stores/appData';
 import { browser } from '$app/environment';
 
 // Persistent Cart Store

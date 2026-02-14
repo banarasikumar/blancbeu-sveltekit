@@ -10,7 +10,7 @@
 		updateBookingStatus,
 		type Booking
 	} from '$lib/stores/adminData';
-	import { Search, Calendar, ChevronRight, Check, Ban, ClipboardCheck } from 'lucide-svelte';
+	import { Search, Calendar, Check, Ban, ClipboardCheck } from 'lucide-svelte';
 
 	// --- State ---
 	let currentTab = $state<'unfinished' | 'finished'>('unfinished');
@@ -25,6 +25,8 @@
 
 	// --- Processing states ---
 	let processingIds = $state<Record<string, 'processing' | 'vanishing'>>({});
+	let confirmAction = $state<{ id: string; action: string } | null>(null);
+	let confirmTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// --- Filter Chips ---
 	const unfinishedChips = [
@@ -157,7 +159,12 @@
 			processingIds[bookingId] = 'vanishing';
 			processingIds = { ...processingIds };
 
-			showToast(newStatus === 'completed' ? 'Marked as Completed' : 'Booking Cancelled', 'success');
+			const msgs: Record<string, string> = {
+				completed: 'Marked as Completed',
+				confirmed: 'Booking Confirmed',
+				cancelled: 'Booking Cancelled'
+			};
+			showToast(msgs[newStatus] || 'Status Updated', 'success');
 
 			setTimeout(() => {
 				delete processingIds[bookingId];
@@ -539,10 +546,56 @@
 					</div>
 				</div>
 
-				{#if currentTab === 'unfinished'}
-					<div class="admin-swipe-hint">
-						<ChevronRight size={12} style="display: inline; vertical-align: middle;" /> Swipe right to
-						manage
+				{#if currentTab === 'unfinished' && status === 'pending'}
+					<div class="admin-card-actions">
+						<button
+							class="admin-action-btn confirm"
+							class:awaiting={confirmAction?.id === booking.id &&
+								confirmAction?.action === 'confirmed'}
+							disabled={isProcessing}
+							onclick={(e) => {
+								e.stopPropagation();
+								if (confirmAction?.id === booking.id && confirmAction?.action === 'confirmed') {
+									confirmAction = null;
+									handleStatusUpdate(booking.id, 'confirmed');
+								} else {
+									if (confirmTimer) clearTimeout(confirmTimer);
+									confirmAction = { id: booking.id, action: 'confirmed' };
+									confirmTimer = setTimeout(() => {
+										confirmAction = null;
+									}, 5000);
+								}
+							}}
+						>
+							<Check size={13} />
+							{confirmAction?.id === booking.id && confirmAction?.action === 'confirmed'
+								? 'Sure?'
+								: 'Confirm'}
+						</button>
+						<button
+							class="admin-action-btn cancel"
+							class:awaiting={confirmAction?.id === booking.id &&
+								confirmAction?.action === 'cancelled'}
+							disabled={isProcessing}
+							onclick={(e) => {
+								e.stopPropagation();
+								if (confirmAction?.id === booking.id && confirmAction?.action === 'cancelled') {
+									confirmAction = null;
+									handleStatusUpdate(booking.id, 'cancelled');
+								} else {
+									if (confirmTimer) clearTimeout(confirmTimer);
+									confirmAction = { id: booking.id, action: 'cancelled' };
+									confirmTimer = setTimeout(() => {
+										confirmAction = null;
+									}, 5000);
+								}
+							}}
+						>
+							<Ban size={13} />
+							{confirmAction?.id === booking.id && confirmAction?.action === 'cancelled'
+								? 'Sure?'
+								: 'Cancel'}
+						</button>
 					</div>
 				{/if}
 			</div>

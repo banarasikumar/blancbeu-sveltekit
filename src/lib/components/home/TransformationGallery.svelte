@@ -47,6 +47,10 @@
 	let sliderPosition = 50;
 	let container: HTMLElement;
 	let isDragging = false;
+	let startX = 0;
+	let startY = 0;
+	let isHorizontalSwipe = false;
+	let isVerticalSwipe = false;
 
 	$: filteredItems =
 		activeCategory === 'all'
@@ -77,18 +81,73 @@
 
 	const handleStart = (e: MouseEvent | TouchEvent) => {
 		isDragging = true;
+		// Reset flags
+		isHorizontalSwipe = false;
+		isVerticalSwipe = false;
+
+		if ('touches' in e) {
+			startX = e.touches[0].clientX;
+			startY = e.touches[0].clientY;
+		} else {
+			// For mouse, we treat it as always valid for dragging the slider
+			// preventing default behavior isn't usually necessary for mouse on desktop
+			// but we can set flags if needed.
+			startX = e.clientX;
+			startY = e.clientY;
+			isHorizontalSwipe = true; // Assume mouse drag on slider is always intended
+		}
 	};
 
 	const handleEnd = () => {
 		isDragging = false;
+		isHorizontalSwipe = false;
+		isVerticalSwipe = false;
 	};
 
 	const handleMove = (e: MouseEvent | TouchEvent) => {
 		if (!isDragging || !container) return;
 
-		const rect = container.getBoundingClientRect();
-		const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+		let clientX;
 
+		if ('touches' in e) {
+			const touch = e.touches[0];
+			clientX = touch.clientX;
+			const clientY = touch.clientY;
+
+			// If we haven't decided the direction yet
+			if (!isHorizontalSwipe && !isVerticalSwipe) {
+				const diffX = Math.abs(clientX - startX);
+				const diffY = Math.abs(clientY - startY);
+
+				// Increased threshold slightly to avoid jitter
+				if (diffX > 5 || diffY > 5) {
+					if (diffX > diffY) {
+						isHorizontalSwipe = true;
+					} else {
+						isVerticalSwipe = true;
+					}
+				}
+			}
+
+			// If it's a vertical swipe, let the browser handle scrolling
+			if (isVerticalSwipe) {
+				return;
+			}
+
+			// If it's a horizontal swipe, prevent scrolling and update slider
+			if (isHorizontalSwipe) {
+				if (e.cancelable) e.preventDefault();
+			} else {
+				// If strictly neither (very small movement), do nothing or return
+				return;
+			}
+		} else {
+			// Mouse event
+			clientX = e.clientX;
+			e.preventDefault(); // Prevent text selection etc.
+		}
+
+		const rect = container.getBoundingClientRect();
 		let pos = ((clientX - rect.left) / rect.width) * 100;
 		pos = Math.max(0, Math.min(100, pos));
 		sliderPosition = pos;
@@ -248,6 +307,7 @@
 		overflow: hidden;
 		cursor: col-resize;
 		user-select: none;
+		touch-action: pan-y; /* Allow vertical scrolling, but we can preventDefault horizontal in JS */
 	}
 
 	/* Common image styles */

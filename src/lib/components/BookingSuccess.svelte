@@ -27,11 +27,9 @@
 	const fmt = (n: number) =>
 		new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n);
 
-	// --- 3D TILT & GLIMMER ---
+	// --- SHINE / GLIMMER ---
 	let cardElement: HTMLDivElement;
 	let overlayElement: HTMLDivElement;
-	let rotateX = 0;
-	let rotateY = 0;
 	let glimmerX = 50;
 	let glimmerY = 50;
 	let isDownloading = false;
@@ -41,11 +39,11 @@
 
 		isDownloading = true;
 
-		// 1. Reset 3D tilt for a clean capture
-		const prevRotateX = rotateX;
-		const prevRotateY = rotateY;
-		rotateX = 0;
-		rotateY = 0;
+		// 1. Reset shine for a clean capture
+		const prevGlimmerX = glimmerX;
+		const prevGlimmerY = glimmerY;
+		glimmerX = 50;
+		glimmerY = 50;
 		// Wait for Svelte to update DOM
 		await new Promise((r) => setTimeout(r, 100));
 
@@ -89,8 +87,8 @@
 			alert('Could not download ticket. Please try taking a screenshot.');
 		} finally {
 			// Restore state
-			rotateX = prevRotateX;
-			rotateY = prevRotateY;
+			glimmerX = prevGlimmerX;
+			glimmerY = prevGlimmerY;
 			isDownloading = false;
 		}
 	}
@@ -100,39 +98,27 @@
 		const rect = cardElement.getBoundingClientRect();
 		const x = e.clientX - rect.left;
 		const y = e.clientY - rect.top;
-		const centerX = rect.width / 2;
-		const centerY = rect.height / 2;
 
-		// Dampened rotation for "Heavy Glass" feel
-		rotateX = ((y - centerY) / centerY) * -5;
-		rotateY = ((x - centerX) / centerX) * 5;
-
-		// Glimmer follows mouse
+		// Shine follows mouse position
 		glimmerX = (x / rect.width) * 100;
 		glimmerY = (y / rect.height) * 100;
 	}
 
 	function handleMouseLeave() {
-		rotateX = 0;
-		rotateY = 0;
 		glimmerX = 50;
 		glimmerY = 50;
 	}
 
 	function handleDeviceOrientation(e: DeviceOrientationEvent) {
-		if (!cardElement) return;
+		if (!cardElement || isDownloading) return;
 
-		// Amplify tilt for mobile reactivity
-		const tiltX = (e.beta || 0) / 1.5; // Forward/Back tilt
-		const tiltY = (e.gamma || 0) / 1.5; // Left/Right tilt
+		// Subtle tilt detection for shine sweep
+		const tiltX = e.beta || 0; // Forward/Back tilt (-180..180)
+		const tiltY = e.gamma || 0; // Left/Right tilt (-90..90)
 
-		// Clamp rotation for natural feel
-		rotateX = Math.max(-20, Math.min(20, -tiltX)); // Inverted X for correct perspective
-		rotateY = Math.max(-20, Math.min(20, tiltY));
-
-		// Dynamic Glimmer based on tilt
-		glimmerX = 50 + tiltY * 2.5;
-		glimmerY = 50 + tiltX * 2.5;
+		// Map tilt to glimmer position — high sensitivity for even small movements
+		glimmerX = Math.max(0, Math.min(100, 50 + tiltY * 1.8));
+		glimmerY = Math.max(0, Math.min(100, 50 + tiltX * 1.2));
 	}
 
 	onMount(() => {
@@ -186,7 +172,6 @@
 				class="diamond-card"
 				bind:this={cardElement}
 				style="
-					transform: perspective(1000px) rotateX({rotateX}deg) rotateY({rotateY}deg);
 					--glimmer-x: {glimmerX}%;
 					--glimmer-y: {glimmerY}%;
 				"
@@ -402,15 +387,15 @@
 		align-items: center;
 		gap: 8px;
 		padding: 6px 16px;
-		background: rgba(255, 255, 255, 0.1);
-		border: 1px solid rgba(255, 255, 255, 0.2);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 100px;
 		backdrop-filter: blur(10px);
 		color: var(--color-text-primary);
 		font-weight: 700;
 		font-size: 0.7rem;
 		letter-spacing: 2px;
-		box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+		box-shadow: 0 0 15px rgba(var(--color-shadow-rgb), 0.08);
 	}
 
 	.serif-headline {
@@ -432,8 +417,15 @@
 	}
 
 	/* Theme Override for Headline Accent */
+	:global([data-theme='clean']) .italic-accent {
+		background: linear-gradient(135deg, #6b8e23, #a4b47d, #8a9a5b);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
 	:global([data-theme='glitch']) .italic-accent {
-		background: linear-gradient(135deg, #0ff, #f0f);
+		background: linear-gradient(135deg, #6c5dd3, #ff00ff, #00ffff);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
 	}
 
 	.status-subtext {
@@ -463,34 +455,29 @@
 
 		position: relative;
 		overflow: hidden;
-		transition: transform 0.1s ease-out;
 		display: flex;
 		flex-direction: column;
 		max-height: 100%; /* Prevent overflow */
-
-		/* Transform optimization */
-		will-change: transform;
 		-webkit-font-smoothing: antialiased;
-		transform: translateZ(0);
 	}
 
 	/* NEW GLASS PANEL LAYER - PREMIUM CRYSTALLINE */
 	.glass-panel {
 		position: absolute;
 		inset: 0;
-		/* Crystalline Gradient: Subtle white tint for "physical glass" feel */
+		/* Crystalline Gradient: Theme-aware glass tint */
 		background: linear-gradient(
 			145deg,
-			rgba(255, 255, 255, 0.08) 0%,
-			rgba(255, 255, 255, 0.02) 100%
+			rgba(var(--color-bg-secondary-rgb), 0.3) 0%,
+			rgba(var(--color-bg-secondary-rgb), 0.1) 100%
 		);
 		border-radius: 20px;
 		/* Diamond Cut Border: Double rim effect */
-		border: 1px solid rgba(255, 255, 255, 0.15);
+		border: 1px solid var(--color-border);
 		box-shadow:
-			0 0 0 1px rgba(0, 0, 0, 0.2),
-			/* Inner dark definition */ inset 0 0 20px rgba(255, 255, 255, 0.05),
-			/* Inner glow */ 0 20px 50px -10px rgba(0, 0, 0, 0.6); /* Deep drop shadow */
+			0 0 0 1px rgba(var(--color-shadow-rgb), 0.15),
+			inset 0 0 20px rgba(var(--color-accent-gold-rgb), 0.05),
+			0 20px 50px -10px rgba(var(--color-shadow-rgb), 0.25);
 
 		/* Enhanced Blur */
 		backdrop-filter: blur(40px) brightness(1.1);
@@ -515,14 +502,17 @@
 		position: absolute;
 		inset: 0;
 		background: radial-gradient(
-			circle at var(--glimmer-x) var(--glimmer-y),
-			rgba(255, 255, 255, 0.3),
-			transparent 60%
+			ellipse 80% 60% at var(--glimmer-x) var(--glimmer-y),
+			rgba(255, 255, 255, 0.35) 0%,
+			rgba(var(--color-accent-gold-rgb), 0.18) 30%,
+			transparent 70%
 		);
 		pointer-events: none;
 		mix-blend-mode: overlay;
-		opacity: 0.6;
+		opacity: 0.8;
 		z-index: 2;
+		transition: background 0.3s ease-out;
+		border-radius: 20px;
 	}
 
 	.card-body {
@@ -545,7 +535,7 @@
 		width: 4px;
 	}
 	.card-body::-webkit-scrollbar-thumb {
-		background: rgba(255, 255, 255, 0.2);
+		background: var(--color-border);
 		border-radius: 4px;
 	}
 
@@ -554,7 +544,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding-bottom: 10px;
-		border-bottom: 1px dashed rgba(128, 128, 128, 0.2);
+		border-bottom: 1px dashed var(--color-border);
 		flex-shrink: 0;
 	}
 	.brand-small {
@@ -602,24 +592,24 @@
 		gap: 4px;
 	}
 	.day {
-		font-size: 2.2rem; /* Slightly smaller */
-		font-family: var(--font-heading); /* Serif */
-		color: #ffffff;
+		font-size: 2.2rem;
+		font-family: var(--font-heading);
+		color: var(--color-text-primary);
 		line-height: 0.9;
 		letter-spacing: -1px;
 	}
 	.month {
 		font-size: 1rem;
 		font-weight: 600;
-		color: rgba(255, 255, 255, 0.8);
+		color: var(--color-text-secondary);
 		letter-spacing: 1px;
 	}
 
 	.vertical-divider {
 		width: 1px;
 		height: 32px;
-		background: rgba(255, 255, 255, 0.3);
-		opacity: 1; /* Crisper divider */
+		background: var(--color-border-strong);
+		opacity: 1;
 	}
 
 	.time-group {
@@ -629,22 +619,22 @@
 	}
 	.time {
 		font-size: 1.8rem;
-		font-family: var(--font-heading); /* Serif */
-		color: #ffffff;
+		font-family: var(--font-heading);
+		color: var(--color-text-primary);
 		font-weight: 400;
 		letter-spacing: -0.5px;
 	}
 	.ampm {
 		font-size: 0.8rem;
-		color: rgba(255, 255, 255, 0.6);
+		color: var(--color-text-secondary);
 		font-weight: 500;
 	}
 
 	/* SERVICE PREVIEW */
 	.service-preview {
-		padding: 8px 0; /* Reduced padding */
-		border-top: 1px dashed rgba(128, 128, 128, 0.2);
-		border-bottom: 1px dashed rgba(128, 128, 128, 0.2);
+		padding: 8px 0;
+		border-top: 1px dashed var(--color-border);
+		border-bottom: 1px dashed var(--color-border);
 		flex-shrink: 0;
 	}
 	.service-scroll {
@@ -662,8 +652,8 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		background: rgba(128, 128, 128, 0.05); /* Subtle bg */
-		padding: 8px; /* Reduced padding */
+		background: var(--color-surface);
+		padding: 8px;
 		border-radius: 12px;
 		flex-shrink: 0;
 	}
@@ -791,12 +781,12 @@
 
 	/* CARD BOTTOM */
 	.card-bottom {
-		background: rgba(0, 0, 0, 0.05); /* Subtle dark */
-		padding: 12px 18px; /* Reduced padding */
+		background: var(--color-surface);
+		padding: 12px 18px;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		border-top: 1px solid rgba(128, 128, 128, 0.1);
+		border-top: 1px solid var(--color-border);
 		z-index: 3;
 		position: relative;
 		flex-shrink: 0;
@@ -817,7 +807,7 @@
 		background: var(--color-bg-primary);
 		padding: 4px 8px;
 		border-radius: 6px;
-		border: 1px solid rgba(128, 128, 128, 0.1);
+		border: 1px solid var(--color-border);
 	}
 
 	/* ACTIONS */
@@ -859,8 +849,8 @@
 		width: 48px;
 		height: 48px;
 		border-radius: 12px;
-		background: rgba(128, 128, 128, 0.1);
-		border: 1px solid rgba(128, 128, 128, 0.2);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		color: var(--color-text-primary);
 		display: flex;
 		align-items: center;
@@ -869,7 +859,7 @@
 		transition: all 0.2s;
 	}
 	.icon-btn:hover {
-		background: rgba(128, 128, 128, 0.2);
+		background: var(--color-surface-hover);
 		transform: scale(1.05);
 	}
 
@@ -886,7 +876,7 @@
 	.spinner-mini {
 		width: 18px;
 		height: 18px;
-		border: 2px solid rgba(255, 255, 255, 0.3);
+		border: 2px solid var(--color-border);
 		border-radius: 50%;
 		border-top-color: var(--color-text-primary);
 		animation: spin 0.8s linear infinite;

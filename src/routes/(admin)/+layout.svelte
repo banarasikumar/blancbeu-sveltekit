@@ -3,13 +3,22 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { showToast } from '$lib/stores/toast';
 	import {
 		adminAuthState,
 		adminUser,
 		initAdminAuth,
 		destroyAdminAuth
 	} from '$lib/stores/adminAuth';
-	import { initBookingListener, initUserListener, destroyListeners } from '$lib/stores/adminData';
+	import {
+		initBookingListener,
+		initUserListener,
+		initServiceListener,
+		destroyListeners,
+		allBookings,
+		getBookingTimestamp,
+		updateBookingStatus
+	} from '$lib/stores/adminData';
 	import AdminNav from '$lib/components/admin/AdminNav.svelte';
 	import AdminHeader from '$lib/components/admin/AdminHeader.svelte';
 	import AdminToast from '$lib/components/admin/AdminToast.svelte';
@@ -23,7 +32,9 @@
 		const path = page.url.pathname;
 		if (path.includes('/admin/bookings')) return 'Bookings';
 		if (path.includes('/admin/users')) return 'Users';
+		if (path.includes('/admin/services')) return 'Services';
 		if (path.includes('/admin/settings')) return 'Settings';
+		if (path.includes('/admin/invoice')) return 'Invoice';
 		if (path.includes('/admin/login')) return '';
 		return 'Dashboard';
 	});
@@ -51,6 +62,7 @@
 				// Start data listeners
 				initBookingListener();
 				initUserListener();
+				initServiceListener();
 
 				// If on login page, redirect to dashboard
 				if (page.url.pathname.includes('/admin/login')) {
@@ -65,6 +77,44 @@
 	onDestroy(() => {
 		destroyAdminAuth();
 		destroyListeners();
+	});
+
+	// --- Auto-Cancel Overdue Logic ---
+	$effect(() => {
+		if ($adminAuthState !== 'authorized') return;
+
+		const now = Date.now();
+		const oneHour = 60 * 60 * 1000;
+		// Iterate over all bookings to find overdue pending ones
+		const overdueBookings = $allBookings.filter((b) => {
+			if ((b.status || 'pending').toLowerCase() !== 'pending') return false;
+			const ts = getBookingTimestamp(b);
+			// Check if appointment time + 1 hour is in the past
+			return now > ts + oneHour;
+		});
+
+		if (overdueBookings.length > 0) {
+			console.log(`[Auto-Cancel] Found ${overdueBookings.length} overdue bookings.`);
+			// Prevent multiple toasts/loops by checking if we just did this?
+			// The status change removes them from the list, so the effect re-runs and finds 0.
+			// But we need to be careful about not spamming if updates take time.
+
+			let cancelledCount = 0;
+			for (const b of overdueBookings) {
+				// We don't have local processingIds here, but we can just fire and forget
+				// checking status again to be safe
+				if (b.status === 'cancelled') continue;
+
+				updateBookingStatus(b.id, 'cancelled')
+					.then(() => {
+						cancelledCount++;
+						if (cancelledCount === overdueBookings.length) {
+							showToast(`Auto-cancelled ${cancelledCount} overdue bookings`, 'info');
+						}
+					})
+					.catch((err) => console.error(`Failed to auto-cancel ${b.id}`, err));
+			}
+		}
 	});
 </script>
 

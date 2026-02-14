@@ -11,6 +11,7 @@
 	import { restoreScrollPosition, saveScrollPosition, scrollPositions } from '$lib/stores/scroll';
 
 	import { theme, THEME_COLORS } from '$lib/stores/theme';
+	import { initAppServiceListener } from '$lib/stores/appData';
 
 	// Dynamic Import for Simulator
 	let { children } = $props();
@@ -27,6 +28,7 @@
 
 	onMount(async () => {
 		initAuth();
+		initAppServiceListener();
 
 		// Check for desktop environment to load simulator
 		const isDesktopDevice = window.matchMedia('(min-width: 768px)').matches;
@@ -147,7 +149,7 @@
 	}
 
 	.app-content {
-		padding-top: 64px; /* Header height */
+		padding-top: 56px; /* Header height */
 		padding-bottom: 80px; /* Nav height + spacing */
 		min-height: 100%;
 		width: 100%;

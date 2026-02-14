@@ -1,23 +1,27 @@
 <script lang="ts">
-	import { services } from '$lib/data/services';
+	import { appServices } from '$lib/stores/appData';
 	import ServiceHighlight from '$lib/components/home/ServiceHighlight.svelte';
 	import StickyServiceFilter from '$lib/components/home/StickyServiceFilter.svelte';
-	import { cart } from '$lib/stores/booking';
 
-	let selectedCategory = 'All';
-	let searchQuery = '';
+	let selectedCategory = $state('All');
+	let searchQuery = $state('');
 
-	// Extract unique categories
-	const categories = ['All', ...new Set(services.map((s) => s.category))];
+	// Filter active services first
+	let activeServices = $derived($appServices.filter((s) => s.isActive !== false));
 
-	$: filteredServices = services.filter((s) => {
-		const categoryMatch = selectedCategory === 'All' || s.category === selectedCategory;
-		const searchMatch =
-			searchQuery.trim() === '' ||
-			s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			s.description.toLowerCase().includes(searchQuery.toLowerCase());
-		return categoryMatch && searchMatch;
-	});
+	// Extract unique categories from active services
+	let categories = $derived(['All', ...new Set(activeServices.map((s) => s.category))]);
+
+	let filteredServices = $derived(
+		activeServices.filter((s) => {
+			const categoryMatch = selectedCategory === 'All' || s.category === selectedCategory;
+			const searchMatch =
+				searchQuery.trim() === '' ||
+				s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(s.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+			return categoryMatch && searchMatch;
+		})
+	);
 </script>
 
 <div class="services-page container">

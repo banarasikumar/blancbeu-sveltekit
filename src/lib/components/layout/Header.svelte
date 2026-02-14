@@ -49,17 +49,17 @@
 		top: 0;
 		left: 0;
 		width: 100%;
-		height: 64px;
+		height: 56px;
 		display: grid; /* Changed to Grid for easy centering */
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
 		padding: 0 20px;
 		z-index: 1000;
 		background: rgba(var(--color-bg-primary-rgb), 0.85); /* Use accessible RGB var */
-		backdrop-filter: blur(20px);
-		-webkit-backdrop-filter: blur(20px);
+		backdrop-filter: blur(24px);
+		-webkit-backdrop-filter: blur(24px);
 		border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-		box-shadow: var(--shadow-glass);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 		transition:
 			background-color 0.4s ease,
 			border-color 0.4s ease;

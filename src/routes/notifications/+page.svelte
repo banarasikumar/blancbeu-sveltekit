@@ -352,7 +352,7 @@
 	/* Sticky Controls */
 	.sticky-controls {
 		position: sticky;
-		top: 64px; /* Header height offset */
+		top: 56px; /* Header height offset */
 		z-index: 10;
 		background: rgba(var(--color-bg-primary-rgb), 0.95);
 		backdrop-filter: blur(15px);

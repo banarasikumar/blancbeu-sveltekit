@@ -555,8 +555,8 @@
 
 .admin-actions-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
 }
 
 .admin-action-btn {
@@ -955,12 +955,83 @@
     will-change: transform;
 }
 
-.admin-swipe-hint {
-    text-align: center;
-    font-size: 10px;
-    color: var(--admin-text-tertiary);
-    margin-top: 10px;
-    opacity: 0.6;
+/* --- Card Action Buttons (Confirm / Cancel below card) --- */
+.admin-card-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 0 2px;
+}
+
+.admin-card-actions .admin-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 10px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--admin-font);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.2px;
+}
+
+.admin-card-actions .admin-action-btn:active {
+    transform: scale(0.96);
+}
+
+.admin-card-actions .admin-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.admin-card-actions .admin-action-btn.confirm,
+.admin-card-actions .admin-action-btn.complete {
+    background: var(--admin-green);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(48, 209, 88, 0.25);
+}
+
+.admin-card-actions .admin-action-btn.confirm:hover,
+.admin-card-actions .admin-action-btn.complete:hover {
+    box-shadow: 0 4px 14px rgba(48, 209, 88, 0.35);
+}
+
+.admin-card-actions .admin-action-btn.cancel {
+    background: var(--admin-bg);
+    color: var(--admin-red);
+    border: 1px solid rgba(255, 69, 58, 0.2);
+    box-shadow: none;
+}
+
+.admin-card-actions .admin-action-btn.cancel:hover {
+    background: var(--admin-red-light);
+}
+
+.admin-card-actions .admin-action-btn.confirm.awaiting {
+    animation: confirmPulse 0.8s ease infinite alternate;
+}
+
+.admin-card-actions .admin-action-btn.cancel.awaiting {
+    background: var(--admin-red);
+    color: #fff;
+    border-color: var(--admin-red);
+    animation: confirmPulse 0.8s ease infinite alternate;
+}
+
+@keyframes confirmPulse {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0.7;
+    }
 }
 
 /* --- User Avatar --- */
@@ -1597,7 +1668,7 @@
     }
 
     .admin-actions-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         max-width: 480px;
     }
 

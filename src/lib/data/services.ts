@@ -9,6 +9,7 @@ export interface Service {
     duration: string;
     rating: number;
     reviews: number;
+    isActive?: boolean;
 }
 
 // Helper to get image path (assuming images are in static/assets/service_images/)

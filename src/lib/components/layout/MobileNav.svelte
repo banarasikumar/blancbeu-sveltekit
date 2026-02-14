@@ -300,6 +300,7 @@
 		backdrop-filter: blur(24px) saturate(1.4);
 		-webkit-backdrop-filter: blur(24px) saturate(1.4);
 		border-top: 1px solid rgba(var(--color-accent-gold-rgb), 0.08);
+		box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
 		display: flex;
 		justify-content: space-evenly;
 		align-items: center;
@@ -312,7 +313,7 @@
 		top: -1px;
 		left: 10%;
 		width: 80%;
-		height: 1px;
+		height: 2px;
 		background: linear-gradient(
 			90deg,
 			transparent 0%,

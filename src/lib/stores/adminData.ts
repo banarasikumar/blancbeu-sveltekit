@@ -39,9 +39,25 @@ export interface AppUser {
     [key: string]: any;
 }
 
+export interface Service {
+    id: string;
+    name: string;
+    category: string;
+    price: number;
+    originalPrice?: number;
+    duration: number; // in minutes
+    description?: string;
+    image?: string;
+    isActive?: boolean;
+    createdAt?: any;
+    updatedAt?: string;
+    [key: string]: any;
+}
+
 // --- Stores ---
 export const allBookings = writable<Booking[]>([]);
 export const allUsers = writable<AppUser[]>([]);
+export const allServices = writable<Service[]>([]);
 
 // Derived stats
 export const bookingCount = derived(allBookings, ($b) => $b.length);
@@ -49,10 +65,12 @@ export const pendingCount = derived(allBookings, ($b) =>
     $b.filter((b) => (b.status || 'pending').toLowerCase() === 'pending').length
 );
 export const userCount = derived(allUsers, ($u) => $u.length);
+export const serviceCount = derived(allServices, ($s) => $s.length);
 
 // --- Listeners ---
 let bookingsUnsub: (() => void) | null = null;
 let usersUnsub: (() => void) | null = null;
+let servicesUnsub: (() => void) | null = null;
 
 export function initBookingListener() {
     if (bookingsUnsub) return;
@@ -94,6 +112,26 @@ export function initUserListener() {
     );
 }
 
+export function initServiceListener() {
+    if (servicesUnsub) return;
+    console.log('[AdminData] Starting service listener');
+
+    const q = query(collection(db, 'services'));
+    servicesUnsub = onSnapshot(
+        q,
+        (snapshot) => {
+            const services = snapshot.docs.map((d) => ({
+                id: d.id,
+                ...d.data()
+            })) as Service[];
+            allServices.set(services);
+        },
+        (error) => {
+            console.error('[AdminData] Service listener error:', error);
+        }
+    );
+}
+
 export function destroyListeners() {
     if (bookingsUnsub) {
         bookingsUnsub();
@@ -102,6 +140,10 @@ export function destroyListeners() {
     if (usersUnsub) {
         usersUnsub();
         usersUnsub = null;
+    }
+    if (servicesUnsub) {
+        servicesUnsub();
+        servicesUnsub = null;
     }
 }
 

@@ -2,8 +2,8 @@
 	import LazyImage from '$lib/components/ui/LazyImage.svelte';
 	import { cart } from '$lib/stores/booking';
 	import { goto } from '$app/navigation';
-	import type { Service } from '$lib/data/services';
-	import { Star } from 'lucide-svelte';
+	import type { Service } from '$lib/stores/appData';
+	import { Clock } from 'lucide-svelte';
 	import { user } from '$lib/stores/auth';
 
 	export let service: Service;
@@ -15,6 +15,16 @@
 		} else {
 			goto('/login');
 		}
+	}
+
+	function formatDuration(minutes: number): string {
+		if (!minutes) return '';
+		const hours = Math.floor(minutes / 60);
+		const mins = minutes % 60;
+
+		if (hours === 0) return `${mins} min`;
+		if (mins === 0) return `${hours} ${hours === 1 ? 'hr' : 'hrs'}`;
+		return `${hours} ${hours === 1 ? 'hr' : 'hrs'} ${mins} min`;
 	}
 </script>
 
@@ -33,9 +43,9 @@
 	<div class="content">
 		<div class="header">
 			<h3>{service.name}</h3>
-			<div class="rating">
-				<Star size={12} fill="currentColor" strokeWidth={0} />
-				<span>{service.rating}</span>
+			<div class="duration">
+				<Clock size={12} strokeWidth={2} />
+				<span>{formatDuration(service.duration)}</span>
 			</div>
 		</div>
 
@@ -44,7 +54,9 @@
 		<div class="footer">
 			<div class="price">
 				<span class="curr">₹{service.price}</span>
-				<span class="orig">₹{service.originalPrice}</span>
+				{#if service.originalPrice}
+					<span class="orig">₹{service.originalPrice}</span>
+				{/if}
 			</div>
 			<button class="book-btn" on:click={handleBook}>Book</button>
 		</div>
@@ -102,14 +114,14 @@
 		flex: 1;
 	}
 
-	.rating {
+	.duration {
 		display: flex;
 		align-items: center;
-		gap: 2px;
-		color: var(--color-accent-gold);
-		font-size: 0.8rem;
-		font-weight: 700;
-		background: rgba(212, 175, 55, 0.1);
+		gap: 3px;
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+		font-weight: 500;
+		background: rgba(255, 255, 255, 0.05);
 		padding: 2px 6px;
 		border-radius: 4px;
 	}

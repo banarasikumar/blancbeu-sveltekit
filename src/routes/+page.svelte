@@ -1,7 +1,7 @@
 <script lang="ts">
 	import HeroCarousel from '$lib/components/home/HeroCarousel.svelte';
 	import ServiceHighlight from '$lib/components/home/ServiceHighlight.svelte';
-	import { featuredServices } from '$lib/data/services';
+	import { appServices } from '$lib/stores/appData';
 	import SpecialOffers from '$lib/components/home/SpecialOffers.svelte';
 	import HomeGallery from '$lib/components/home/HomeGallery.svelte';
 	import TransformationGallery from '$lib/components/home/TransformationGallery.svelte';
@@ -15,7 +15,10 @@
 	import ServiceCart from '$lib/components/home/ServiceCart.svelte';
 	import MembershipTiers from '$lib/components/home/MembershipTiers.svelte';
 
-	// No filtering logic needed for home page anymore
+	// Derive featured services from the store (e.g., take first 4)
+	// In the future, we could add a 'isFeatured' flag to the Service model
+	// Filter out inactive services (isActive !== false)
+	let featuredServices = $derived($appServices.filter((s) => s.isActive !== false).slice(0, 4));
 </script>
 
 <div class="home-page">
