@@ -18,7 +18,7 @@
 			<ChevronRight size={16} class="action-arrow" />
 		</button>
 
-		<button class="action-item" on:click={() => alert('Profile editing coming soon!')}>
+		<button class="action-item" on:click={() => goto('/you/personal-details')}>
 			<div class="action-icon">
 				<User size={20} />
 			</div>
@@ -29,7 +29,7 @@
 			<ChevronRight size={16} class="action-arrow" />
 		</button>
 
-		<button class="action-item">
+		<button class="action-item" on:click={() => goto('/you/addresses')}>
 			<div class="action-icon">
 				<MapPin size={20} />
 			</div>

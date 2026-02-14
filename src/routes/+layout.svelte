@@ -43,50 +43,30 @@
 	});
 
 	// Centralized Scroll Handling
-	afterNavigate(({ to, from }) => {
+	afterNavigate(async ({ to, from }) => {
 		if (!to?.url) return;
 
-		const containerId = 'mobile-viewport';
-		const simulatorContainer = document.getElementById(containerId);
+		// CRASH FIX: If navigating to the same page (e.g. clicking "You" while on "You"),
+		// DO NOT try to restore history. Just scroll to top.
+		if (from?.url && from.url.pathname === to.url.pathname) {
+			console.log('[Layout] Same route navigation. Forcing top scroll, skipping restore.');
+			const container = document.getElementById('mobile-viewport') || window;
+			container.scrollTo(0, 0);
+			return;
+		}
 
-		// Define the reset action
-		const resetScroll = () => {
-			if (simulatorContainer) {
-				simulatorContainer.scrollTop = 0;
-			}
-			// Always reset window/body as well for safety
-			window.scrollTo(0, 0);
-			document.body.scrollTop = 0;
-			document.documentElement.scrollTop = 0;
-			const appRoot = document.getElementById('app-root');
-			if (appRoot) appRoot.scrollTop = 0;
+		// wait for tick to ensure DOM is updated
+		// Using setTimeout(0) is often safer than tick() for pure DOM read/write separation
+		await new Promise((r) => setTimeout(r, 0));
 
-			console.log('[Layout] Scroll reset enforced on', simulatorContainer ? containerId : 'window');
-		};
-
-		// If we have a saved position, try to use it (via store), otherwise reset
-		// Note: The store's restoreScrollPosition already handles this logic,
-		// but we want to ENFORCE the container correctness here.
-
-		// We defer to the store for the logic, but we inject the container check
-		// Or simpler: Just call the store's restore, and if it fails/returns false, we force 0.
-		// Actually, let's trust the store but give it the BEST chance by running here.
-
-		// IMPORTANT: If we are switching major tabs, we generally want to start at TOP
-		// unless we implementing "history" tabs. The user complaint "does not navigate to top"
-		// suggests they WANT top.
-
-		// Let's force scroll to top for now to FIX the leak.
-		// If the user wants history restoration, we can re-enable later.
-		// The persistence of scroll between tabs is the critical bug.
-
+		// Normal Navigation: Restore or Reset
 		// restoreScrollPosition returns true if restored.
 		const restored = restoreScrollPosition(to.url.pathname);
+
 		if (!restored) {
-			resetScroll();
-			// Retry
-			requestAnimationFrame(resetScroll);
-			setTimeout(resetScroll, 50);
+			// If not restored (new page), ensure we are at top
+			const container = document.getElementById('mobile-viewport') || window;
+			container.scrollTo(0, 0);
 		}
 	});
 

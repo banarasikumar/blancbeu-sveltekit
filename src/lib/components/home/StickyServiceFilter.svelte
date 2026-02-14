@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, tick } from 'svelte';
 	import { Sparkles, Scissors, UserCheck, Palette, Droplet, Search, X } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 
@@ -11,6 +11,7 @@
 
 	let isSearchOpen = false;
 	let searchInput: HTMLInputElement;
+	let filterBarElement: HTMLDivElement;
 
 	// Internal helper to get icon
 	function getIcon(cat: string) {
@@ -33,17 +34,33 @@
 		dispatch('filter', category);
 	}
 
-	function toggleSearch() {
+	async function toggleSearch() {
 		isSearchOpen = !isSearchOpen;
+
 		if (isSearchOpen) {
-			setTimeout(() => searchInput?.focus(), 100);
+			await tick(); // Wait for DOM to update so searchInput/ID are ready
+
+			// Find element by ID for direct scroll
+			const el = document.getElementById('premium-search-bar');
+			if (el) {
+				// scrollIntoView is standard and respects scroll-margin-top
+				el.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start'
+				});
+			}
+
+			// Focus input after a short delay to allow scroll to start
+			setTimeout(() => {
+				searchInput?.focus({ preventScroll: true });
+			}, 300);
 		} else {
 			searchQuery = '';
 		}
 	}
 </script>
 
-<div class="service-filter-bar">
+<div id="premium-search-bar" class="service-filter-bar" bind:this={filterBarElement}>
 	<div class="filter-wrapper">
 		{#if !isSearchOpen}
 			<div class="filter-container" transition:fade={{ duration: 200 }}>
@@ -103,6 +120,7 @@
 		padding: 10px 0;
 		margin-bottom: 20px;
 		border-bottom: 1px solid rgba(var(--color-accent-gold-rgb), 0.1);
+		scroll-margin-top: 54px; /* Tight fit: 64px header - 10px visual adjustment */
 	}
 
 	.filter-wrapper {

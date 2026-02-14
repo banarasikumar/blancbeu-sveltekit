@@ -11,15 +11,16 @@
 	import { logout } from '$lib/services/authService';
 
 	// UI Components
-	import TierProgress from '$lib/components/you/TierProgress.svelte';
-	import StatsGrid from '$lib/components/you/StatsGrid.svelte';
+	import UnifiedStatusCard from '$lib/components/you/UnifiedStatusCard.svelte';
 	import QuickActions from '$lib/components/you/QuickActions.svelte';
 
-	let user: User | null = null;
-	let latestBooking: any = null;
-	let loading = true;
+	// Svelte 5 Runes
+	let user = $state<User | null>(null);
+	let latestBooking = $state<any>(null);
+	let loading = $state(true);
+	let isLoggingOut = $state(false);
+
 	let unsubscribe: () => void;
-	let isLoggingOut = false;
 
 	// Mock Data for Premium Feel (Could be loaded from Firestore later)
 	const MOCK_POINTS = 4550;
@@ -28,19 +29,49 @@
 
 	onMount(() => {
 		console.log('Mounting Profile Page...');
+
+		// 1. Immediate Check (Optimization)
+		if (auth.currentUser) {
+			console.log('Auth check immediate success:', auth.currentUser.uid);
+			user = auth.currentUser;
+			loading = false;
+			fetchLatestBooking(user.uid);
+		}
+
+		// 2. Safety Timeout (Fallback)
+		const safetyTimer = setTimeout(() => {
+			if (loading) {
+				console.warn('Auth check timed out after 15s. Forcing stop.');
+				loading = false;
+				if (!user) {
+					// Optional: redirect or show error. For now just stop spinner.
+					// goto('/login');
+				}
+			}
+		}, 15000);
+
+		// 3. Listener
 		unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+			clearTimeout(safetyTimer); // Clear timeout if auth resolves
 			console.log('Auth State Changed:', currentUser ? 'User logged in' : 'No user');
-			user = currentUser;
-			loading = false; // Stop loading immediately when auth resolves
+
+			// Only update if changed or explicit load needed
+			if (currentUser || !user) {
+				user = currentUser;
+				loading = false;
+			}
 
 			if (user) {
-				console.log('Fetching latest booking for:', user.uid);
-				fetchLatestBooking(user.uid);
+				// Only fetch if we haven't already (or if user changed)
+				// simple check: if we have user but no booking, fetch.
+				if (!latestBooking) {
+					fetchLatestBooking(user.uid);
+				}
 			} else {
 				// Only redirect if NOT intentionally logging out
 				if (!isLoggingOut) {
 					console.log('Redirecting to login...');
-					goto('/login');
+					goto('/login', { replaceState: true });
 				}
 			}
 		});
@@ -49,43 +80,79 @@
 	async function fetchLatestBooking(uid: string) {
 		try {
 			// Query latest booking
-			const q = query(
-				collection(db, 'bookings'),
-				where('userId', '==', uid)
-				// orderBy('createdAt', 'desc'), // Requires index. Fallback to client sort if needed.
-				// limit(1)
-			);
+			const q = query(collection(db, 'bookings'), where('userId', '==', uid));
 
 			const snapshot = await getDocs(q);
 			if (!snapshot.empty) {
-				// Client-side sort to avoid index requirement for now
 				const docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-				docs.sort((a: any, b: any) => {
-					// Sort by created timestamp descending
-					const timeA = a.createdAt?.seconds || 0;
-					const timeB = b.createdAt?.seconds || 0;
-					return timeB - timeA;
-				});
 
-				// Filter for upcoming only (optional, or just show absolutely latest)
-				// Let's show the absolute latest active booking
-				const active = docs.find(
+				// 1. Filter for ACTIVE bookings only
+				const activeBookings = docs.filter(
 					(b: any) =>
 						b.status !== 'cancelled' && b.status !== 'declined' && b.status !== 'completed'
 				);
 
-				if (active) {
-					latestBooking = active;
-				} else {
-					// If no active, maybe show last completed?
-					// For now, let's just show nothing or a "Book Now" promo if desired.
-					// Review Requirement: "Most recent booking"
-					latestBooking = docs[0]; // Show the absolute latest regardless of status
-				}
+				// 2. Parse dates and find the NEAREST UPCOMING appointment
+				const now = new Date();
+
+				const upcoming = activeBookings.filter((b: any) => {
+					if (!b.date) return false;
+					// Combine date and time for comparison
+					// Assuming date is YYYY-MM-DD and time is HH:MM (or similar)
+					// If time is missing, default to end of day or start of day? Let's use start of day for safety.
+					const timeStr = b.time || '00:00';
+					const dateTimeStr = `${b.date}T${timeStr.replace(' ', '')}`; // simplistic attempt, better to parse manually if AM/PM
+
+					// Robust parsing
+					const bookingDate = new Date(b.date);
+					if (isNaN(bookingDate.getTime())) return false;
+
+					// If we have a time string like "10:00 AM", we need to handle it.
+					// For now, let's just compare dates first. If date is today, check time?
+					// Simpler: Just check if the *day* is today or future.
+					// refine: "Upcoming" usually implies "in the future".
+					// Let's rely on string comparison for dates YYYY-MM-DD if standard.
+
+					// Let's try to convert to a comparable timestamp
+					return isFutureOrToday(b.date, b.time);
+				});
+
+				// 3. Sort by nearest date
+				upcoming.sort((a: any, b: any) => {
+					const dateA = new Date(a.date).getTime();
+					const dateB = new Date(b.date).getTime();
+					return dateA - dateB; // Ascending (nearest first)
+				});
+
+				latestBooking = upcoming.length > 0 ? upcoming[0] : null;
 			}
 		} catch (error) {
 			console.error('Error fetching latest booking:', error);
 		}
+	}
+
+	function isFutureOrToday(dateStr: string, timeStr: string) {
+		const now = new Date();
+		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		const bookingDate = new Date(dateStr);
+
+		// If date is invalid
+		if (isNaN(bookingDate.getTime())) return false;
+
+		// Normalize booking date to midnight
+		const bDate = new Date(
+			bookingDate.getFullYear(),
+			bookingDate.getMonth(),
+			bookingDate.getDate()
+		);
+
+		if (bDate.getTime() > today.getTime()) return true; // Future date
+		if (bDate.getTime() === today.getTime()) {
+			// It is today. Check time if possible.
+			// If simpler, just show it as upcoming if it's today.
+			return true;
+		}
+		return false; // Past date
 	}
 
 	function formatDateShort(dateStr: string) {
@@ -112,18 +179,22 @@
 	};
 
 	// --- FORMATTERS ---
-	function formatNextBookingTime(timestamp: any) {
-		if (!timestamp) return '';
+	function formatNextBookingTime(dateStr: string, timeStr: string) {
+		if (!dateStr || !timeStr) return '';
 		try {
-			const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); // Handle Firestore timestamp or Date object
+			// Construct date object from YYYY-MM-DD and HH:MM
+			const bookingDate = new Date(`${dateStr}T${timeStr.replace(' ', '')}`); // Basic parse (improve if AM/PM used)
+			if (isNaN(bookingDate.getTime())) return '';
+
 			const now = new Date();
-			const diffMs = date.getTime() - now.getTime();
+			const diffMs = bookingDate.getTime() - now.getTime();
 			const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
 			const diffDays = Math.floor(diffHrs / 24);
 
-			if (diffMs < 0) return 'In Progress / Completed';
+			if (diffMs < 0) return 'In Progress / Completed'; // Or just show status
 			if (diffHrs < 1) return `Starts in ${Math.floor(diffMs / 60000)} mins`;
 			if (diffHrs < 24) return `Starts in ${diffHrs} hours`;
+			if (diffDays === 1) return `Tomorrow`;
 			return `In ${diffDays} days`;
 		} catch (e) {
 			return '';
@@ -177,14 +248,25 @@
 						<button class="edit-icon" on:click={editProfile}>✎</button>
 					</h1>
 					<p class="profile-email-small">{user.email}</p>
-					<div class="tier-pill">Gold Member</div>
+					<!-- Tier Pill removed to reduce visual clutter and redundancy with the main card -->
 				</div>
 			</div>
 
 			<!-- MAIN CONTENT -->
 			<div class="dashboard-content" in:fly={{ y: 20, duration: 400, delay: 100 }}>
-				<!-- LATEST BOOKING WIDGET -->
+				<!-- UNIFIED STATUS CARD (Combines Tier & Stats) -->
+				<UnifiedStatusCard
+					currentPoints={MOCK_POINTS}
+					nextTierThreshold={5000}
+					currentTierName="Gold"
+					nextTierName="Platinum"
+					totalSaved={MOCK_SAVINGS}
+					bookingsCount={MOCK_BOOKINGS}
+				/>
+
 				<!-- LATEST BOOKING WIDGET (TICKET STYLE) -->
+				<h2 class="section-title">Upcoming Appointment</h2>
+
 				{#if latestBooking}
 					<div class="ticket-widget" on:click={() => goto('/you/bookings')}>
 						<div class="ticket-content">
@@ -199,12 +281,12 @@
 									<span class="day">{latestBooking.date?.split('-')[2]}</span>
 								</div>
 								<div class="status-group">
-									<div class="time-remaining">
-										<Clock size={12} />
-										<span>{formatNextBookingTime(latestBooking.createdAt)}</span>
-										<!-- Note: 'createdAt' is just a proxy. ideally use proper start time object if available, 
-										     but legacy app used date+time string parsing. For now, let's use the static time string below -->
-									</div>
+									{#if latestBooking.status === 'confirmed'}
+										<div class="time-remaining">
+											<Clock size={12} />
+											<span>{formatNextBookingTime(latestBooking.date, latestBooking.time)}</span>
+										</div>
+									{/if}
 									<span class="status-tag {latestBooking.status}">{latestBooking.status}</span>
 								</div>
 							</div>
@@ -237,22 +319,11 @@
 						<div class="ticket-notch-right"></div>
 						<div class="ticket-dash-line"></div>
 					</div>
+				{:else}
+					<div class="empty-state">
+						<p>You do not have any upcoming appointments.</p>
+					</div>
 				{/if}
-
-				<!-- TIER PROGRESS -->
-				<TierProgress
-					currentPoints={MOCK_POINTS}
-					nextTierThreshold={5000}
-					currentTierName="Gold"
-					nextTierName="Platinum"
-				/>
-
-				<!-- KEY STATS -->
-				<StatsGrid
-					loyaltyPoints={MOCK_POINTS}
-					totalSaved={MOCK_SAVINGS}
-					bookingsCount={MOCK_BOOKINGS}
-				/>
 
 				<!-- QUICK ACTIONS -->
 				<QuickActions />
@@ -317,7 +388,7 @@
 		align-items: center;
 		padding: 20px 0 10px; /* Reduced vertical padding */
 		text-align: center;
-		margin-bottom: 20px;
+		margin-bottom: 10px;
 	}
 
 	.avatar-ring-small {
@@ -396,13 +467,15 @@
 
 	/* TICKET WIDGET STYLE */
 	.ticket-widget {
-		background: var(--gradient-card);
-		border-radius: 16px;
-		border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
+		background: var(--color-bg-glass);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border-radius: 20px; /* Match Unified Card */
+		border: 1px solid var(--color-border);
 		margin-bottom: 24px;
 		position: relative;
 		overflow: hidden;
-		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); /* Match Unified Card Shadow */
 		cursor: pointer;
 		transition: transform 0.2s;
 	}
@@ -468,8 +541,8 @@
 		color: #2ecc71;
 	}
 	.status-tag.pending {
-		background: rgba(241, 196, 15, 0.2);
-		color: #f1c40f;
+		background: rgba(243, 156, 18, 0.15);
+		color: #f39c12; /* Darker Gold/Orange for better visibility on light bg */
 	}
 
 	.ticket-body {
@@ -547,5 +620,26 @@
 	.logout-btn:active {
 		transform: scale(0.98);
 		background: rgba(255, 59, 48, 0.25);
+	}
+
+	.section-title {
+		font-family: var(--font-heading);
+		font-size: 1rem;
+		color: var(--color-text-secondary);
+		margin-bottom: 12px;
+		padding-left: 4px;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.empty-state {
+		padding: 30px;
+		text-align: center;
+		background: rgba(255, 255, 255, 0.03);
+		border-radius: var(--radius-md);
+		border: 1px dashed rgba(255, 255, 255, 0.1);
+		color: var(--color-text-secondary);
+		font-size: 0.9rem;
+		margin-bottom: 24px;
 	}
 </style>

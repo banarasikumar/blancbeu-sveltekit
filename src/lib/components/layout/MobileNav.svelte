@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page, navigating } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { saveScrollPosition, restoreScrollPosition, scrollToTop } from '$lib/stores/scroll';
 
@@ -38,6 +38,12 @@
 
 	// Handle navigation click
 	function handleNavClick(e: MouseEvent, item: (typeof navItems)[0]) {
+		// Prevent double-clicks or conflicting navigations
+		if ($navigating) {
+			e.preventDefault();
+			return;
+		}
+
 		const isActive = item.matcher(activeRoute);
 
 		if (isActive) {
