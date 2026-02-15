@@ -289,12 +289,14 @@
 	.diamond-overlay {
 		position: fixed;
 		inset: 0;
-		z-index: 200;
+		z-index: 1100;
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: center;
 		background: var(--color-bg-primary); /* Dynamic Theme Background */
-		overflow: hidden;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
 		font-family: var(--font-body, sans-serif);
 		color: var(--color-text-primary);
 		transition:
@@ -363,12 +365,14 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center; /* Center instead of space-evenly */
+		justify-content: flex-start;
 		gap: 16px; /* Fixed gap instead of space-evenly distribution */
 		width: 100%;
 		max-width: 420px;
-		height: 100dvh;
-		padding: 16px; /* Reduced padding */
+		min-height: 100vh;
+		min-height: 100dvh;
+		padding: 24px 16px; /* Top padding for breathing room */
+		padding-bottom: max(24px, env(safe-area-inset-bottom));
 		box-sizing: border-box;
 	}
 

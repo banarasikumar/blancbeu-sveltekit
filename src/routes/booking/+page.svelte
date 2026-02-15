@@ -818,7 +818,9 @@
 				<button class="modal-close-btn" on:click={closeSummaryModal}><X size={20} /></button>
 
 				<div class="summary-header">
-					<h3>Booking Summary</h3>
+					<h3 class="font-cinzel text-2xl font-bold">
+						Booking <span class="text-gradient-gold">Summary</span>
+					</h3>
 					<p>Please review your details before confirming.</p>
 				</div>
 
@@ -826,7 +828,7 @@
 					<!-- Booking Details Card (Services, Requests, DateTime) -->
 					<div class="booking-details-card">
 						<div class="card-header">
-							<h4>Booking Details</h4>
+							<h4>BOOKING DETAILS</h4>
 							<button class="edit-link" on:click={closeSummaryModal}>Edit</button>
 						</div>
 
@@ -835,9 +837,14 @@
 							<span class="detail-label">Services ({$cart.length})</span>
 							<div class="summary-list">
 								{#each $cart as item}
-									<div class="summary-item">
-										<span>{item.name}</span>
-										<span class="text-gold">{fmt(item.price)}</span>
+									<div class="summary-service-card">
+										<div class="service-icon-box">
+											<Scissors size={18} />
+										</div>
+										<div class="service-info">
+											<span class="service-name">{item.name}</span>
+											<span class="service-price">{fmt(item.price)}</span>
+										</div>
 									</div>
 								{/each}
 							</div>
@@ -846,28 +853,53 @@
 						<!-- Special Requests -->
 						<div class="detail-section">
 							<span class="detail-label">Special Requests</span>
-							<p class="detail-value italic">{userNotes.trim() ? userNotes : 'None'}</p>
+							{#if userNotes.trim()}
+								<div class="special-req-card">
+									<div class="req-icon">
+										<FileText size={18} />
+									</div>
+									<p class="req-text">"{userNotes}"</p>
+								</div>
+							{:else}
+								<div class="special-req-empty">
+									<span>None</span>
+								</div>
+							{/if}
 						</div>
 
 						<!-- Date & Time -->
 						<div class="detail-section">
 							<span class="detail-label">Date & Time</span>
-							<div class="detail-value flex items-center gap-4">
-								<div class="flex items-center gap-2">
-									<Calendar size={16} class="text-gold" />
-									<span>{selectedDate ? formatDisplayDate(selectedDate) : '-'}</span>
+							<div class="date-time-row">
+								<div class="dt-card date-card">
+									<div class="dt-icon">
+										<Calendar size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Date</span>
+										<span class="dt-value"
+											>{selectedDate ? formatDisplayDate(selectedDate) : '-'}</span
+										>
+									</div>
 								</div>
-								<div class="flex items-center gap-2">
-									<Clock size={16} class="text-gold" />
-									<span>{selectedTime}</span>
+								<div class="dt-card time-card">
+									<div class="dt-icon">
+										<Clock size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Time</span>
+										<span class="dt-value">{selectedTime}</span>
+									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 
 					<!-- Payment Method Section (Outside Card) -->
-					<div class="payment-section-standalone">
-						<h4>Payment Method</h4>
+					<div class="payment-section-standalone mt-2">
+						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
+							Payment Method
+						</h4>
 						<div class="payment-options-grid">
 							<button
 								class="payment-option compact {paymentType === 'free' ? 'active' : ''}"
@@ -913,7 +945,7 @@
 						{#if paymentType === 'token' || paymentType === 'full'}
 							<div class="payment-sub-methods" transition:slide>
 								<div class="section-label-sm">
-									<h4>Select Method</h4>
+									<h4>Select Payment Method</h4>
 								</div>
 								<div class="detailed-payment-grid">
 									<button
@@ -1734,12 +1766,11 @@
 	}
 	.payment-option.active {
 		border-color: var(--color-accent-gold);
-		background: linear-gradient(
-			90deg,
-			rgba(var(--color-accent-gold-rgb), 0.15) 0%,
-			rgba(var(--color-accent-gold-rgb), 0.05) 100%
-		);
-		box-shadow: 0 8px 30px rgba(var(--color-accent-gold-rgb), 0.15);
+		background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.05) 100%);
+		box-shadow:
+			0 10px 40px rgba(212, 175, 55, 0.2),
+			0 0 0 1px rgba(212, 175, 55, 0.4) inset; /* Inner glow border */
+		transform: translateY(-2px);
 	}
 
 	.option-icon-wrapper {
@@ -1824,13 +1855,16 @@
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		z-index: 1000;
+		z-index: 1100;
 		background: rgba(0, 0, 0, 0.8);
 		backdrop-filter: blur(8px);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 20px;
+		padding: 8px;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
 	}
 	.custom-picker-modal {
 		width: 100%;
@@ -1903,24 +1937,27 @@
 	.summary-modal {
 		width: 100%;
 		max-width: 500px;
-		background: #111;
-		border-radius: var(--radius-lg);
+		background: var(--color-bg-primary);
+		border-radius: 24px; /* More rounded */
 		display: flex;
 		flex-direction: column;
-		max-height: 85vh;
+		max-height: 90vh; /* Slightly smaller to float */
 		overflow: hidden;
-		border: 1px solid var(--color-accent-gold);
-		box-shadow: var(--shadow-gold);
+		border: 1px solid var(--color-border);
+		box-shadow:
+			0 25px 50px -12px rgba(0, 0, 0, 0.5),
+			0 0 0 1px rgba(255, 255, 255, 0.1) inset; /* Inner highlight */
 	}
+
 	.summary-header {
 		padding: 24px 24px 16px;
 		border-bottom: 1px solid var(--color-border);
-		background: var(--color-surface);
+		background: var(--color-bg-secondary); /* Slight contrast from body */
 	}
 	.summary-header h3 {
-		font-size: 1.5rem;
+		/* Font styling moved to utility classes in HTML */
 		margin-bottom: 4px;
-		color: var(--color-accent-gold);
+		color: var(--color-text-primary);
 	}
 	.summary-header p {
 		color: var(--color-text-secondary);
@@ -1929,10 +1966,97 @@
 	.summary-content-scroll {
 		padding: 24px;
 		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
 		flex: 1;
+		min-height: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
+		background: var(--color-bg-primary);
+	}
+
+	/* New Booking Details Card Style */
+	.booking-details-card {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 16px;
+		padding: 20px;
+		box-shadow: var(--shadow-sm);
+	}
+	.card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 16px;
+		padding-bottom: 12px;
+		border-bottom: 1px dashed var(--color-border);
+	}
+	.card-header h4 {
+		font-family: var(--font-heading);
+		font-size: 0.9rem;
+		font-weight: 700;
+		letter-spacing: 1px;
+		color: var(--color-text-secondary);
+		margin: 0;
+	}
+	.edit-link {
+		font-size: 0.85rem;
+		color: var(--color-accent-brand);
+		text-decoration: underline;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 0;
+	}
+	.detail-section {
+		margin-bottom: 16px;
+	}
+	.detail-section:last-child {
+		margin-bottom: 0;
+	}
+	.booking-details-card .detail-section:last-child {
+		margin-bottom: 0;
+		padding-bottom: 0;
+		border-bottom: none;
+	}
+	.booking-details-card .detail-label {
+		font-size: 0.85rem;
+		font-weight: 800; /* Bolder */
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		color: var(--color-accent-gold); /* Gold Label */
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+	.booking-details-card .detail-label::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: linear-gradient(to right, var(--color-border), transparent);
+		opacity: 0.5;
+	}
+	.booking-details-card .detail-value {
+		color: var(--color-text-primary);
+		opacity: 0.9;
+		font-size: 0.95rem;
+		margin: 0;
+	}
+	.detail-label {
+		display: block;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		color: var(--color-text-tertiary); /* Muted label */
+		margin-bottom: 6px;
+		font-weight: 600;
+	}
+	.detail-value {
+		font-size: 1rem;
+		color: var(--color-text-primary);
+		font-weight: 500;
 	}
 	.summary-section h4 {
 		font-size: 0.9rem;
@@ -1943,40 +2067,62 @@
 		padding-bottom: 8px;
 		border-bottom: 1px dashed var(--color-border);
 	}
+	/* Services List as Cards */
+	.summary-service-card {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		background: var(--color-bg-secondary);
+		border: 1px solid var(--color-border);
+		padding: 12px;
+		border-radius: 12px;
+		transition: transform 0.2s;
+	}
+	.summary-service-card:hover {
+		transform: translateX(4px);
+		border-color: var(--color-accent-gold);
+		background: rgba(212, 175, 55, 0.05);
+	}
+	.service-icon-box {
+		width: 36px;
+		height: 36px;
+		background: rgba(var(--color-accent-gold-rgb), 0.1);
+		color: var(--color-accent-gold);
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.service-info {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+	}
+	.service-name {
+		font-weight: 600;
+		font-size: 0.95rem;
+		color: var(--color-text-primary);
+	}
+	.service-price {
+		font-size: 0.9rem;
+		color: var(--color-accent-gold);
+		font-weight: 700;
+	}
+
 	.summary-list {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 10px;
 	}
 	.summary-item {
+		/* Legacy fallback */
 		display: flex;
 		justify-content: space-between;
 		font-size: 1rem;
 	}
-	.summary-row {
-		display: flex;
-		gap: 20px;
-	}
-	.summary-payment-method {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		padding: 12px;
-		border-radius: 8px;
-		font-weight: 500;
-	}
-	.summary-totals {
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		padding: 16px;
-		border-radius: 12px;
-		margin-top: auto;
-	}
 	.summary-actions {
 		padding: 20px 24px;
-		background: var(--color-surface);
+		background: var(--color-surface); /* Matches card header/footer logic */
 		border-top: 1px solid var(--color-border);
 	}
 
@@ -2143,9 +2289,11 @@
 		box-shadow: 0 15px 40px rgba(212, 175, 55, 0.4);
 	}
 	.btn-primary-shiny:disabled {
-		opacity: 0.6;
-		filter: grayscale(1);
+		opacity: 0.5; /* Semi-transparent */
 		cursor: not-allowed;
+		filter: none; /* Removed grayscale */
+		transform: none !important;
+		box-shadow: none;
 	}
 
 	/* PAYMENT METHODS */
@@ -2161,36 +2309,79 @@
 		color: var(--color-text-secondary);
 		margin-bottom: 12px;
 	}
+	/* GRID SUB METHODS */
 	.detailed-payment-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-		gap: 10px;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 12px;
+		margin-top: 12px;
 	}
 	.method-card {
-		background: var(--color-btn-bg);
-		border: 1px solid var(--color-btn-border);
-		border-radius: 10px;
-		padding: 12px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		justify-content: center;
 		gap: 8px;
-		color: var(--color-text-secondary);
-		transition: all 0.2s;
+		background: var(--color-bg-secondary);
+		border: 1px solid var(--color-border);
+		border-radius: 12px;
+		padding: 16px 8px;
 		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		color: var(--color-text-secondary);
 	}
 	.method-card:hover {
-		background: var(--color-btn-hover-bg);
+		background: var(--color-surface-hover);
+		transform: translateY(-3px);
+		border-color: var(--color-accent-gold);
+		box-shadow: 0 4px 12px rgba(212, 175, 55, 0.15);
+		color: var(--color-text-primary);
 	}
 	.method-card.active {
-		background: var(--color-surface-active);
-		border-color: var(--color-accent-gold);
-		color: var(--color-accent-gold);
-		box-shadow: var(--shadow-gold);
+		background: linear-gradient(135deg, #ffd700 0%, #fdb931 100%); /* Gold Gradient */
+		color: black;
+		border-color: #fdb931;
+		box-shadow: 0 4px 15px rgba(253, 185, 49, 0.4);
+		font-weight: 600;
 	}
+
+	/* Method Icons Colors (When not active) */
+	.method-card :global(svg) {
+		transition: all 0.2s;
+		opacity: 0.7;
+	}
+	.method-card:hover :global(svg) {
+		opacity: 1;
+		transform: scale(1.1);
+	}
+	.method-card.active :global(svg) {
+		opacity: 1;
+		color: black !important; /* Force black icon on gold bg */
+	}
+
+	/* Specific Icon Colors for vibrancy */
+	.method-card:nth-child(1) :global(svg) {
+		color: #4caf50;
+	} /* UPI - Green */
+	.method-card:nth-child(2) :global(svg) {
+		color: #2196f3;
+	} /* QR - Blue */
+	.method-card:nth-child(3) :global(svg) {
+		color: #ff9800;
+	} /* Card - Orange */
+	.method-card:nth-child(4) :global(svg) {
+		color: #009688;
+	} /* eRupee - Teal */
+	.method-card:nth-child(5) :global(svg) {
+		color: #f44336;
+	} /* Crypto - Red */
+	.method-card:nth-child(6) :global(svg) {
+		color: #9c27b0;
+	} /* PayLater - Purple */
+
 	.method-card span {
 		font-size: 0.8rem;
-		font-weight: 500;
+		text-align: center;
 	}
 
 	.upi-apps-row {
@@ -2364,6 +2555,115 @@
 		padding-bottom: 8px;
 		border-bottom: 1px solid var(--color-border);
 	}
+	.booking-details-card .detail-section {
+		margin-bottom: 20px;
+		padding-bottom: 0; /* Remove border separation for cleaner card look */
+		border-bottom: none;
+	}
+
+	/* SPECIAL REQUEST CARD */
+	.special-req-card {
+		background: rgba(255, 235, 59, 0.12);
+		border: 1px dashed rgba(253, 216, 53, 0.5);
+		padding: 12px;
+		border-radius: 12px;
+		display: flex;
+		gap: 12px;
+		align-items: flex-start;
+		position: relative;
+	}
+	.req-icon {
+		color: #fbc02d; /* Darker Yellow/Gold */
+		margin-top: 2px;
+		flex-shrink: 0;
+	}
+	.req-text {
+		color: var(--color-text-primary);
+		font-size: 0.9rem;
+		line-height: 1.4;
+		font-weight: 500;
+		font-style: italic;
+		word-break: break-word;
+	}
+	.special-req-empty {
+		color: var(--color-text-muted);
+		font-style: italic;
+		font-size: 0.9rem;
+		padding: 4px 8px;
+		background: rgba(0, 0, 0, 0.03);
+		border-radius: 6px;
+		display: inline-block;
+	}
+
+	/* DATE TIME CARDS */
+	.date-time-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+		max-width: 100%; /* Prevent overflow */
+	}
+	.dt-card {
+		background: var(--color-bg-secondary);
+		border: 1px solid var(--color-border);
+		padding: 10px; /* Reduced specific padding */
+		border-radius: 12px;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0; /* CRITICAL: Allows grid item to shrink below content size */
+		overflow: hidden; /* Contains overflow */
+	}
+	.dt-icon {
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0; /* Prevent icon shrinking */
+	}
+	.date-card .dt-icon {
+		background: white;
+		color: #1976d2;
+	}
+	.time-card .dt-icon {
+		background: white;
+		color: #7b1fa2;
+	}
+
+	/* Specific Backgrounds for Date/Time Cards */
+	.date-card {
+		background: rgba(33, 150, 243, 0.08); /* Light Blue Tint */
+		border-color: rgba(33, 150, 243, 0.2);
+	}
+	.time-card {
+		background: rgba(156, 39, 176, 0.08); /* Light Purple Tint */
+		border-color: rgba(156, 39, 176, 0.2);
+	}
+
+	.dt-info {
+		display: flex;
+		flex-direction: column;
+		min-width: 0; /* Allows text truncation */
+		flex: 1;
+	}
+	.dt-label {
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		color: var(
+			--color-text-secondary
+		); /* Will be overridden by theme specificity if needed, but let's keep it clean */
+		font-weight: 700;
+		opacity: 0.8;
+	}
+	.dt-value {
+		font-size: 0.9rem;
+		font-weight: 700;
+		color: var(--color-text-primary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
 
 	/* Payment Card Specifics */
 	.payment-card {
@@ -2394,67 +2694,6 @@
 		margin-top: 16px;
 		padding-top: 16px;
 		border-top: 1px dashed var(--color-border);
-	}
-
-	/* Booking Details Card (Combined Services, Requests, DateTime) */
-	.booking-details-card {
-		background: var(--color-surface);
-		border-radius: 12px;
-		padding: 16px;
-		margin-bottom: 24px;
-		border: 1px solid var(--color-border);
-	}
-	.card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 16px;
-		padding-bottom: 12px;
-		border-bottom: 1px solid var(--color-border);
-	}
-	.booking-details-card .card-header h4 {
-		font-size: 1rem;
-		text-transform: uppercase;
-		letter-spacing: 1px;
-		color: var(--color-text-primary);
-		margin: 0;
-		opacity: 0.8;
-	}
-	.booking-details-card .edit-link {
-		background: none;
-		border: none;
-		color: var(--color-accent-gold);
-		cursor: pointer;
-		font-size: 0.85rem;
-		text-decoration: underline;
-		padding: 0;
-	}
-	.booking-details-card .edit-link:hover {
-		opacity: 0.8;
-	}
-	.booking-details-card .detail-section {
-		margin-bottom: 14px;
-		padding-bottom: 14px;
-		border-bottom: 1px solid var(--color-border);
-	}
-	.booking-details-card .detail-section:last-child {
-		margin-bottom: 0;
-		padding-bottom: 0;
-		border-bottom: none;
-	}
-	.booking-details-card .detail-label {
-		font-size: 0.8rem;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		color: var(--color-text-muted);
-		display: block;
-		margin-bottom: 8px;
-	}
-	.booking-details-card .detail-value {
-		color: var(--color-text-primary);
-		opacity: 0.9;
-		font-size: 0.95rem;
-		margin: 0;
 	}
 
 	/* Payment Section Standalone (Outside Card) */
@@ -2602,10 +2841,17 @@
 		justify-content: space-between;
 		align-items: center;
 		font-size: 1.2rem;
-		font-weight: 700;
-		padding-top: 12px;
-		border-top: 1px solid var(--color-border);
-		margin-top: 8px;
+		font-weight: 800;
+		padding-top: 16px;
+		border-top: 2px dashed var(--color-border);
+		margin-top: 12px;
+	}
+	.total-row span:last-child {
+		font-size: 1.5rem;
+		background: var(--gradient-gold);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		text-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
 	}
 
 	/* Spinner for Apply button */
@@ -2679,13 +2925,13 @@
 		background: transparent;
 	}
 
-	/* GREEN SLOTS FOR LIGHT THEME */
+	/* GREEN SLOTS FOR LIGHT THEME (Enhanced) */
 	:global([data-theme='clean']) .cal-day.available,
 	:global([data-theme='glitch']) .cal-day.available {
-		background: rgba(76, 175, 80, 0.12); /* Light Green Tint */
-		border: 1px solid rgba(76, 175, 80, 0.3); /* Green Border */
-		color: #1b5e20; /* Dark Green Text for contrast */
-		font-weight: 600;
+		background: rgba(76, 175, 80, 0.15); /* Slightly darker tint */
+		border: 1px solid rgba(76, 175, 80, 0.4);
+		color: #1b5e20;
+		font-weight: 700;
 	}
 	:global([data-theme='clean']) .cal-day.available:hover,
 	:global([data-theme='glitch']) .cal-day.available:hover {
@@ -2725,16 +2971,126 @@
 	/* Summary Modal Light Theme Overrides */
 	:global([data-theme='clean']) .summary-modal,
 	:global([data-theme='glitch']) .summary-modal {
-		background: #ffffff;
-		border: 1px solid #e0e0e0;
+		background: rgba(255, 255, 255, 0.9);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		border: 1px solid rgba(255, 255, 255, 0.6);
+		box-shadow:
+			0 20px 60px rgba(0, 0, 0, 0.1),
+			0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 	}
 	:global([data-theme='clean']) .summary-header,
 	:global([data-theme='glitch']) .summary-header {
-		background: #f9f9f9;
-		border-bottom: 1px solid #eee;
+		background: rgba(255, 255, 255, 0.6);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	}
+	:global([data-theme='clean']) .summary-service-card,
+	:global([data-theme='glitch']) .summary-service-card {
+		background: white;
+		border-color: rgba(0, 0, 0, 0.06);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+	}
+	:global([data-theme='clean']) .summary-service-card:hover,
+	:global([data-theme='glitch']) .summary-service-card:hover {
+		border-color: var(--color-accent-gold);
+		box-shadow: 0 8px 16px rgba(212, 175, 55, 0.15);
+		background: white;
+	}
+	:global([data-theme='clean']) .service-name,
+	:global([data-theme='glitch']) .service-name {
+		color: #222;
 	}
 	:global([data-theme='clean']) .summary-header h3,
 	:global([data-theme='glitch']) .summary-header h3 {
+		color: #111;
+		font-weight: 800;
+		letter-spacing: -0.5px;
+	}
+	:global([data-theme='clean']) .service-price,
+	:global([data-theme='glitch']) .service-price {
+		color: #d4af37; /* Darker Gold for visibility on white */
+	}
+
+	/* GLASSMORPHISM - LIGHT THEME OVERRIDES (Enhanced) */
+	:global([data-theme='clean']) .summary-modal,
+	:global([data-theme='glitch']) .summary-modal {
+		background: rgba(255, 255, 255, 0.92); /* Less transparency for better contrast */
+		backdrop-filter: blur(40px); /* Stronger blur */
+		-webkit-backdrop-filter: blur(40px);
+		border: 1px solid rgba(255, 255, 255, 0.8);
+		box-shadow:
+			0 30px 80px rgba(0, 50, 0, 0.15),
+			/* Subtle green shadow hint */ 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+	}
+	:global([data-theme='clean']) .booking-details-card,
+	:global([data-theme='glitch']) .booking-details-card {
+		background: rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(15px);
+		border-color: rgba(0, 0, 0, 0.08); /* More definition */
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+	}
+	:global([data-theme='clean']) .special-req-card,
+	:global([data-theme='glitch']) .special-req-card {
+		background: rgba(255, 241, 118, 0.5); /* Stronger yellow */
+		border-color: rgba(253, 216, 53, 0.6);
+	}
+	/* Enhance specific cards in light mode for vibrance */
+	:global([data-theme='clean']) .date-card,
+	:global([data-theme='glitch']) .date-card {
+		background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+		border-color: #90caf9;
+	}
+	:global([data-theme='clean']) .time-card,
+	:global([data-theme='glitch']) .time-card {
+		background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+		border-color: #ce93d8;
+	}
+	:global([data-theme='clean']) .req-text,
+	:global([data-theme='glitch']) .req-text {
+		color: #444;
+	}
+	:global([data-theme='clean']) .dt-value,
+	:global([data-theme='glitch']) .dt-value {
 		color: #000;
+		font-weight: 700;
+	}
+
+	/* LIGHT THEME PAYMENT OPTIONS */
+	:global([data-theme='clean']) .payment-option,
+	:global([data-theme='glitch']) .payment-option {
+		background: #fdfdfd;
+		border-color: #e0e0e0;
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+	}
+	:global([data-theme='clean']) .payment-option:hover,
+	:global([data-theme='glitch']) .payment-option:hover {
+		background: #fff;
+		border-color: var(--color-accent-gold);
+		box-shadow: 0 8px 20px rgba(212, 175, 55, 0.15);
+	}
+	:global([data-theme='clean']) .payment-option.active,
+	:global([data-theme='glitch']) .payment-option.active {
+		background: linear-gradient(135deg, #fffbf0 0%, #fff 100%);
+		border-color: #d4af37;
+		box-shadow:
+			0 12px 30px rgba(212, 175, 55, 0.25),
+			0 0 0 1px rgba(212, 175, 55, 0.1) inset;
+	}
+	:global([data-theme='clean']) .option-label,
+	:global([data-theme='glitch']) .option-label {
+		color: #111;
+		font-weight: 700;
+	}
+	:global([data-theme='clean']) .option-icon-wrapper,
+	:global([data-theme='glitch']) .option-icon-wrapper {
+		background: #f5f5f5;
+		color: #555;
+		border-color: #eee;
+	}
+	:global([data-theme='clean']) .payment-option.active .option-icon-wrapper,
+	:global([data-theme='glitch']) .payment-option.active .option-icon-wrapper {
+		background: var(--color-accent-gold);
+		color: white;
+		box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
 	}
 </style>

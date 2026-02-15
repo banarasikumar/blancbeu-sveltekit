@@ -14,13 +14,13 @@
 		{
 			value: 1000,
 			label: 'Happy Clients',
-			suffix: '',
+			suffix: '+',
 			desc: 'Thousands of satisfied customers every year'
 		},
 		{
 			value: 50,
 			label: 'Services Offered',
-			suffix: '',
+			suffix: '+',
 			desc: 'Comprehensive beauty and wellness solutions'
 		}
 	];
