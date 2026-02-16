@@ -90,6 +90,15 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+
+	<!-- Dynamic Manifest -->
+	{#if isAdminRoute}
+		<!-- Use admin manifest if available, or fallback/nothing for now -->
+		<!-- We will add admin manifest later -->
+	{:else}
+		<link rel="manifest" href="/manifest.json" />
+	{/if}
+
 	<!-- Mobile browser address bar & status bar color -->
 	<meta name="theme-color" content={metaThemeColor} />
 	<!-- iOS Safari status bar -->
