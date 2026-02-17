@@ -4,6 +4,7 @@
 	import Header from '$lib/components/layout/Header.svelte';
 	import MobileNav from '$lib/components/layout/MobileNav.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 	import { onMount } from 'svelte';
 	import { onNavigate, afterNavigate } from '$app/navigation';
 	import { initAuth } from '$lib/stores/auth';
@@ -121,6 +122,7 @@
 			{@render children()}
 		</main>
 		<MobileNav />
+		<InstallPrompt />
 		<Toast />
 	</div>
 {:else if isDesktop}
@@ -132,6 +134,7 @@
 					{@render children()}
 				</main>
 				<MobileNav />
+				<InstallPrompt />
 				<Toast />
 			</div>
 		</svelte:component>
@@ -143,6 +146,7 @@
 			{@render children()}
 		</main>
 		<MobileNav />
+		<InstallPrompt />
 		<Toast />
 	</div>
 {/if}
