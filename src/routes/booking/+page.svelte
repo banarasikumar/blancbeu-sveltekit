@@ -44,6 +44,7 @@
 	let selectedDate = '';
 	let selectedTime = '';
 	let userName = '';
+	let userEmail = '';
 	let userPhone = '';
 	let userNotes = '';
 	let paymentType: 'free' | 'token' | 'full' | '' = ''; // Payment option
@@ -465,12 +466,19 @@
 
 			const bookingData = {
 				services: $cart.map((i) => ({ name: i.name, price: i.price, id: i.id })),
+				servicesList: $cart.map((i) => ({ name: i.name, price: i.price, id: i.id })), // For Admin Compat
 				totalAmount: $cart.reduce((sum, i) => sum + i.price, 0),
 				date: selectedDate,
 				time: selectedTime,
+				// Flattened fields for Admin Panel
+				userName: userName,
+				userEmail: userEmail,
+				userPhone: userPhone,
+				notes: userNotes,
 				customer: {
 					name: userName,
 					phone: userPhone,
+					email: userEmail,
 					notes: userNotes
 				},
 				payment: {

@@ -266,3 +266,46 @@ export function getUserPhoto(user: AppUser): string | null {
 export function getUserPhone(user: AppUser): string | null {
     return user.phone || user.phoneNumber || user.mobile || null;
 }
+
+export function getBookingDateTime(b: Booking): Date | null {
+    if (!b.date) return null;
+
+    let targetDate: Date;
+    // 1. Parse Date
+    if (b.date.seconds) {
+        targetDate = new Date(b.date.seconds * 1000);
+    } else if (typeof b.date === 'string' && b.date.includes('-')) {
+        const parts = b.date.split('-');
+        if (parts.length === 3 && parts[2].length === 4) {
+            // DD-MM-YYYY
+            targetDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        } else {
+            targetDate = new Date(b.date);
+        }
+    } else {
+        targetDate = new Date(b.date);
+    }
+
+    if (isNaN(targetDate.getTime())) return null;
+
+    // 2. Parse Time (if exists)
+    if (b.time) {
+        const [timePart, modifier] = b.time.split(' ');
+        if (timePart) {
+            let [hours, minutes] = timePart.split(':').map(Number);
+            if (!isNaN(hours) && !isNaN(minutes)) {
+                if (hours === 12) hours = 0;
+                if (modifier === 'PM') hours += 12;
+                targetDate.setHours(hours, minutes, 0, 0);
+            }
+        }
+    } else {
+        // If no time is specified, maybe default to end of day? 
+        // Or start of day? For auto-cancel, we should be conservative.
+        // Let's assume start of day (00:00) if no time, so 24h later means 
+        // 00:00 next day.
+        targetDate.setHours(0, 0, 0, 0);
+    }
+
+    return targetDate;
+}

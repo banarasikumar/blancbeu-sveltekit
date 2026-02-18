@@ -17,7 +17,8 @@
 		destroyListeners,
 		allBookings,
 		getBookingTimestamp,
-		updateBookingStatus
+		updateBookingStatus,
+		getBookingDateTime
 	} from '$lib/stores/adminData';
 	import AdminNav from '$lib/components/admin/AdminNav.svelte';
 	import AdminHeader from '$lib/components/admin/AdminHeader.svelte';
@@ -84,13 +85,19 @@
 		if ($adminAuthState !== 'authorized') return;
 
 		const now = Date.now();
-		const oneHour = 60 * 60 * 1000;
+		// 24 Hours in milliseconds
+		const twentyFourHours = 24 * 60 * 60 * 1000;
+
 		// Iterate over all bookings to find overdue pending ones
 		const overdueBookings = $allBookings.filter((b) => {
 			if ((b.status || 'pending').toLowerCase() !== 'pending') return false;
-			const ts = getBookingTimestamp(b);
-			// Check if appointment time + 1 hour is in the past
-			return now > ts + oneHour;
+
+			// Use the new helper that respects Time
+			const bookingDate = getBookingDateTime(b);
+			if (!bookingDate) return false; // Safety fallback
+
+			// Check if appointment date/time + 24 hours is in the past
+			return now > bookingDate.getTime() + twentyFourHours;
 		});
 
 		if (overdueBookings.length > 0) {
