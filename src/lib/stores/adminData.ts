@@ -19,6 +19,10 @@ export interface Booking {
     notes?: string;
     createdAt?: any;
     updatedAt?: string;
+    // Timer fields
+    timerStart?: number; // timestamp in ms when timer was last started/resumed
+    timerElapsed?: number; // total accumulated seconds before current start
+    isTimerRunning?: boolean;
     [key: string]: any;
 }
 
@@ -151,6 +155,13 @@ export function destroyListeners() {
 export async function updateBookingStatus(bookingId: string, newStatus: string): Promise<void> {
     await updateDoc(doc(db, 'bookings', bookingId), {
         status: newStatus,
+        updatedAt: new Date().toISOString()
+    });
+}
+
+export async function updateBookingDetails(bookingId: string, details: Partial<Booking>): Promise<void> {
+    await updateDoc(doc(db, 'bookings', bookingId), {
+        ...details,
         updatedAt: new Date().toISOString()
     });
 }

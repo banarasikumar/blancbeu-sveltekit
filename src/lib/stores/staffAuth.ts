@@ -64,6 +64,7 @@ export function initStaffAuth() {
     if (unsubscribeAuth) return; // Already initialized
 
     unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+        console.log('[StaffAuth] Auth state changed:', user ? user.uid : 'null');
         if (user) {
             staffUser.set(user);
             staffAuthState.set('checking');
@@ -103,7 +104,9 @@ export async function staffSignIn(): Promise<void> {
  */
 export async function staffLogout(): Promise<void> {
     try {
+        console.log('[StaffAuth] Signing out...');
         await signOut(auth);
+        console.log('[StaffAuth] Sign out complete');
         staffUser.set(null);
         staffAuthState.set('unauthenticated');
     } catch (error: any) {

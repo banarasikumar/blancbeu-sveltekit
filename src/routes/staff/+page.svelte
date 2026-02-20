@@ -21,7 +21,7 @@
 </script>
 
 <div class="redirecting">
-	<p>Redirecting to Staff App...</p>
+	<p>Redirecting to Blancbeu Stylist...</p>
 </div>
 
 <style>

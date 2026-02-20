@@ -1,0 +1,977 @@
+﻿
+> svelteblancbeu@0.0.1 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding ssr environment for production...[36m[39m
+transforming...
+node.exe : 8:46:06 PM [vite-plugin-svelte] 
+src/routes/+layout.svelte:131:2 `<svelte:component>` is 
+deprecated in runes mode ÔÇö components are dynamic by 
+default
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (8:46:06 PM [vit 
+   ...amic by default:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+https://svelte.dev/e/svelte_component_deprecated
+129: {:else if isDesktop}
+130:   {#if SimulatorComponent}
+131:     <svelte:component this={SimulatorComponent}>
+                            ^
+132:       <div id="app-root">
+133:         <Header />
+8:46:07 PM [vite-plugin-svelte] src/routes/+page.svelte:93:1 
+Unused CSS selector ".no-services"
+https://svelte.dev/e/css_unused_selector
+91:   }
+92: 
+93:   .no-services {
+                  ^
+94:     grid-column: 1 / -1;
+95:     text-align: center;
+8:46:09 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/invoice/+page.svelte:833:1 Unused 
+CSS selector "[data-theme='clean'] .inv-action-btn.primary"
+https://svelte.dev/e/css_unused_selector
+831:   }
+832: 
+833:   [data-theme='clean'] .inv-action-btn.primary {
+                                                   ^
+834:     color: #fff;
+835:   }
+8:46:09 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/services/+page.svelte:198:1 
+Elements with the 'dialog' interactive role must have a 
+tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus
+196: {#if selectedService}
+197:   <!-- svelte-ignore a11y_click_events_have_key_events 
+-->
+198:   <div class="admin-action-sheet-overlay" 
+onclick={closeSheet} role="dialog">
+             ^
+199:     <!-- svelte-ignore 
+a11y_click_events_have_key_events -->
+200:     <div class="admin-action-sheet" onclick={(e) => 
+e.stopPropagation()} role="document">
+8:46:09 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/services/+page.svelte:200:2 
+Non-interactive element `<div>` should not be assigned mouse 
+or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interacti
+ons
+198:   <div class="admin-action-sheet-overlay" 
+onclick={closeSheet} role="dialog">
+199:     <!-- svelte-ignore 
+a11y_click_events_have_key_events -->
+200:     <div class="admin-action-sheet" onclick={(e) => 
+e.stopPropagation()} role="document">
+               ^
+201:       <div class="admin-action-sheet-header">
+202:         <div>
+8:46:09 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/services/add/+page.svelte:533:1 
+Unused CSS selector ".admin-spinner"
+https://svelte.dev/e/css_unused_selector
+531:   }
+532: 
+533:   .admin-spinner {
+                     ^
+534:     animation: spin 1s linear infinite;
+535:   }
+8:46:09 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/services/add/+page.svelte:537:1 
+Unused CSS selector ".admin-spinner-small"
+https://svelte.dev/e/css_unused_selector
+535:   }
+536: 
+537:   .admin-spinner-small {
+                           ^
+538:     width: 18px;
+539:     height: 18px;
+8:46:10 PM [vite-plugin-svelte] src/routes/(admin)/admin/serv
+ices/categories/+page.svelte:186:67 Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus
+184:           <div class="category-item">
+185:             {#if editingId === cat.id}
+186:               <input type="text" bind:value={editName} 
+class="edit-input" autoFocus />
+                                                             
+                           ^
+187:               <div class="actions">
+188:                 <button class="icon-btn save" 
+onclick={() => saveEdit(cat.id)}>
+8:46:10 PM [vite-plugin-svelte] src/routes/(admin)/admin/serv
+ices/categories/+page.svelte:230:1 Unused CSS selector 
+".spin"
+https://svelte.dev/e/css_unused_selector
+228:   }
+229: 
+230:   .spin {
+            ^
+231:     animation: spin 1s linear infinite;
+232:   }
+8:46:10 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/settings/+page.svelte:60:1 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+58: <!-- Settings List -->
+59: <div class="admin-settings-list">
+60:   <div
+           ^
+61:     class="admin-settings-item"
+62:     role="button"
+8:46:10 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/settings/+page.svelte:73:1 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+71:   </div>
+72: 
+73:   <div class="admin-settings-item" role="button" 
+tabindex="0" onclick={handleMigration}>
+            ^
+74:     <div class="admin-settings-item-left">
+75:       <Database size={20} color="var(--admin-indigo)" />
+8:46:10 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/settings/+page.svelte:85:1 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+83:   </div>
+84: 
+85:   <div
+           ^
+86:     class="admin-settings-item"
+87:     role="button"
+8:46:10 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/settings/+page.svelte:98:1 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+ 96:   </div>
+ 97: 
+ 98:   <div class="admin-settings-item" role="button" 
+tabindex="0" onclick={handleLogout}>
+             ^
+ 99:     <div class="admin-settings-item-left">
+100:       <LogOut size={20} color="var(--admin-red)" />
+8:46:10 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/users/+page.svelte:172:1 Elements 
+with the 'dialog' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus
+170: 
+171:   <!-- svelte-ignore a11y_click_events_have_key_events 
+-->
+172:   <div class="admin-action-sheet-overlay" 
+onclick={closeSheet} role="dialog">
+             ^
+173:     <!-- svelte-ignore 
+a11y_click_events_have_key_events -->
+174:     <div class="admin-action-sheet" onclick={(e) => 
+e.stopPropagation()} role="document">
+8:46:10 PM [vite-plugin-svelte] 
+src/routes/(admin)/admin/users/+page.svelte:174:2 
+Non-interactive element `<div>` should not be assigned mouse 
+or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interacti
+ons
+172:   <div class="admin-action-sheet-overlay" 
+onclick={closeSheet} role="dialog">
+173:     <!-- svelte-ignore 
+a11y_click_events_have_key_events -->
+174:     <div class="admin-action-sheet" onclick={(e) => 
+e.stopPropagation()} role="document">
+               ^
+175:       <div class="admin-action-sheet-header">
+176:         <div>
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:820:2 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+818:   <!-- SUMMARY MODAL -->
+819:   {#if showSummaryModal}
+820:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeSummaryModal}>
+               ^
+821:       <div
+822:         class="summary-modal glass-panel"
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:820:2 `<div>` with a click 
+handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+818:   <!-- SUMMARY MODAL -->
+819:   {#if showSummaryModal}
+820:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeSummaryModal}>
+               ^
+821:       <div
+822:         class="summary-modal glass-panel"
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:821:3 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+819:   {#if showSummaryModal}
+820:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeSummaryModal}>
+821:       <div
+                ^
+822:         class="summary-modal glass-panel"
+823:         transition:scale={{ start: 0.9, duration: 300, 
+easing: cubicOut }}
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:821:3 `<div>` with a click 
+handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+819:   {#if showSummaryModal}
+820:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeSummaryModal}>
+821:       <div
+                ^
+822:         class="summary-modal glass-panel"
+823:         transition:scale={{ start: 0.9, duration: 300, 
+easing: cubicOut }}
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1118:2 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+1116:   <!-- DATE PICKER MODAL -->
+1117:   {#if showDateModal}
+1118:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeDateModal}>
+                ^
+1119:       <div
+1120:         class="custom-picker-modal glass-panel"
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1118:2 `<div>` with a click 
+handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+1116:   <!-- DATE PICKER MODAL -->
+1117:   {#if showDateModal}
+1118:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeDateModal}>
+                ^
+1119:       <div
+1120:         class="custom-picker-modal glass-panel"
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1119:3 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+1117:   {#if showDateModal}
+1118:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeDateModal}>
+1119:       <div
+                 ^
+1120:         class="custom-picker-modal glass-panel"
+1121:         transition:scale={{ start: 0.9, duration: 300, 
+easing: cubicOut }}
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1119:3 `<div>` with a click 
+handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+1117:   {#if showDateModal}
+1118:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeDateModal}>
+1119:       <div
+                 ^
+1120:         class="custom-picker-modal glass-panel"
+1121:         transition:scale={{ start: 0.9, duration: 300, 
+easing: cubicOut }}
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1176:2 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+1174:   <!-- TIME PICKER MODAL -->
+1175:   {#if showTimeModal}
+1176:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeTimeModal}>
+                ^
+1177:       <div
+1178:         class="custom-picker-modal glass-panel"
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1176:2 `<div>` with a click 
+handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+1174:   <!-- TIME PICKER MODAL -->
+1175:   {#if showTimeModal}
+1176:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeTimeModal}>
+                ^
+1177:       <div
+1178:         class="custom-picker-modal glass-panel"
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1177:3 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+1175:   {#if showTimeModal}
+1176:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeTimeModal}>
+1177:       <div
+                 ^
+1178:         class="custom-picker-modal glass-panel"
+1179:         transition:scale={{ start: 0.9, duration: 300, 
+easing: cubicOut }}
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1177:3 `<div>` with a click 
+handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+1175:   {#if showTimeModal}
+1176:     <div class="modal-backdrop" transition:fade={{ 
+duration: 200 }} on:click={closeTimeModal}>
+1177:       <div
+                 ^
+1178:         class="custom-picker-modal glass-panel"
+1179:         transition:scale={{ start: 0.9, duration: 300, 
+easing: cubicOut }}
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1375:1 Unused CSS selector 
+".premium-input-trigger.disabled"
+https://svelte.dev/e/css_unused_selector
+1373:     box-shadow: 0 8px 20px 
+rgba(var(--color-shadow-rgb), 0.12);
+1374:   }
+1375:   .premium-input-trigger.disabled {
+                                       ^
+1376:     opacity: 0.5;
+1377:     cursor: not-allowed;
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:1815:1 Unused CSS selector 
+".option-desc"
+https://svelte.dev/e/css_unused_selector
+1813:     font-family: var(--font-heading);
+1814:   }
+1815:   .option-desc {
+                    ^
+1816:     font-size: 0.85rem;
+1817:     color: var(--color-text-secondary);
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2049:1 Unused CSS selector 
+".booking-details-card .detail-value"
+https://svelte.dev/e/css_unused_selector
+2047:     opacity: 0.5;
+2048:   }
+2049:   .booking-details-card .detail-value {
+                                           ^
+2050:     color: var(--color-text-primary);
+2051:     opacity: 0.9;
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2064:1 Unused CSS selector 
+".detail-value"
+https://svelte.dev/e/css_unused_selector
+2062:     font-weight: 600;
+2063:   }
+2064:   .detail-value {
+                     ^
+2065:     font-size: 1rem;
+2066:     color: var(--color-text-primary);
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2069:1 Unused CSS selector 
+".summary-section h4"
+https://svelte.dev/e/css_unused_selector
+2067:     font-weight: 500;
+2068:   }
+2069:   .summary-section h4 {
+                           ^
+2070:     font-size: 0.9rem;
+2071:     text-transform: uppercase;
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2125:1 Unused CSS selector 
+".summary-item"
+https://svelte.dev/e/css_unused_selector
+2123:     gap: 10px;
+2124:   }
+2125:   .summary-item {
+                     ^
+2126:     /* Legacy fallback */
+2127:     display: flex;
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2308:1 Unused CSS selector 
+".payment-methods-wrapper"
+https://svelte.dev/e/css_unused_selector
+2306: 
+2307:   /* PAYMENT METHODS */
+2308:   .payment-methods-wrapper {
+                                ^
+2309:     margin-top: 20px;
+2310:     padding-top: 20px;
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2550:1 Unused CSS selector 
+".summary-card"
+https://svelte.dev/e/css_unused_selector
+2548: 
+2549:   /* Summary Cards Phase 2 */
+2550:   .summary-card {
+                     ^
+2551:     background: var(--color-surface);
+2552:     border: 1px solid var(--color-border);
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2557:1 Unused CSS selector 
+".summary-card h4"
+https://svelte.dev/e/css_unused_selector
+2555:     margin-bottom: 16px;
+2556:   }
+2557:   .summary-card h4 {
+                        ^
+2558:     font-size: 0.9rem;
+2559:     text-transform: uppercase;
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2677:1 Unused CSS selector 
+".payment-card"
+https://svelte.dev/e/css_unused_selector
+2675: 
+2676:   /* Payment Card Specifics */
+2677:   .payment-card {
+                     ^
+2678:     background: rgba(212, 175, 55, 0.05); /* Subtle 
+Gold Tint */
+2679:     border: 1px solid rgba(212, 175, 55, 0.2);
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2682:1 Unused CSS selector 
+".payment-card h4"
+https://svelte.dev/e/css_unused_selector
+2680:     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+2681:   }
+2682:   .payment-card h4 {
+                        ^
+2683:     color: var(--color-accent-gold);
+2684:     border-color: rgba(212, 175, 55, 0.2);
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/booking/+page.svelte:2691:1 Unused CSS selector 
+".total-card"
+https://svelte.dev/e/css_unused_selector
+2689: 
+2690:   /* Total Card */
+2691:   .total-card {
+                   ^
+2692:     background: transparent;
+2693:     border: none;
+8:46:11 PM [vite-plugin-svelte] 
+src/routes/complete-profile/+page.svelte:296:6 A form label 
+must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+294:           <!-- Gender Selection -->
+295:           <div class="gender-section">
+296:             <label class="section-label">I identify 
+as</label>
+                                                             
+      ^
+297:             <div class="gender-grid">
+298:               {#each genderOptions as option}
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/bookings/[id]/+page.svelte:199:3 Buttons 
+and links should either contain text or have an 
+`aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+197:     <!-- HEADER -->
+198:     <div class="summary-header">
+199:       <button class="back-btn" onclick={() => 
+goto('/staff/dashboard')}>
+                    ^
+200:         <svg
+201:           width="24"
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/bookings/[id]/+page.svelte:289:5 A form 
+label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+287:       <div class="fin-grid">
+288:         <div class="fin-item">
+289:           <label>Coupon Code</label>
+                                         ^
+290:           <input type="text" class="s-input" 
+bind:value={couponCode} placeholder="e.g. SAVE20" />
+291:         </div>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/bookings/[id]/+page.svelte:294:5 A form 
+label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+292: 
+293:         <div class="fin-item">
+294:           <label>Extra Discount (Ôé╣)</label>
+                                                ^
+295:           <input type="number" class="s-input" 
+bind:value={discountAmount} placeholder="0" />
+296:         </div>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/bookings/[id]/+page.svelte:299:5 A form 
+label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+297: 
+298:         <div class="fin-item">
+299:           <label>Extra Charges (Ôé╣)</label>
+                                               ^
+300:           <input type="number" class="s-input" 
+bind:value={extraCharge} placeholder="0" />
+301:         </div>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/schedule/+page.svelte:300:3 Buttons and 
+links should either contain text or have an `aria-label`, 
+`aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+298: 
+299:     <div class="date-nav">
+300:       <button class="nav-arrow" onclick={() => 
+changeDate(-1)}>
+                    ^
+301:         <svg
+302:           width="20"
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/schedule/+page.svelte:311:3 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+309:         >
+310:       </button>
+311:       <div class="date-display" onclick={setToday}>
+                 ^
+312:         {#if viewMode === 'day'}
+313:           <span class="date-main">
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/schedule/+page.svelte:311:3 `<div>` with a 
+click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+309:         >
+310:       </button>
+311:       <div class="date-display" onclick={setToday}>
+                 ^
+312:         {#if viewMode === 'day'}
+313:           <span class="date-main">
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/staff/schedule/+page.svelte:336:3 Buttons and 
+links should either contain text or have an `aria-label`, 
+`aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+334:         {/if}
+335:       </div>
+336:       <button class="nav-arrow" onclick={() => 
+changeDate(1)}>
+                    ^
+337:         <svg
+338:           width="20"
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:244:36 Using `on:click` to 
+listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+242:               </div>
+243:             {/if}
+244:             <button class="edit-btn-mini" on:click={() 
+=> alert('Change photo coming soon!')}>
+                                                             
+                                     ^
+245:               <Camera size={12} color="#000" />
+246:             </button>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:253:32 Using `on:click` to 
+listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+251:           <h1 class="profile-name-small">
+252:             {user.displayName || 'Valued Member'}
+253:             <button class="edit-icon" 
+on:click={editProfile}>Ô£Ä</button>
+                                                             
+    ^
+254:           </h1>
+255:           <p 
+class="profile-email-small">{user.email}</p>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:276:5 Visible, non-interactive 
+elements with a click event must be accompanied by a 
+keyboard event handler. Consider whether an interactive 
+element such as `<button type="button">` or `<a>` might be 
+more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+274: 
+275:         {#if latestBooking}
+276:           <div class="ticket-widget" on:click={() => 
+goto('/you/bookings')}>
+                     ^
+277:             <div class="ticket-content">
+278:               <!-- Top Row: Date & Status -->
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:276:5 `<div>` with a click 
+handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+274: 
+275:         {#if latestBooking}
+276:           <div class="ticket-widget" on:click={() => 
+goto('/you/bookings')}>
+                     ^
+277:             <div class="ticket-content">
+278:               <!-- Top Row: Date & Status -->
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:276:32 Using `on:click` to 
+listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+274: 
+275:         {#if latestBooking}
+276:           <div class="ticket-widget" on:click={() => 
+goto('/you/bookings')}>
+                                                             
+                   ^
+277:             <div class="ticket-content">
+278:               <!-- Top Row: Date & Status -->
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:342:34 Using `on:click` to 
+listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+340:             <p class="confirm-text">Are you sure you 
+want to sign out?</p>
+341:             <div class="confirm-actions">
+342:               <button class="cancel-btn" 
+on:click={cancelLogout}>Cancel</button>
+                                                             
+        ^
+343:               <button class="confirm-btn" 
+on:click={confirmLogout}>Yes, Sign Out</button>
+344:             </div>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:343:35 Using `on:click` to 
+listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+341:             <div class="confirm-actions">
+342:               <button class="cancel-btn" 
+on:click={cancelLogout}>Cancel</button>
+343:               <button class="confirm-btn" 
+on:click={confirmLogout}>Yes, Sign Out</button>
+                                                             
+          ^
+344:             </div>
+345:           </div>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/+page.svelte:347:32 Using `on:click` to 
+listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+345:           </div>
+346:         {:else}
+347:           <button class="logout-btn" 
+on:click={handleLogout}>
+                                                             
+    ^
+348:             <LogOut size={18} />
+349:             <span>Sign Out</span>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:174:27 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+172:   <!-- HEADER -->
+173:   <header class="page-header">
+174:     <button class="icon-btn" on:click={handleBack}>
+                                                       ^
+175:       <ChevronLeft size={24} />
+176:     </button>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:194:28 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+192:         <h3>No Addresses Found</h3>
+193:         <p>Add an address to speed up your bookings.</p>
+194:         <button class="cta-btn" on:click={openAddModal}>
+                                                            ^
+195:           <Plus size={20} /> Add New Address
+196:         </button>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:222:39 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+220:             </div>
+221:             <div class="card-actions">
+222:               <button class="action-btn edit" 
+on:click={() => openEditModal(addr)}>
+                                                             
+                          ^
+223:                 <Edit2 size={16} />
+224:               </button>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:225:41 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+223:                 <Edit2 size={16} />
+224:               </button>
+225:               <button class="action-btn delete" 
+on:click={() => deleteAddress(addr.id)}>
+                                                             
+                               ^
+226:                 <Trash2 size={16} />
+227:               </button>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:232:28 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+230:         {/each}
+231: 
+232:         <button class="add-fab" on:click={openAddModal}>
+                                                            ^
+233:           <Plus size={24} />
+234:         </button>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:241:2 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+239:   <!-- ADD/EDIT MODAL -->
+240:   {#if showAddModal}
+241:     <div
+              ^
+242:       class="modal-overlay"
+243:       transition:fade={{ duration: 200 }}
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:241:2 `<div>` with a 
+click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+239:   <!-- ADD/EDIT MODAL -->
+240:   {#if showAddModal}
+241:     <div
+              ^
+242:       class="modal-overlay"
+243:       transition:fade={{ duration: 200 }}
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:244:3 Using `on:click` 
+to listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+242:       class="modal-overlay"
+243:       transition:fade={{ duration: 200 }}
+244:       on:click={() => (showAddModal = false)}
+                                                  ^
+245:     >
+246:       <div class="modal-content" transition:fly={{ y: 
+50, duration: 300 }} on:click|stopPropagation>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:246:3 Visible, 
+non-interactive elements with a click event must be 
+accompanied by a keyboard event handler. Consider whether an 
+interactive element such as `<button type="button">` or 
+`<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+244:       on:click={() => (showAddModal = false)}
+245:     >
+246:       <div class="modal-content" transition:fly={{ y: 
+50, duration: 300 }} on:click|stopPropagation>
+                 ^
+247:         <div class="modal-header">
+248:           <h2>{isEditing ? 'Edit Address' : 'New 
+Address'}</h2>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:246:3 `<div>` with a 
+click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+244:       on:click={() => (showAddModal = false)}
+245:     >
+246:       <div class="modal-content" transition:fly={{ y: 
+50, duration: 300 }} on:click|stopPropagation>
+                 ^
+247:         <div class="modal-header">
+248:           <h2>{isEditing ? 'Edit Address' : 'New 
+Address'}</h2>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:246:72 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+244:       on:click={() => (showAddModal = false)}
+245:     >
+246:       <div class="modal-content" transition:fly={{ y: 
+50, duration: 300 }} on:click|stopPropagation>
+                                                             
+                                           ^
+247:         <div class="modal-header">
+248:           <h2>{isEditing ? 'Edit Address' : 'New 
+Address'}</h2>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:249:31 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+247:         <div class="modal-header">
+248:           <h2>{isEditing ? 'Edit Address' : 'New 
+Address'}</h2>
+249:           <button class="close-btn" on:click={() => 
+(showAddModal = false)}>
+                                                             
+                   ^
+250:             <X size={20} />
+251:           </button>
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:261:8 Using `on:click` 
+to listen to the click event is deprecated. Use the event 
+attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+259:                 class="choice-chip"
+260:                 class:active={formData.label === lbl}
+261:                 on:click={() => (formData.label = lbl)}
+                                                            ^
+262:               >
+263:                 {lbl}
+8:46:12 PM [vite-plugin-svelte] 
+src/routes/you/addresses/+page.svelte:295:36 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+293:           </label>
+294: 
+295:           <button class="save-btn-modal" 
+on:click={saveAddress} disabled={saving}>
+                                                             
+       ^
+296:             {saving ? 'Saving...' : 'Save Address'}
+297:           </button>
+8:46:13 PM [vite-plugin-svelte] 
+src/routes/you/personal-details/+page.svelte:119:27 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+117:   <!-- HEADER -->
+118:   <header class="page-header">
+119:     <button class="icon-btn" on:click={handleBack}>
+                                                       ^
+120:       <ChevronLeft size={24} />
+121:     </button>
+8:46:13 PM [vite-plugin-svelte] 
+src/routes/you/personal-details/+page.svelte:123:27 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+121:     </button>
+122:     <h1 class="page-title">Personal Details</h1>
+123:     <button class="text-btn" on:click={toggleEdit}>
+                                                       ^
+124:       {isEditing ? 'Cancel' : 'Edit'}
+125:     </button>
+8:46:13 PM [vite-plugin-svelte] 
+src/routes/you/personal-details/+page.svelte:149:7 Using 
+`on:click` to listen to the click event is deprecated. Use 
+the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+147:               disabled={!isEditing}
+148:               class:hidden={!isEditing}
+149:               on:click={() => alert('Photo upload 
+coming soon!')}
+                                                             
+         ^
+150:             >
+151:               <Camera size={16} />
+8:46:13 PM [vite-plugin-svelte] 
+src/routes/you/personal-details/+page.svelte:159:31 Using 
+`on:submit` to listen to the submit event is deprecated. Use 
+the event attribute `onsubmit` instead
+https://svelte.dev/e/event_directive_deprecated
+157: 
+158:         <!-- FORM SECTION -->
+159:         <form class="details-form" 
+on:submit|preventDefault={saveDetails}>
+                                                             
+                 ^
+160:           <!-- Full Name -->
+161:           <div class="form-group">
+8:46:13 PM [vite-plugin-svelte] 
+src/routes/you/personal-details/+page.svelte:437:1 Unused 
+CSS selector ".label-icon"
+https://svelte.dev/e/css_unused_selector
+435:   }
+436: 
+437:   .label-icon {
+                  ^
+438:     color: var(--color-accent-gold);
+439:     opacity: 0.8;
+8:46:13 PM [vite-plugin-svelte] 
+src/routes/you/personal-details/+page.svelte:465:1 Unused 
+CSS selector ".helper-text"
+https://svelte.dev/e/css_unused_selector
+463:   }
+464: 
+465:   .helper-text {
+                   ^
+466:     font-size: 0.75rem;
+467:     color: var(--color-text-muted);
+[32mÔ£ô[39m 35 modules transformed.
+[31mÔ£ù[39m Build failed in 8.17s
+[31merror during build:
+[31m[vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] 
+There was an error during the build:
+  [vite]: Rollup failed to resolve import "jspdf-autotable" 
+from "C:/Users/banar/Desktop/AGY/NewBlancbeu/SvelteBlancbeu/s
+rc/routes/staff/bookings/[id]/+page.svelte".
+This is most likely unintended because it can break your 
+application at runtime.
+If you do want to externalize this module explicitly add it 
+to
+`build.rollupOptions.external`
+Additionally, handling the error in the 'buildEnd' hook 
+caused the following error:
+  [vite]: Rollup failed to resolve import "jspdf-autotable" 
+from "C:/Users/banar/Desktop/AGY/NewBlancbeu/SvelteBlancbeu/s
+rc/routes/staff/bookings/[id]/+page.svelte".
+This is most likely unintended because it can break your 
+application at runtime.
+If you do want to externalize this module explicitly add it 
+to
+`build.rollupOptions.external`[31m
+    at getRollupError (file:///C:/Users/banar/Desktop/AGY/New
+Blancbeu/SvelteBlancbeu/node_modules/rollup/dist/es/shared/pa
+rseAst.js:402:41)
+    at file:///C:/Users/banar/Desktop/AGY/NewBlancbeu/SvelteB
+lancbeu/node_modules/rollup/dist/es/shared/node-entry.js:2344
+4:39
+    at async catchUnfinishedHookActions (file:///C:/Users/ban
+ar/Desktop/AGY/NewBlancbeu/SvelteBlancbeu/node_modules/rollup
+/dist/es/shared/node-entry.js:22902:16)
+    at async rollupInternal (file:///C:/Users/banar/Desktop/A
+GY/NewBlancbeu/SvelteBlancbeu/node_modules/rollup/dist/es/sha
+red/node-entry.js:23427:5)
+    at async buildEnvironment (file:///C:/Users/banar/Desktop
+/AGY/NewBlancbeu/SvelteBlancbeu/node_modules/vite/dist/node/c
+hunks/config.js:33541:12)
+    at async Object.build (file:///C:/Users/banar/Desktop/AGY
+/NewBlancbeu/SvelteBlancbeu/node_modules/vite/dist/node/chunk
+s/config.js:33900:19)
+    at async Object.buildApp (file:///C:/Users/banar/Desktop/
+AGY/NewBlancbeu/SvelteBlancbeu/node_modules/vite/dist/node/ch
+unks/config.js:33897:153)
+    at async CAC.<anonymous> (file:///C:/Users/banar/Desktop/
+AGY/NewBlancbeu/SvelteBlancbeu/node_modules/vite/dist/node/cl
+i.js:629:3)[39m

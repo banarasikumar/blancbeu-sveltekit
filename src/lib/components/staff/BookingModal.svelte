@@ -35,9 +35,19 @@
 		selectedServices.reduce((sum, item) => sum + (Number(item.price) || 0), 0)
 	);
 
+	// Internal mode state to handle Overview vs Edit vs Create
+	let internalMode = $state('create'); // 'create', 'edit', 'overview'
+
 	// Initialize form when modal opens or mode changes
 	$effect(() => {
 		if (isOpen) {
+			// Set initial internal mode
+			if (mode === 'create') {
+				internalMode = 'create';
+			} else {
+				internalMode = 'view'; // Default to view for existing bookings
+			}
+
 			if (mode === 'edit' && existingBooking) {
 				const b = existingBooking as Booking;
 				name = b.userName || '';
@@ -67,7 +77,7 @@
 				} else {
 					selectedServices = [];
 				}
-			} else {
+			} else if (mode === 'create') {
 				// Reset for create
 				name = '';
 				phone = '';
@@ -79,6 +89,18 @@
 			}
 		}
 	});
+
+	function toggleEditMode() {
+		if (internalMode === 'view') {
+			internalMode = 'edit';
+		} else {
+			internalMode = 'view';
+			// Re-reset form values just in case?
+			// No, keep edits? Or cancel edits?
+			// Usually cancel edits implies revert. Let's assume toggle is "Enter Edit Mode".
+			// "Cancel" in edit mode should revert to view.
+		}
+	}
 
 	function addService() {
 		if (!tempServiceId) return;
@@ -166,105 +188,257 @@
 			isSubmitting = false;
 		}
 	}
+
+	async function handleStatusChange(newStatus: string) {
+		if (!existingBooking) return;
+
+		if (newStatus === 'cancelled') {
+			if (!confirm('Are you sure you want to cancel this booking?')) return;
+		}
+
+		try {
+			// updateBookingStatus is not imported, let's assume we maintain the pattern or import it.
+			// Currently importing from '$lib/stores/staffData' which might not have it.
+			// Let's use the one from adminData if reachable, or just use updateBookingDetails with status field.
+			// updateBookingDetails takes Partial<Booking>, so we can use it!
+			await updateBookingDetails(existingBooking.id, { status: newStatus });
+			showToast(`Status updated to ${newStatus}`, 'success');
+			isOpen = false; // Close modal after action
+		} catch (error) {
+			console.error(error);
+			showToast('Failed to update status', 'error');
+		}
+	}
 </script>
 
 {#if isOpen}
 	<div class="modal-backdrop" onclick={() => (isOpen = false)}>
 		<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+			<!-- HEADER -->
 			<div class="modal-header">
-				<h2>{mode === 'create' ? 'New Booking' : 'Edit Order'}</h2>
-				<button class="close-btn" onclick={() => (isOpen = false)}>&times;</button>
+				<h2>
+					{#if internalMode === 'create'}
+						New Booking
+					{:else if internalMode === 'edit'}
+						Edit Booking
+					{:else}
+						Booking Details
+					{/if}
+				</h2>
+				<div class="header-actions">
+					{#if internalMode === 'view'}
+						<button class="icon-btn edit-toggle" onclick={toggleEditMode} aria-label="Edit">
+							✏️
+						</button>
+					{/if}
+					<button class="close-btn" onclick={() => (isOpen = false)}>&times;</button>
+				</div>
 			</div>
 
 			<div class="modal-body">
-				<div class="form-group">
-					<label for="name">Client Name *</label>
-					<input type="text" id="name" bind:value={name} placeholder="e.g. John Doe" />
-				</div>
-
-				<div class="form-group">
-					<label for="phone">Phone (Optional)</label>
-					<input type="tel" id="phone" bind:value={phone} placeholder="e.g. 9876543210" />
-				</div>
-
-				<div class="row">
-					<div class="form-group">
-						<label for="date">Date *</label>
-						<input type="date" id="date" bind:value={date} />
-					</div>
-					<div class="form-group">
-						<label for="time">Time *</label>
-						<input type="time" id="time" bind:value={time} />
-					</div>
-				</div>
-
-				<div class="form-group">
-					<label for="services">Services *</label>
-
-					<!-- Service List -->
-					<div class="service-list">
-						{#each selectedServices as item, i}
-							<div class="service-item">
-								<div class="s-info">
-									<!-- Editable Name -->
-									<input
-										type="text"
-										bind:value={item.name}
-										class="name-input"
-										placeholder="Service Name"
-									/>
-									<!-- Price Edit -->
-									<div class="s-price-edit">
-										<span>₹</span>
-										<input
-											type="number"
-											value={item.price}
-											oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
-											class="price-input"
-										/>
-									</div>
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE (Overview) -->
+					<div class="overview-container">
+						<div class="overview-card">
+							<div class="ov-header">
+								<div class="client-avatar-placeholder">
+									{existingBooking.userName?.[0] || 'G'}
 								</div>
-								<button class="remove-btn" onclick={() => removeService(i)}>&times;</button>
+								<div class="ov-client-info">
+									<h3>{existingBooking.userName || 'Guest'}</h3>
+									<p>{existingBooking.userPhone || 'No phone provided'}</p>
+								</div>
+								<span class={`status-badge-lg ${existingBooking.status}`}
+									>{existingBooking.status}</span
+								>
 							</div>
-						{/each}
-					</div>
 
-					<!-- Add Service -->
-					<div class="add-service-row">
-						<select id="service" bind:value={tempServiceId}>
-							<option value="" disabled selected>Add from catalog...</option>
-							{#each $staffServices as service}
-								<option value={service.id}>{service.name} - ₹{service.price}</option>
+							<div class="ov-time-row">
+								<div class="ov-time-block">
+									<span class="ov-label">Date</span>
+									<span class="ov-value">{existingBooking.date}</span>
+								</div>
+								<div class="ov-divider"></div>
+								<div class="ov-time-block">
+									<span class="ov-label">Time</span>
+									<span class="ov-value">{existingBooking.time}</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="ov-section">
+							<h4>Services</h4>
+							<div class="ov-service-list">
+								{#if existingBooking.servicesList}
+									{#each existingBooking.servicesList as s}
+										<div class="ov-service-item">
+											<span>{s.name}</span>
+											<span class="price">₹{s.price}</span>
+										</div>
+									{/each}
+								{:else if existingBooking.serviceName}
+									<div class="ov-service-item">
+										<span>{existingBooking.serviceName}</span>
+										<span class="price">₹{existingBooking.price}</span>
+									</div>
+								{/if}
+								<div class="ov-total-row">
+									<span>Total</span>
+									<span class="total-price"
+										>₹{existingBooking.totalAmount || existingBooking.price || 0}</span
+									>
+								</div>
+							</div>
+						</div>
+
+						{#if existingBooking.notes}
+							<div class="ov-section">
+								<h4>Notes</h4>
+								<p class="ov-notes">{existingBooking.notes}</p>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE FORM -->
+					<section class="form-section">
+						<h3>Client Details</h3>
+						<div class="form-group">
+							<input
+								type="text"
+								id="name"
+								bind:value={name}
+								placeholder="Client Name *"
+								class="input-lg"
+							/>
+						</div>
+						<div class="form-group">
+							<input
+								type="tel"
+								id="phone"
+								bind:value={phone}
+								placeholder="Phone Number (Optional)"
+							/>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<h3>Time & Date</h3>
+						<div class="row">
+							<div class="form-group">
+								<input type="date" id="date" bind:value={date} />
+							</div>
+							<div class="form-group">
+								<input type="time" id="time" bind:value={time} />
+							</div>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<div class="section-top">
+							<h3>Services</h3>
+							<span class="total-badge">Total: ₹{totalAmount}</span>
+						</div>
+
+						<div class="service-list">
+							{#each selectedServices as item, i}
+								<div class="service-item">
+									<div class="s-info">
+										<input
+											type="text"
+											bind:value={item.name}
+											class="name-input"
+											placeholder="Service Name"
+										/>
+										<div class="s-price-edit">
+											<span>₹</span>
+											<input
+												type="number"
+												value={item.price}
+												oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
+												class="price-input"
+											/>
+										</div>
+									</div>
+									<button class="remove-btn" onclick={() => removeService(i)}>×</button>
+								</div>
 							{/each}
-						</select>
-						<button class="add-btn icon" onclick={addService} disabled={!tempServiceId}>+</button>
+						</div>
+
+						<div class="add-service-row">
+							<select id="service" bind:value={tempServiceId} class="service-select">
+								<option value="" disabled selected>Select from catalog +</option>
+								{#each $staffServices as service}
+									<option value={service.id}>{service.name} - ₹{service.price}</option>
+								{/each}
+							</select>
+							{#if tempServiceId}
+								<button class="confirm-add-btn" onclick={addService}>Add</button>
+							{/if}
+						</div>
+						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
+					</section>
+
+					<div class="form-group notes-group">
+						<textarea id="notes" bind:value={notes} placeholder="Add special requests or notes..."
+						></textarea>
 					</div>
-					<button class="add-custom-btn" onclick={addCustomService}>+ Add Custom Service</button>
-				</div>
-
-				<div class="total-row">
-					<span>Total Amount:</span>
-					<span class="total-price">₹{totalAmount}</span>
-				</div>
-
-				<div class="form-group">
-					<label for="notes">Notes</label>
-					<textarea id="notes" bind:value={notes} placeholder="Add special requests or notes..."
-					></textarea>
-				</div>
+				{/if}
 			</div>
 
+			<!-- FOOTER -->
 			<div class="modal-footer">
-				<button class="cancel-btn" onclick={() => (isOpen = false)}>Cancel</button>
-				<button class="save-btn" onclick={handleSubmit} disabled={isSubmitting}>
-					{isSubmitting ? 'Saving...' : 'Save Order'}
-				</button>
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE ACTIONS (Status changes) -->
+					<div class="status-actions">
+						{#if existingBooking.status === 'pending'}
+							<button class="action-btn confirm" onclick={() => handleStatusChange('confirmed')}>
+								Confirm Booking
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Decline
+							</button>
+						{:else if existingBooking.status === 'confirmed'}
+							<button class="action-btn start" onclick={() => handleStatusChange('in-progress')}>
+								Start Service
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Cancel
+							</button>
+						{:else if existingBooking.status === 'in-progress'}
+							<button class="action-btn complete" onclick={() => handleStatusChange('completed')}>
+								Complete Service
+							</button>
+						{:else}
+							<!-- Completed or Cancelled -->
+							<button class="action-btn outline" onclick={() => (isOpen = false)}>Close</button>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE ACTIONS -->
+					<div class="edit-actions">
+						{#if internalMode === 'edit'}
+							<button class="cancel-btn" onclick={() => (internalMode = 'view')}>Cancel Edit</button
+							>
+						{:else}
+							<button class="cancel-btn" onclick={() => (isOpen = false)}>Cancel</button>
+						{/if}
+
+						<button class="save-btn" onclick={handleSubmit} disabled={isSubmitting}>
+							{isSubmitting
+								? 'Saving...'
+								: internalMode === 'create'
+									? 'Create Booking'
+									: 'Save Changes'}
+						</button>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
 {/if}
 
 <style>
+	/* Backdrop */
 	.modal-backdrop {
 		position: fixed;
 		top: 0;
@@ -274,9 +448,9 @@
 		background: rgba(0, 0, 0, 0.5);
 		display: flex;
 		justify-content: center;
-		align-items: flex-end; /* Bottom sheet on mobile */
-		z-index: 100;
-		backdrop-filter: blur(4px);
+		align-items: flex-end;
+		z-index: 200;
+		backdrop-filter: blur(6px);
 	}
 
 	@media (min-width: 768px) {
@@ -285,20 +459,23 @@
 		}
 	}
 
+	/* Modal Content */
 	.modal-content {
-		background: white;
+		background: var(--s-bg, #f8f9fa);
 		width: 100%;
 		max-width: 500px;
-		border-radius: 20px 20px 0 0;
-		padding: 24px;
-		max-height: 90vh;
-		overflow-y: auto;
-		animation: slideUp 0.3s ease-out;
+		border-radius: var(--s-radius-2xl, 24px) var(--s-radius-2xl, 24px) 0 0;
+		max-height: 92vh;
+		display: flex;
+		flex-direction: column;
+		animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+		box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
+		overflow: hidden;
 	}
 
 	@media (min-width: 768px) {
 		.modal-content {
-			border-radius: 20px;
+			border-radius: var(--s-radius-2xl, 20px);
 			animation: fadeIn 0.3s ease-out;
 		}
 	}
@@ -323,51 +500,319 @@
 		}
 	}
 
+	/* Header */
 	.modal-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 24px;
+		padding: 20px 24px 16px;
+		flex-shrink: 0;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
 	}
 
 	.modal-header h2 {
 		margin: 0;
-		font-size: 1.5rem;
-		font-family: 'Outfit', sans-serif;
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-size: 1.3rem;
+		font-weight: 700;
+		color: var(--s-text-primary, #1a1a2e);
+	}
+
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.icon-btn.edit-toggle {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border: none;
+		width: 36px;
+		height: 36px;
+		border-radius: var(--s-radius-full, 50%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.1rem;
+		cursor: pointer;
+		transition: background var(--s-duration-fast, 0.15s) ease;
+	}
+
+	.icon-btn.edit-toggle:active {
+		background: var(--s-border, #e5e7eb);
+		transform: scale(0.92);
 	}
 
 	.close-btn {
-		background: none;
+		background: var(--s-bg-tertiary, #f3f4f6);
 		border: none;
-		font-size: 2rem;
+		width: 36px;
+		height: 36px;
+		border-radius: var(--s-radius-full, 50%);
+		font-size: 1.3rem;
 		line-height: 1;
 		cursor: pointer;
-		padding: 0;
-		color: #8e8e93;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--s-text-secondary, #6b7280);
+		transition: all var(--s-duration-fast, 0.15s) ease;
+	}
+
+	.close-btn:active {
+		background: var(--s-border, #e5e7eb);
+		transform: scale(0.92);
+	}
+
+	/* Body */
+	.modal-body {
+		overflow-y: auto;
+		flex: 1;
+		padding: 20px 24px;
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+	.modal-body::-webkit-scrollbar {
+		display: none;
+	}
+
+	/* ===== VIEW / OVERVIEW MODE ===== */
+	.overview-container {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.overview-card {
+		background: var(--s-surface, white);
+		border-radius: var(--s-radius-xl, 16px);
+		padding: 20px;
+		border: 1px solid var(--s-border, #e5e7eb);
+		box-shadow: var(--s-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+	}
+
+	.ov-header {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		margin-bottom: 16px;
+	}
+
+	.client-avatar-placeholder {
+		width: 48px;
+		height: 48px;
+		background: linear-gradient(135deg, var(--s-accent, #c9a24f), var(--s-brand, #1a1a2e));
+		color: white;
+		border-radius: var(--s-radius-lg, 12px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.3rem;
+		font-weight: 700;
+		flex-shrink: 0;
+	}
+
+	.ov-client-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.ov-client-info h3 {
+		margin: 0 !important;
+		font-size: 1.1rem !important;
+		font-weight: 700;
+		color: var(--s-text-primary, #1a1a2e) !important;
+		text-transform: none !important;
+		letter-spacing: normal !important;
+	}
+
+	.ov-client-info p {
+		margin: 2px 0 0;
+		color: var(--s-text-secondary, #6b7280);
+		font-size: 0.85rem;
+	}
+
+	/* Status Badge */
+	.status-badge-lg {
+		display: inline-flex;
+		align-items: center;
+		margin-left: auto;
+		padding: 5px 12px;
+		border-radius: var(--s-radius-full, 20px);
+		text-transform: uppercase;
+		font-size: 0.7rem;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		flex-shrink: 0;
+	}
+	.status-badge-lg.pending {
+		background: var(--s-pending-bg, #fff7ed);
+		color: var(--s-pending-text, #ea580c);
+	}
+	.status-badge-lg.confirmed {
+		background: var(--s-confirmed-bg, #eff6ff);
+		color: var(--s-confirmed-text, #2563eb);
+	}
+	.status-badge-lg.in-progress {
+		background: var(--s-in-progress-bg, #faf5ff);
+		color: var(--s-in-progress-text, #9333ea);
+	}
+	.status-badge-lg.completed {
+		background: var(--s-completed-bg, #f0fdf4);
+		color: var(--s-completed-text, #16a34a);
+	}
+	.status-badge-lg.cancelled {
+		background: var(--s-cancelled-bg, #fef2f2);
+		color: var(--s-cancelled-text, #dc2626);
+	}
+
+	/* Date/Time Row */
+	.ov-time-row {
+		display: flex;
+		justify-content: space-around;
+		align-items: center;
+		background: var(--s-bg-tertiary, #f3f4f6);
+		padding: 14px;
+		border-radius: var(--s-radius-lg, 12px);
+	}
+
+	.ov-time-block {
+		text-align: center;
+	}
+
+	.ov-label {
+		display: block;
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		color: var(--s-text-tertiary, #9ca3af);
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		margin-bottom: 4px;
+	}
+
+	.ov-value {
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-weight: 700;
+		font-size: 1rem;
+		color: var(--s-text-primary, #1a1a2e);
+	}
+
+	.ov-divider {
+		width: 1px;
+		height: 32px;
+		background: var(--s-border, #e5e7eb);
+	}
+
+	/* Services Section */
+	.ov-section h4 {
+		margin: 0 0 10px 0;
+		text-transform: uppercase;
+		font-size: 0.7rem;
+		color: var(--s-text-tertiary, #9ca3af);
+		letter-spacing: 0.06em;
+		font-weight: 700;
+	}
+
+	.ov-service-list {
+		background: var(--s-surface, white);
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-lg, 12px);
+		overflow: hidden;
+	}
+
+	.ov-service-item {
+		padding: 14px 16px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		font-size: 0.95rem;
+		color: var(--s-text-primary, #1a1a2e);
+	}
+
+	.ov-service-item:last-of-type {
+		border-bottom: none;
+	}
+
+	.ov-service-item span.price {
+		font-weight: 600;
+		color: var(--s-text-secondary, #6b7280);
+	}
+
+	.ov-total-row {
+		padding: 14px 16px;
+		display: flex;
+		justify-content: space-between;
+		background: var(--s-bg-tertiary, #f3f4f6);
+		font-weight: 800;
+		font-size: 1.05rem;
+		color: var(--s-text-primary, #1a1a2e);
+		border-top: 2px solid var(--s-border, #e5e7eb);
+	}
+
+	.ov-notes {
+		background: #fef9c3;
+		padding: 14px 16px;
+		border-radius: var(--s-radius-lg, 12px);
+		color: #92400e;
+		font-style: italic;
+		font-size: 0.9rem;
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	/* ===== EDIT / CREATE FORM ===== */
+	.form-section {
+		margin-bottom: 20px;
+		background: var(--s-surface, white);
+		padding: 16px;
+		border-radius: var(--s-radius-lg, 12px);
+		border: 1px solid var(--s-border, #e5e7eb);
+	}
+
+	h3 {
+		margin: 0 0 12px 0;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		color: var(--s-text-tertiary, #9ca3af);
+		font-weight: 700;
+		letter-spacing: 0.06em;
+	}
+
+	.input-lg {
+		font-size: 1.15rem;
+		font-weight: 600;
 	}
 
 	.form-group {
-		margin-bottom: 20px;
+		margin-bottom: 12px;
 	}
-
-	label {
-		display: block;
-		margin-bottom: 8px;
-		font-weight: 500;
-		color: #1c1c1e;
-		font-size: 0.9rem;
+	.form-group:last-child {
+		margin-bottom: 0;
 	}
 
 	input,
 	select,
 	textarea {
 		width: 100%;
-		padding: 12px;
-		border: 1px solid #e5e5ea;
-		border-radius: 12px;
-		font-size: 1rem;
-		background: #f9f9f9;
+		padding: 12px 14px;
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-md, 10px);
+		font-size: 0.95rem;
+		background: var(--s-bg, #f8f9fa);
 		font-family: inherit;
+		color: var(--s-text-primary, #1a1a2e);
+		transition:
+			border-color 0.2s ease,
+			box-shadow 0.2s ease;
+	}
+
+	input:focus,
+	select:focus,
+	textarea:focus {
+		outline: none;
+		border-color: var(--s-accent, #c9a24f);
+		box-shadow: 0 0 0 3px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
 	}
 
 	textarea {
@@ -377,14 +822,29 @@
 
 	.row {
 		display: flex;
-		gap: 16px;
+		gap: 12px;
 	}
-
 	.row .form-group {
 		flex: 1;
 	}
 
-	/* Service List Styles */
+	/* Services Edit */
+	.section-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 12px;
+	}
+
+	.total-badge {
+		font-size: 0.85rem;
+		font-weight: 800;
+		background: var(--s-brand, #1a1a2e);
+		color: white;
+		padding: 4px 12px;
+		border-radius: var(--s-radius-full, 20px);
+	}
+
 	.service-list {
 		display: flex;
 		flex-direction: column;
@@ -393,35 +853,33 @@
 	}
 
 	.service-item {
-		background: #f2f2f7;
-		padding: 10px;
-		border-radius: 10px;
+		background: var(--s-bg, #f8f9fa);
+		padding: 12px;
+		border-radius: var(--s-radius-md, 10px);
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
+		align-items: flex-start;
+		border: 1px solid var(--s-border, #e5e7eb);
 	}
 
 	.s-info {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
 		width: 100%;
 	}
 
 	.name-input {
-		font-weight: 500;
-		font-size: 0.95rem;
-		border: 1px solid transparent;
-		background: transparent;
+		font-weight: 600;
 		padding: 4px 0;
+		border-radius: 0;
+		box-shadow: none;
+		background: transparent;
+		border: none;
+		border-bottom: 1px solid transparent;
 		width: 100%;
+		margin-bottom: 4px;
 	}
 	.name-input:focus {
-		border-bottom: 1px solid #007aff;
-		background: white;
-		border-radius: 4px;
-		padding: 4px 8px;
-		outline: none;
+		border-bottom: 1px solid var(--s-accent, #c9a24f);
+		box-shadow: none;
 	}
 
 	.s-price-edit {
@@ -429,21 +887,21 @@
 		align-items: center;
 		gap: 2px;
 		font-size: 0.9rem;
-		color: #3a3a3c;
+		color: var(--s-text-secondary, #6b7280);
 	}
 
 	.price-input {
 		width: 80px;
-		padding: 4px 8px;
-		border: 1px solid #d1d1d6;
-		border-radius: 6px;
+		padding: 4px 6px;
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-sm, 6px);
 		font-size: 0.9rem;
-		background: white;
+		box-shadow: none;
 	}
 
 	.remove-btn {
-		background: #ff3b30;
-		color: white;
+		background: var(--s-cancelled-bg, #fee2e2);
+		color: var(--s-cancelled, #ef4444);
 		border: none;
 		width: 28px;
 		height: 28px;
@@ -454,8 +912,11 @@
 		margin-left: 12px;
 		cursor: pointer;
 		font-size: 1.2rem;
-		line-height: 1;
 		flex-shrink: 0;
+		transition: transform 0.1s ease;
+	}
+	.remove-btn:active {
+		transform: scale(0.85);
 	}
 
 	.add-service-row {
@@ -464,85 +925,126 @@
 		margin-bottom: 8px;
 	}
 
-	.add-btn {
-		padding: 0 16px;
-		background: #000;
+	.service-select {
+		flex: 1;
+	}
+
+	.confirm-add-btn {
+		background: var(--s-brand, #1a1a2e);
 		color: white;
 		border: none;
-		border-radius: 12px;
+		border-radius: var(--s-radius-md, 10px);
+		padding: 0 16px;
 		font-weight: 600;
 		cursor: pointer;
 	}
-	.add-btn.icon {
-		font-size: 1.5rem;
-		line-height: 1;
-		padding: 0;
-		width: 48px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.add-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
 
-	.add-custom-btn {
-		width: 100%;
-		padding: 10px;
-		background: #f2f2f7;
-		color: #007aff;
-		font-weight: 600;
+	.text-btn {
+		background: none;
 		border: none;
-		border-radius: 12px;
-		cursor: pointer;
+		color: var(--s-accent, #c9a24f);
+		font-weight: 700;
 		font-size: 0.9rem;
+		cursor: pointer;
+		padding: 8px 0;
+		text-align: left;
 	}
 
-	.total-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		font-size: 1.1rem;
-		font-weight: 600;
-		padding: 12px 0;
-		border-top: 1px solid #e5e5ea;
-		border-bottom: 1px solid #e5e5ea;
-		margin-bottom: 20px;
+	.notes-group {
+		background: transparent;
+		padding: 0;
 	}
 
-	.total-price {
-		font-family: 'Outfit', sans-serif;
-	}
-
+	/* Footer */
 	.modal-footer {
 		display: flex;
-		gap: 12px;
-		margin-top: 12px;
+		gap: 10px;
+		padding: 16px 24px;
+		padding-bottom: max(80px, calc(env(safe-area-inset-bottom, 16px) + 72px));
+		border-top: 1px solid var(--s-border, #e5e7eb);
+		flex-shrink: 0;
+		background: var(--s-bg, #f8f9fa);
+	}
+
+	.status-actions {
+		display: flex;
+		gap: 10px;
+		width: 100%;
+	}
+
+	.edit-actions {
+		display: flex;
+		gap: 10px;
+		width: 100%;
+	}
+
+	.action-btn {
+		flex: 1;
+		padding: 14px;
+		border-radius: var(--s-radius-lg, 12px);
+		font-weight: 700;
+		font-size: 0.95rem;
+		border: none;
+		cursor: pointer;
+		color: white;
+		transition: all var(--s-duration-fast, 0.15s) ease;
+	}
+	.action-btn:active {
+		transform: scale(0.97);
+	}
+
+	.action-btn.confirm {
+		background: var(--s-confirmed, #2563eb);
+	}
+	.action-btn.start {
+		background: var(--s-in-progress, #9333ea);
+	}
+	.action-btn.complete {
+		background: var(--s-completed, #16a34a);
+	}
+	.action-btn.cancel {
+		background: var(--s-cancelled-bg, #fee2e2);
+		color: var(--s-cancelled, #dc2626);
+	}
+	.action-btn.outline {
+		background: var(--s-surface, white);
+		border: 1px solid var(--s-border, #e5e7eb);
+		color: var(--s-text-primary, #1a1a2e);
 	}
 
 	.cancel-btn,
 	.save-btn {
 		flex: 1;
 		padding: 14px;
-		border-radius: 12px;
-		font-weight: 600;
-		font-size: 1rem;
+		border-radius: var(--s-radius-lg, 12px);
+		font-weight: 700;
+		font-size: 0.95rem;
 		border: none;
 		cursor: pointer;
+		transition: all var(--s-duration-fast, 0.15s) ease;
+	}
+	.cancel-btn:active,
+	.save-btn:active {
+		transform: scale(0.97);
 	}
 
 	.cancel-btn {
-		background: #f2f2f7;
-		color: #1c1c1e;
+		background: var(--s-surface, white);
+		color: var(--s-text-primary, #1a1a2e);
+		border: 1px solid var(--s-border, #e5e7eb);
 	}
 
 	.save-btn {
-		background: #000;
+		background: var(--s-brand, #1a1a2e);
 		color: white;
 	}
 
+	:global(.staff-app.dark) .save-btn {
+		background: var(--s-accent, #c9a24f);
+		color: #1a1a2e;
+	}
+
 	.save-btn:disabled {
-		opacity: 0.7;
+		opacity: 0.6;
 	}
 </style>

@@ -1,427 +1,664 @@
 <script lang="ts">
 	import { staffBookings } from '$lib/stores/staffData';
-	import { updateBookingStatus } from '$lib/stores/adminData'; // Direct firestore update
+	import { updateBookingStatus, type Booking } from '$lib/stores/adminData';
 	import { showToast } from '$lib/stores/toast';
-	import StaffHeader from '$lib/components/staff/StaffHeader.svelte';
-	import StaffHeader from '$lib/components/staff/StaffHeader.svelte';
-	import StaffNav from '$lib/components/staff/StaffNav.svelte';
+	import { startServiceTimer } from '$lib/stores/serviceTimer';
 	import BookingModal from '$lib/components/staff/BookingModal.svelte';
-	import type { Booking } from '$lib/stores/adminData';
+	import ClientDrawer from '$lib/components/staff/ClientDrawer.svelte';
+	import StatusBadge from '$lib/components/staff/StatusBadge.svelte';
+	import EmptyState from '$lib/components/staff/EmptyState.svelte';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 
-	let searchTerm = $state('');
+	// Filter from URL
+	let urlFilter = $derived(page.url.searchParams.get('filter') || 'upcoming');
+
+	let activeFilter = $state('upcoming');
+	let searchQuery = $state('');
+
+	// Sync filter from URL param on mount
+	$effect(() => {
+		if (urlFilter) activeFilter = urlFilter;
+	});
+
+	const filters = [
+		{ key: 'upcoming', label: '📅 Upcoming', emoji: '📅' },
+		{ key: 'pending', label: '⏳ Pending', emoji: '⏳' },
+		{ key: 'today', label: '🕐 Today', emoji: '🕐' },
+		{ key: 'completed', label: '✅ Done', emoji: '✅' },
+		{ key: 'cancelled', label: '❌ Cancelled', emoji: '❌' },
+		{ key: 'all', label: '📋 All', emoji: '📋' }
+	];
+
+	let filteredBookings = $derived(() => {
+		let bookings = [...$staffBookings];
+		const today = new Date().toISOString().split('T')[0];
+
+		switch (activeFilter) {
+			case 'upcoming':
+				bookings = bookings.filter(
+					(b) => b.status !== 'completed' && b.status !== 'cancelled' && b.date >= today
+				);
+				break;
+			case 'pending':
+				bookings = bookings.filter((b) => b.status === 'pending');
+				break;
+			case 'today':
+				bookings = bookings.filter((b) => b.date === today);
+				break;
+			case 'completed':
+				bookings = bookings.filter((b) => b.status === 'completed');
+				break;
+			case 'cancelled':
+				bookings = bookings.filter((b) => b.status === 'cancelled');
+				break;
+		}
+
+		if (searchQuery.trim()) {
+			const q = searchQuery.toLowerCase();
+			bookings = bookings.filter(
+				(b) =>
+					b.userName?.toLowerCase().includes(q) ||
+					b.serviceName?.toLowerCase().includes(q) ||
+					b.servicesList?.some((s) => s.name.toLowerCase().includes(q))
+			);
+		}
+
+		// Smart sort: newest-first for completed/cancelled, soonest-first otherwise
+		const showNewestFirst = activeFilter === 'completed' || activeFilter === 'cancelled';
+		return bookings.sort((a, b) => {
+			const dateCmp = (a.date || '').localeCompare(b.date || '');
+			if (dateCmp !== 0) return showNewestFirst ? -dateCmp : dateCmp;
+			const timeCmp = (a.time || '').localeCompare(b.time || '');
+			return showNewestFirst ? -timeCmp : timeCmp;
+		});
+	});
+
+	// Modal
 	let isModalOpen = $state(false);
 	let modalMode = $state('create');
-	let selectedBooking = $state<Booking | null>(null);
+	let selectedBooking = $state<any>(null);
 
-	function openCreate() {
-		modalMode = 'create';
-		selectedBooking = null;
-		isModalOpen = true;
-	}
+	// Client drawer
+	let isDrawerOpen = $state(false);
+	let drawerUserId = $state('');
+	let drawerUserName = $state('');
+	let drawerUserPhone = $state('');
+	let drawerUserEmail = $state('');
 
-	function openEdit(booking: any) {
-		modalMode = 'edit';
+	function openBooking(booking: any) {
 		selectedBooking = booking;
+		modalMode = 'edit';
 		isModalOpen = true;
 	}
 
-	let filteredBookings = $derived(
-		$staffBookings
-			.filter((b) => {
-				const s = searchTerm.toLowerCase();
-				return (
-					(b.userName || '').toLowerCase().includes(s) ||
-					(b.serviceName || '').toLowerCase().includes(s) ||
-					(b.status || '').toLowerCase().includes(s)
-				);
-			})
-			.sort((a, b) => {
-				// Sort by date/time (newest first for general list)
-				return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-			})
-	);
+	function openClient(booking: any) {
+		drawerUserId = booking.userId || booking.userEmail || '';
+		drawerUserName = booking.userName || 'Guest';
+		drawerUserPhone = booking.userPhone || '';
+		drawerUserEmail = booking.userEmail || '';
+		isDrawerOpen = true;
+	}
 
-	async function handleStatusChange(id: string, newStatus: string) {
-		if (!confirm(`Mark this booking as ${newStatus}?`)) return;
+	async function quickAction(id: string, status: string, e?: Event) {
+		e?.stopPropagation();
+		if (status === 'cancelled' && !confirm('Cancel this booking?')) return;
 		try {
-			await updateBookingStatus(id, newStatus);
-			showToast(`Booking marked as ${newStatus}`, 'success');
-		} catch (error) {
-			console.error(error);
-			showToast('Failed to update status', 'error');
+			await updateBookingStatus(id, status);
+			showToast(`Updated to ${status}`, 'success');
+			if ('vibrate' in navigator) navigator.vibrate(10);
+		} catch {
+			showToast('Failed to update', 'error');
 		}
 	}
 
-	// History Logic
-	import { getBookingHistory } from '$lib/stores/staffData';
-	let showHistoryModal = $state(false);
-	let historyLoading = $state(false);
-	let historyBookings = $state<Booking[]>([]);
-	let selectedHistoryUser = $state('');
-
-	async function openHistory(userId: string, userName: string) {
-		if (!userId) {
-			showToast('User ID not available', 'error');
-			return;
-		}
-		selectedHistoryUser = userName;
-		historyLoading = true;
-		showHistoryModal = true;
-		historyBookings = await getBookingHistory(userId);
-		historyLoading = false;
+	function formatTime12h(time: string) {
+		if (!time) return '';
+		const cleaned = time.replace(/\s*(AM|PM)\s*/i, '').trim();
+		const parts = cleaned.split(':');
+		const h = parseInt(parts[0], 10);
+		const m = parseInt(parts[1] || '0', 10);
+		if (isNaN(h)) return time;
+		const ampm = h >= 12 ? 'PM' : 'AM';
+		const h12 = h % 12 || 12;
+		return `${h12}:${(isNaN(m) ? 0 : m).toString().padStart(2, '0')} ${ampm}`;
 	}
+
+	function formatDuration(mins: number) {
+		if (mins >= 60) {
+			const h = Math.floor(mins / 60);
+			const m = mins % 60;
+			return m > 0 ? `${h}h ${m}m` : `${h}h`;
+		}
+		return `${mins}m`;
+	}
+
+	function formatDate(dateStr: string) {
+		if (!dateStr) return '';
+		const d = new Date(dateStr);
+		const today = new Date();
+		const todayStr = today.toISOString().split('T')[0];
+		const yesterday = new Date(today);
+		yesterday.setDate(today.getDate() - 1);
+		const tomorrow = new Date(today);
+		tomorrow.setDate(today.getDate() + 1);
+
+		if (dateStr === todayStr) return 'Today';
+		if (dateStr === yesterday.toISOString().split('T')[0]) return 'Yesterday';
+		if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+	}
+
+	// Group bookings by date
+	let groupedBookings = $derived(() => {
+		const groups: Record<string, any[]> = {};
+		filteredBookings().forEach((b) => {
+			const key = b.date || 'unknown';
+			if (!groups[key]) groups[key] = [];
+			groups[key].push(b);
+		});
+		return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+	});
+
+	let pendingBadge = $derived($staffBookings.filter((b) => b.status === 'pending').length);
 </script>
 
-<StaffHeader title="Bookings" />
-
 <div class="bookings-page">
-	<div class="search-bar">
-		<input type="text" placeholder="Search bookings..." bind:value={searchTerm} />
-		<div class="search-icon">🔍</div>
+	<!-- Search Bar -->
+	<div class="search-section">
+		<div class="search-wrap">
+			<svg
+				class="search-icon"
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+			>
+				<circle cx="11" cy="11" r="8"></circle>
+				<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+			</svg>
+			<input
+				type="text"
+				class="search-input"
+				placeholder="Search clients or services..."
+				bind:value={searchQuery}
+			/>
+			{#if searchQuery}
+				<button class="search-clear" onclick={() => (searchQuery = '')}>✕</button>
+			{/if}
+		</div>
 	</div>
 
-	<BookingModal bind:isOpen={isModalOpen} mode={modalMode} existingBooking={selectedBooking} />
-
-	<button class="fab" onclick={openCreate}>+</button>
-
-	<div class="bookings-list">
-		{#each filteredBookings as booking (booking.id)}
-			<div class="booking-card">
-				<div class="card-top">
-					<div class="info">
-						<h3>{booking.userName}</h3>
-						<p class="service">
-							{#if booking.servicesList && booking.servicesList.length > 0}
-								{booking.servicesList.map((s) => s.name).join(', ')}
-							{:else}
-								{booking.serviceName}
-							{/if}
-							• {booking.totalAmount
-								? `₹${booking.totalAmount}`
-								: booking.price
-									? `₹${booking.price}`
-									: '-'}
-						</p>
-						<p class="meta">{booking.date || 'No Date'} at {booking.time || 'Time'}</p>
-					</div>
-					<span class="status-pill {booking.status}">{booking.status}</span>
-				</div>
-
-				<div class="actions">
-					<button class="btn edit" onclick={() => openEdit(booking)}>Edit</button>
-					{#if booking.status === 'pending'}
-						<button class="btn confirm" onclick={() => handleStatusChange(booking.id, 'confirmed')}
-							>Confirm</button
-						>
-					{:else if booking.status === 'confirmed'}
-						<button class="btn start" onclick={() => handleStatusChange(booking.id, 'in-progress')}
-							>Start</button
-						>
-					{:else if booking.status === 'in-progress'}
-						<button class="btn complete" onclick={() => handleStatusChange(booking.id, 'completed')}
-							>Complete</button
-						>
-					{/if}
-					{#if booking.userId}
-						<button
-							class="btn history"
-							onclick={() => openHistory(booking.userId, booking.userName)}>History</button
-						>
-					{/if}
-					<!-- History and Cancel removed/moved -->
-				</div>
-			</div>
+	<!-- Filter Pills -->
+	<div class="filter-pills s-scrollbar-hide">
+		{#each filters as filter}
+			<button
+				class="filter-pill"
+				class:active={activeFilter === filter.key}
+				onclick={() => {
+					activeFilter = filter.key;
+					goto(`/staff/bookings?filter=${filter.key}`, { replaceState: true });
+				}}
+			>
+				{filter.label}
+				{#if filter.key === 'pending' && pendingBadge > 0}
+					<span class="pill-badge">{pendingBadge}</span>
+				{/if}
+			</button>
 		{/each}
-
-		{#if filteredBookings.length === 0}
-			<div class="no-results">No bookings found.</div>
-		{/if}
 	</div>
 
-	{#if showHistoryModal}
-		<div class="modal-backdrop" onclick={() => (showHistoryModal = false)}>
-			<div class="modal-content" onclick={(e) => e.stopPropagation()}>
-				<div class="modal-header">
-					<h2>History: {selectedHistoryUser}</h2>
-					<button class="close-btn" onclick={() => (showHistoryModal = false)}>&times;</button>
-				</div>
-				<div class="modal-body">
-					{#if historyLoading}
-						<p>Loading...</p>
-					{:else if historyBookings.length === 0}
-						<p>No past bookings found.</p>
-					{:else}
-						<div class="history-list">
-							{#each historyBookings as b}
-								<div class="history-item">
-									<div class="h-top">
-										<span class="h-date">{b.date}</span>
-										<span class="status-pill {b.status}">{b.status}</span>
+	<!-- Results Count -->
+	<div class="results-bar">
+		<span class="results-count">{filteredBookings().length} bookings</span>
+	</div>
+
+	<!-- Grouped Bookings -->
+	{#if filteredBookings().length === 0}
+		<EmptyState
+			icon="🔍"
+			title="No bookings found"
+			description={searchQuery ? 'Try a different search' : 'No bookings match this filter'}
+			actionLabel="Clear Filters"
+			onAction={() => {
+				searchQuery = '';
+				activeFilter = 'all';
+			}}
+		/>
+	{:else}
+		<div class="bookings-list s-stagger">
+			{#each groupedBookings() as [dateKey, bookings]}
+				<div class="date-group">
+					<div class="date-divider">
+						<span class="dd-label">{formatDate(dateKey)}</span>
+						<span class="dd-count">{bookings.length}</span>
+					</div>
+
+					{#each bookings as booking}
+						<div
+							class="booking-card s-card s-card-interactive"
+							onclick={() => openBooking(booking)}
+							role="button"
+							tabindex="0"
+							onkeydown={(e) => e.key === 'Enter' && openBooking(booking)}
+						>
+							<!-- Status edge -->
+							<div class="bc-edge {booking.status}"></div>
+
+							<div class="bc-body">
+								<div class="bc-top">
+									<button
+										class="bc-avatar"
+										onclick={(e) => {
+											e.stopPropagation();
+											openClient(booking);
+										}}
+									>
+										{booking.userName?.[0]?.toUpperCase() || 'G'}
+									</button>
+									<div class="bc-info">
+										<h4 class="bc-name">{booking.userName || 'Guest'}</h4>
+										<p class="bc-services">
+											{#if booking.servicesList?.length}
+												{booking.servicesList.map((s: any) => s.name).join(', ')}
+											{:else}
+												{booking.serviceName || 'Service'}
+											{/if}
+										</p>
 									</div>
-									<p class="h-service">
-										{#if b.servicesList && b.servicesList.length > 0}
-											{b.servicesList.map((s) => s.name).join(', ')}
-										{:else}
-											{b.serviceName || 'Service'}
-										{/if}
-									</p>
+									<StatusBadge status={booking.status} size="sm" />
 								</div>
-							{/each}
+
+								<div class="bc-meta">
+									<span class="bc-meta-item">🕐 {formatTime12h(booking.time)}</span>
+									{#if booking.servicesList?.some((s: any) => s.duration)}
+										<span class="bc-meta-item"
+											>⏱ {formatDuration(
+												booking.servicesList.reduce((a: number, s: any) => a + (s.duration || 0), 0)
+											)}</span
+										>
+									{/if}
+									<span class="bc-meta-item price"
+										>₹{booking.totalAmount || booking.price || '-'}</span
+									>
+								</div>
+
+								<!-- Quick Actions -->
+								<div class="bc-actions">
+									{#if booking.status === 'pending'}
+										<button
+											class="qa s-btn s-btn-sm"
+											style="background: var(--s-confirmed); color: white; flex: 1"
+											onclick={(e) => quickAction(booking.id, 'confirmed', e)}>✓ Confirm</button
+										>
+										<button
+											class="qa s-btn s-btn-sm s-btn-danger"
+											onclick={(e) => quickAction(booking.id, 'cancelled', e)}>✕</button
+										>
+									{:else if booking.status === 'confirmed'}
+										<button
+											class="qa s-btn s-btn-sm s-btn-accent"
+											style="flex: 1"
+											onclick={async (e) => {
+												e.stopPropagation();
+												startServiceTimer(booking);
+												showToast('Timer started!', 'success');
+											}}>▶ Start</button
+										>
+									{:else if booking.status === 'in-progress'}
+										<button
+											class="qa s-btn s-btn-sm"
+											style="background: var(--s-completed); color: white; flex: 1"
+											onclick={(e) => {
+												e.stopPropagation();
+												goto(`/staff/bookings/${booking.id}`);
+											}}>✓ Complete</button
+										>
+									{/if}
+								</div>
+							</div>
 						</div>
-					{/if}
+					{/each}
 				</div>
-			</div>
+			{/each}
 		</div>
 	{/if}
+
+	<!-- FAB -->
+	<button
+		class="fab"
+		onclick={() => {
+			modalMode = 'create';
+			selectedBooking = null;
+			isModalOpen = true;
+		}}
+		aria-label="New booking"
+	>
+		<svg
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2.5"
+			stroke-linecap="round"
+		>
+			<line x1="12" y1="5" x2="12" y2="19"></line>
+			<line x1="5" y1="12" x2="19" y2="12"></line>
+		</svg>
+	</button>
 </div>
 
-<StaffNav />
+<BookingModal
+	bind:isOpen={isModalOpen}
+	mode={modalMode}
+	existingBooking={selectedBooking}
+	onClose={() => (isModalOpen = false)}
+/>
+
+<ClientDrawer
+	bind:isOpen={isDrawerOpen}
+	userId={drawerUserId}
+	userName={drawerUserName}
+	userPhone={drawerUserPhone}
+	userEmail={drawerUserEmail}
+/>
 
 <style>
 	.bookings-page {
-		padding-bottom: 80px;
-		padding-top: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-space-md);
 	}
 
-	.search-bar {
-		margin: 0 16px 20px 16px;
+	/* Search */
+	.search-wrap {
 		position: relative;
-	}
-
-	.search-bar input {
-		width: 100%;
-		padding: 12px 16px 12px 40px;
-		border: none;
-		background: white;
-		border-radius: 12px;
-		font-size: 1rem;
-		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+		display: flex;
+		align-items: center;
 	}
 
 	.search-icon {
 		position: absolute;
-		left: 12px;
-		top: 50%;
-		transform: translateY(-50%);
-		opacity: 0.5;
+		left: 14px;
+		color: var(--s-text-tertiary);
+		pointer-events: none;
 	}
 
-	.bookings-list {
-		padding: 0 16px;
+	.search-input {
+		width: 100%;
+		padding: 12px 40px 12px 42px;
+		background: var(--s-surface);
+		border: 1px solid var(--s-border);
+		border-radius: var(--s-radius-lg);
+		font-size: var(--s-text-base);
+		color: var(--s-text-primary);
+		outline: none;
+		transition: all var(--s-duration-fast) var(--s-ease);
+	}
+
+	.search-input:focus {
+		border-color: var(--s-accent);
+		box-shadow: 0 0 0 3px var(--s-accent-bg);
+	}
+
+	.search-input::placeholder {
+		color: var(--s-text-tertiary);
+	}
+
+	.search-clear {
+		position: absolute;
+		right: 12px;
+		background: var(--s-bg-tertiary);
+		border: none;
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		font-size: 0.7rem;
+		color: var(--s-text-secondary);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* Filters */
+	.filter-pills {
+		display: flex;
+		gap: var(--s-space-sm);
+		overflow-x: auto;
+		padding: 2px 0;
+	}
+
+	.filter-pill {
+		flex-shrink: 0;
+		padding: 7px 14px;
+		background: var(--s-surface);
+		border: 1px solid var(--s-border);
+		border-radius: var(--s-radius-full);
+		font-size: var(--s-text-sm);
+		font-weight: 600;
+		color: var(--s-text-secondary);
+		cursor: pointer;
+		transition: all var(--s-duration-fast) var(--s-ease);
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		white-space: nowrap;
+	}
+
+	.filter-pill.active {
+		background: var(--s-brand);
+		color: white;
+		border-color: var(--s-brand);
+	}
+
+	:global(.staff-app.dark) .filter-pill.active {
+		background: var(--s-accent);
+		color: #1a1a2e;
+		border-color: var(--s-accent);
+	}
+
+	.filter-pill:active {
+		transform: scale(0.95);
+	}
+
+	.pill-badge {
+		background: white;
+		color: var(--s-brand);
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		font-size: 0.6rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 800;
+	}
+
+	.filter-pill.active .pill-badge {
+		background: rgba(255, 255, 255, 0.3);
+		color: white;
+	}
+
+	/* Results */
+	.results-bar {
+		padding: 0 2px;
+	}
+
+	.results-count {
+		font-size: var(--s-text-xs);
+		font-weight: 600;
+		color: var(--s-text-tertiary);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	/* Date Group */
+	.date-group {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--s-space-sm);
 	}
 
-	.booking-card {
-		background: white;
-		border-radius: 16px;
-		padding: 16px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-	}
-
-	.card-top {
+	.date-divider {
 		display: flex;
 		justify-content: space-between;
-		margin-bottom: 16px;
+		align-items: center;
+		margin-top: var(--s-space-sm);
 	}
 
-	.info h3 {
-		margin: 0 0 4px 0;
-		font-size: 1.1rem;
-		font-weight: 600;
-		color: #1c1c1e;
-	}
-
-	.service {
-		margin: 0 0 2px 0;
-		color: #3a3a3c;
-		font-size: 0.95rem;
-	}
-
-	.meta {
-		margin: 0;
-		color: #8e8e93;
-		font-size: 0.85rem;
-	}
-
-	.status-pill {
-		font-size: 0.7rem;
-		padding: 4px 8px;
-		border-radius: 20px;
-		text-transform: uppercase;
+	.dd-label {
+		font-family: var(--s-font-display);
+		font-size: var(--s-text-sm);
 		font-weight: 700;
-		height: fit-content;
+		color: var(--s-text-secondary);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
 	}
 
-	.status-pill.pending {
-		background: #fff3e0;
-		color: #f57c00;
-	}
-	.status-pill.confirmed {
-		background: #e8f5e9;
-		color: #388e3c;
-	}
-	.status-pill.in-progress {
-		background: #e3f2fd;
-		color: #1976d2;
-	}
-	.status-pill.completed {
-		background: #f2f2f7;
-		color: #8e8e93;
-	}
-	.status-pill.cancelled {
-		background: #ffebee;
-		color: #d32f2f;
-	}
-
-	.actions {
-		display: flex;
-		gap: 8px;
-		border-top: 1px solid #f2f2f7;
-		padding-top: 12px;
-	}
-
-	.btn {
-		flex: 1;
-		padding: 10px;
-		border-radius: 8px;
-		border: none;
+	.dd-count {
+		font-size: var(--s-text-xs);
+		background: var(--s-bg-tertiary);
+		padding: 2px 8px;
+		border-radius: var(--s-radius-full);
 		font-weight: 600;
-		cursor: pointer;
+		color: var(--s-text-secondary);
+	}
+
+	/* Booking Card */
+	.booking-card {
+		display: flex;
+		overflow: hidden;
+	}
+
+	.bc-edge {
+		width: 4px;
+		flex-shrink: 0;
+	}
+
+	.bc-edge.pending {
+		background: var(--s-pending);
+	}
+	.bc-edge.confirmed {
+		background: var(--s-confirmed);
+	}
+	.bc-edge.in-progress {
+		background: var(--s-in-progress);
+	}
+	.bc-edge.completed {
+		background: var(--s-completed);
+	}
+	.bc-edge.cancelled {
+		background: var(--s-cancelled);
+	}
+
+	.bc-body {
+		flex: 1;
+		padding: var(--s-space-md) var(--s-space-lg);
+	}
+
+	.bc-top {
+		display: flex;
+		align-items: center;
+		gap: var(--s-space-md);
+	}
+
+	.bc-avatar {
+		width: 36px;
+		height: 36px;
+		border-radius: var(--s-radius-md);
+		background: linear-gradient(135deg, var(--s-accent), var(--s-accent-dark, #b08d4f));
+		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
 		font-size: 0.9rem;
+		flex-shrink: 0;
+		border: none;
+		cursor: pointer;
+		transition: transform var(--s-duration-fast) var(--s-ease);
 	}
 
-	.btn.start {
-		background: #1c1c1e;
-		color: white;
-	}
-	.btn.confirm {
-		background: #34c759;
-		color: white;
-	}
-	.btn.cancel {
-		background: #ffebee;
-		color: #d32f2f;
-	}
-	.btn.complete {
-		background: #007aff;
-		color: white;
-	}
-	.btn.history {
-		background: #f2f2f7;
-		color: #1c1c1e;
+	.bc-avatar:active {
+		transform: scale(0.9);
 	}
 
-	.no-results {
-		text-align: center;
-		color: #8e8e93;
-		margin-top: 40px;
+	.bc-info {
+		flex: 1;
+		min-width: 0;
 	}
 
-	.btn.edit {
-		background: #e5e5ea;
-		color: #1c1c1e;
+	.bc-name {
+		margin: 0;
+		font-size: var(--s-text-base);
+		font-weight: 600;
 	}
 
+	.bc-services {
+		margin: 1px 0 0;
+		font-size: var(--s-text-sm);
+		color: var(--s-text-secondary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.bc-meta {
+		display: flex;
+		gap: var(--s-space-md);
+		margin-top: var(--s-space-sm);
+		flex-wrap: wrap;
+	}
+
+	.bc-meta-item {
+		font-size: var(--s-text-xs);
+		font-weight: 600;
+		color: var(--s-text-tertiary);
+	}
+
+	.bc-meta-item.price {
+		color: var(--s-text-primary);
+		font-weight: 700;
+	}
+
+	.bc-actions {
+		display: flex;
+		gap: var(--s-space-sm);
+		margin-top: var(--s-space-md);
+	}
+
+	/* FAB */
 	.fab {
 		position: fixed;
-		bottom: 90px;
+		bottom: calc(var(--s-nav-height, 68px) + 20px);
 		right: 20px;
 		width: 56px;
 		height: 56px;
-		border-radius: 50%;
-		background: #000;
+		border-radius: var(--s-radius-full);
+		background: var(--s-brand);
 		color: white;
 		border: none;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		box-shadow: var(--s-shadow-lg);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 2rem;
 		cursor: pointer;
-		z-index: 100;
-		transition: transform 0.2s;
+		z-index: 50;
+		transition: all var(--s-duration-fast) var(--s-ease);
+	}
+
+	:global(.staff-app.dark) .fab {
+		background: var(--s-accent);
+		color: #1a1a2e;
 	}
 
 	.fab:active {
-		transform: scale(0.95);
-	}
-	/* History Modal Styles */
-	.history-list {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-	.history-item {
-		padding: 12px;
-		background: #f9f9f9;
-		border-radius: 12px;
-	}
-	.h-top {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: 4px;
-	}
-	.h-date {
-		font-weight: 600;
-		font-size: 0.9rem;
-	}
-	.h-service {
-		margin: 0;
-		color: #8e8e93;
-		font-size: 0.85rem;
-	}
-	/* Modal Base Styles reuse dashboard modal styles if global, else need duplication or global class */
-	.modal-backdrop {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background: rgba(0, 0, 0, 0.5);
-		display: flex;
-		justify-content: center;
-		align-items: flex-end;
-		z-index: 200;
-		backdrop-filter: blur(4px);
-	}
-	@media (min-width: 768px) {
-		.modal-backdrop {
-			align-items: center;
-		}
-	}
-	.modal-content {
-		background: white;
-		width: 100%;
-		max-width: 500px;
-		border-radius: 20px 20px 0 0;
-		padding: 24px;
-		max-height: 80vh;
-		overflow-y: auto;
-	}
-	@media (min-width: 768px) {
-		.modal-content {
-			border-radius: 20px;
-		}
-	}
-	.modal-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 24px;
-	}
-	.modal-header h2 {
-		margin: 0;
-		font-size: 1.25rem;
-	}
-	.close-btn {
-		background: none;
-		border: none;
-		font-size: 2rem;
-		line-height: 1;
-		cursor: pointer;
-		padding: 0;
-		color: #8e8e93;
+		transform: scale(0.9);
+		box-shadow: var(--s-shadow-xl);
 	}
 </style>

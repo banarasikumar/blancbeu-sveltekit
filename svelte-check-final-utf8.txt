@@ -1,0 +1,3889 @@
+﻿Loading svelte-check in workspace: c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu
+Getting Svelte diagnostics...
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\ServiceHighlight.svelte[39m:134:3
+[33mWarn[39m: Also define the standard property 'line-clamp' for compatibility (css)
+[36m		display: -webkit-box;
+		[35m-webkit-line-clamp[36m: 2;
+		-webkit-box-orient: vertical;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\ServiceHighlight.svelte[39m:34:4
+[31mError[39m: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m		<LazyImage
+			[35msrc[36m={service.image}
+			alt={service.name}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\SpecialOffers.svelte[39m:107:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--gradient-gold);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\TransformationGallery.svelte[39m:187:4
+[33mWarn[39m: `<div>` with a mousedown, touchstart, mousemove, touchmove, mouseup, touchend or mouseleave handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m		<div class="carousel-card">
+			[35m<div
+				class="comparison-slider"
+				bind:this={container}
+				bind:clientWidth={containerWidth}
+				on:mousedown={handleStart}
+				on:touchstart={handleStart}
+				on:mousemove={handleMove}
+				on:touchmove={handleMove}
+				on:mouseup={handleEnd}
+				on:touchend={handleEnd}
+				on:mouseleave={handleEnd}
+			>
+				<!-- After Image Container (Background) -->
+				<div class="after-container">
+					<img src={currentItem.after} alt="After" class="after-img" />
+					<div class="label-container after">
+						<span class="label label-after">AFTER</span>
+					</div>
+				</div>
+
+				<!-- Before Image Container (Foreground - Clipped) -->
+				<div class="before-container" style="width: {sliderPosition}%">
+					<div class="inner-fixed-wrapper" style={innerStyle}>
+						<img src={currentItem.before} alt="Before" class="before-img" />
+						<div class="label-container before">
+							<span class="label label-before">BEFORE</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Slider Handle -->
+				<div class="slider-handle" style="left: {sliderPosition}%">
+					<div class="handle-line"></div>
+					<div class="handle-circle">
+						<span class="handle-icon">Ôåö</span>
+					</div>
+				</div>
+			</div>[36m[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\TransformationGallery.svelte[39m:238:5
+[33mWarn[39m: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+[36m			{#each filteredItems as _, i}
+				[35m<button class="dot" class:active={i === currentIndex} on:click={() => (currentIndex = i)}
+				></button>[36m
+			{/each}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\AboutSection.svelte[39m:151:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: linear-gradient(90deg, #fff, #999, #fff);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\MembershipTiers.svelte[39m:98:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--gradient-gold);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\home\MembershipTiers.svelte[39m:169:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--tier-gradient);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\+page.svelte[39m:93:2
+[33mWarn[39m: Unused CSS selector ".no-services"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.no-services[36m {
+		grid-column: 1 / -1;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\+page.svelte[39m:75:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--gradient-gold);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\api\admin\cleanup-bookings\+server.ts[39m:27:15
+[31mError[39m: Variable 'overdueBookings' implicitly has type 'any[]' in some locations where its type cannot be determined. 
+[36m
+        const [35moverdueBookings[36m = [];[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\api\admin\cleanup-bookings\+server.ts[39m:59:32
+[31mError[39m: Variable 'overdueBookings' implicitly has an 'any[]' type. 
+[36m        let cancelledCount = 0;
+        const updatePromises = [35moverdueBookings[36m.map(async (id) => {
+            try {[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\api\admin\cleanup-bookings\+server.ts[39m:82:64
+[31mError[39m: 'error' is of type 'unknown'. 
+[36m        console.error('[API] Error in cleanup-bookings:', error);
+        return json({ error: 'Internal Server Error', details: [35merror[36m.message }, { status: 500 });
+    }[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\BookingSuccess.svelte[39m:560:2
+[33mWarn[39m: Unused CSS selector ".booking-id-tag"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.booking-id-tag[36m {
+		font-family: 'Geist Mono', monospace;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\BookingSuccess.svelte[39m:419:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: linear-gradient(135deg, silver, #fff, silver); /* Metallic */
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\BookingSuccess.svelte[39m:426:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: linear-gradient(135deg, #6b8e23, #a4b47d, #8a9a5b);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\BookingSuccess.svelte[39m:431:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: linear-gradient(135deg, #6c5dd3, #ff00ff, #00ffff);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\layout\MobileSimulator.svelte[39m:14:6
+[33mWarn[39m: `scrollContainer` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update (svelte)
+[36m	let isHeightTooSmall = $state(false);
+	let [35mscrollContainer: HTMLDivElement[36m;
+	let activeScrollElement: HTMLElement | null = null;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\layout\MobileSimulator.svelte[39m:494:2
+[33mWarn[39m: Unused CSS selector ".warning-content"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.warning-content[36m {
+		text-align: center;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\layout\MobileSimulator.svelte[39m:500:2
+[33mWarn[39m: Unused CSS selector ".warning-content svg"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.warning-content svg[36m {
+		color: #d4af37;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\layout\MobileSimulator.svelte[39m:505:2
+[33mWarn[39m: Unused CSS selector ".warning-content h2"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.warning-content h2[36m {
+		font-size: 1.5rem;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\layout\MobileSimulator.svelte[39m:511:2
+[33mWarn[39m: Unused CSS selector ".warning-content p"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.warning-content p[36m {
+		font-size: 1rem;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\staff\BookingModal.svelte[39m:215:2
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m{#if isOpen}
+	[35m<div class="modal-backdrop" onclick={() => (isOpen = false)}>
+		<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+			<!-- HEADER -->
+			<div class="modal-header">
+				<h2>
+					{#if internalMode === 'create'}
+						New Booking
+					{:else if internalMode === 'edit'}
+						Edit Booking
+					{:else}
+						Booking Details
+					{/if}
+				</h2>
+				<div class="header-actions">
+					{#if internalMode === 'view'}
+						<button class="icon-btn edit-toggle" onclick={toggleEditMode} aria-label="Edit">
+							Ô£Å´©Å
+						</button>
+					{/if}
+					<button class="close-btn" onclick={() => (isOpen = false)}>&times;</button>
+				</div>
+			</div>
+
+			<div class="modal-body">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE (Overview) -->
+					<div class="overview-container">
+						<div class="overview-card">
+							<div class="ov-header">
+								<div class="client-avatar-placeholder">
+									{existingBooking.userName?.[0] || 'G'}
+								</div>
+								<div class="ov-client-info">
+									<h3>{existingBooking.userName || 'Guest'}</h3>
+									<p>{existingBooking.userPhone || 'No phone provided'}</p>
+								</div>
+								<span class={`status-badge-lg ${existingBooking.status}`}
+									>{existingBooking.status}</span
+								>
+							</div>
+
+							<div class="ov-time-row">
+								<div class="ov-time-block">
+									<span class="ov-label">Date</span>
+									<span class="ov-value">{existingBooking.date}</span>
+								</div>
+								<div class="ov-divider"></div>
+								<div class="ov-time-block">
+									<span class="ov-label">Time</span>
+									<span class="ov-value">{existingBooking.time}</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="ov-section">
+							<h4>Services</h4>
+							<div class="ov-service-list">
+								{#if existingBooking.servicesList}
+									{#each existingBooking.servicesList as s}
+										<div class="ov-service-item">
+											<span>{s.name}</span>
+											<span class="price">Ôé╣{s.price}</span>
+										</div>
+									{/each}
+								{:else if existingBooking.serviceName}
+									<div class="ov-service-item">
+										<span>{existingBooking.serviceName}</span>
+										<span class="price">Ôé╣{existingBooking.price}</span>
+									</div>
+								{/if}
+								<div class="ov-total-row">
+									<span>Total</span>
+									<span class="total-price"
+										>Ôé╣{existingBooking.totalAmount || existingBooking.price || 0}</span
+									>
+								</div>
+							</div>
+						</div>
+
+						{#if existingBooking.notes}
+							<div class="ov-section">
+								<h4>Notes</h4>
+								<p class="ov-notes">{existingBooking.notes}</p>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE FORM -->
+					<section class="form-section">
+						<h3>Client Details</h3>
+						<div class="form-group">
+							<input
+								type="text"
+								id="name"
+								bind:value={name}
+								placeholder="Client Name *"
+								class="input-lg"
+							/>
+						</div>
+						<div class="form-group">
+							<input
+								type="tel"
+								id="phone"
+								bind:value={phone}
+								placeholder="Phone Number (Optional)"
+							/>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<h3>Time & Date</h3>
+						<div class="row">
+							<div class="form-group">
+								<input type="date" id="date" bind:value={date} />
+							</div>
+							<div class="form-group">
+								<input type="time" id="time" bind:value={time} />
+							</div>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<div class="section-top">
+							<h3>Services</h3>
+							<span class="total-badge">Total: Ôé╣{totalAmount}</span>
+						</div>
+
+						<div class="service-list">
+							{#each selectedServices as item, i}
+								<div class="service-item">
+									<div class="s-info">
+										<input
+											type="text"
+											bind:value={item.name}
+											class="name-input"
+											placeholder="Service Name"
+										/>
+										<div class="s-price-edit">
+											<span>Ôé╣</span>
+											<input
+												type="number"
+												value={item.price}
+												oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
+												class="price-input"
+											/>
+										</div>
+									</div>
+									<button class="remove-btn" onclick={() => removeService(i)}>├ù</button>
+								</div>
+							{/each}
+						</div>
+
+						<div class="add-service-row">
+							<select id="service" bind:value={tempServiceId} class="service-select">
+								<option value="" disabled selected>Select from catalog +</option>
+								{#each $staffServices as service}
+									<option value={service.id}>{service.name} - Ôé╣{service.price}</option>
+								{/each}
+							</select>
+							{#if tempServiceId}
+								<button class="confirm-add-btn" onclick={addService}>Add</button>
+							{/if}
+						</div>
+						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
+					</section>
+
+					<div class="form-group notes-group">
+						<textarea id="notes" bind:value={notes} placeholder="Add special requests or notes..."
+						></textarea>
+					</div>
+				{/if}
+			</div>
+
+			<!-- FOOTER -->
+			<div class="modal-footer">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE ACTIONS (Status changes) -->
+					<div class="status-actions">
+						{#if existingBooking.status === 'pending'}
+							<button class="action-btn confirm" onclick={() => handleStatusChange('confirmed')}>
+								Confirm Booking
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Decline
+							</button>
+						{:else if existingBooking.status === 'confirmed'}
+							<button class="action-btn start" onclick={() => handleStatusChange('in-progress')}>
+								Start Service
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Cancel
+							</button>
+						{:else if existingBooking.status === 'in-progress'}
+							<button class="action-btn complete" onclick={() => handleStatusChange('completed')}>
+								Complete Service
+							</button>
+						{:else}
+							<!-- Completed or Cancelled -->
+							<button class="action-btn outline" onclick={() => (isOpen = false)}>Close</button>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE ACTIONS -->
+					<div class="edit-actions">
+						{#if internalMode === 'edit'}
+							<button class="cancel-btn" onclick={() => (internalMode = 'view')}>Cancel Edit</button
+							>
+						{:else}
+							<button class="cancel-btn" onclick={() => (isOpen = false)}>Cancel</button>
+						{/if}
+
+						<button class="save-btn" onclick={handleSubmit} disabled={isSubmitting}>
+							{isSubmitting
+								? 'Saving...'
+								: internalMode === 'create'
+									? 'Create Booking'
+									: 'Save Changes'}
+						</button>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>[36m
+{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\staff\BookingModal.svelte[39m:215:2
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m{#if isOpen}
+	[35m<div class="modal-backdrop" onclick={() => (isOpen = false)}>
+		<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+			<!-- HEADER -->
+			<div class="modal-header">
+				<h2>
+					{#if internalMode === 'create'}
+						New Booking
+					{:else if internalMode === 'edit'}
+						Edit Booking
+					{:else}
+						Booking Details
+					{/if}
+				</h2>
+				<div class="header-actions">
+					{#if internalMode === 'view'}
+						<button class="icon-btn edit-toggle" onclick={toggleEditMode} aria-label="Edit">
+							Ô£Å´©Å
+						</button>
+					{/if}
+					<button class="close-btn" onclick={() => (isOpen = false)}>&times;</button>
+				</div>
+			</div>
+
+			<div class="modal-body">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE (Overview) -->
+					<div class="overview-container">
+						<div class="overview-card">
+							<div class="ov-header">
+								<div class="client-avatar-placeholder">
+									{existingBooking.userName?.[0] || 'G'}
+								</div>
+								<div class="ov-client-info">
+									<h3>{existingBooking.userName || 'Guest'}</h3>
+									<p>{existingBooking.userPhone || 'No phone provided'}</p>
+								</div>
+								<span class={`status-badge-lg ${existingBooking.status}`}
+									>{existingBooking.status}</span
+								>
+							</div>
+
+							<div class="ov-time-row">
+								<div class="ov-time-block">
+									<span class="ov-label">Date</span>
+									<span class="ov-value">{existingBooking.date}</span>
+								</div>
+								<div class="ov-divider"></div>
+								<div class="ov-time-block">
+									<span class="ov-label">Time</span>
+									<span class="ov-value">{existingBooking.time}</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="ov-section">
+							<h4>Services</h4>
+							<div class="ov-service-list">
+								{#if existingBooking.servicesList}
+									{#each existingBooking.servicesList as s}
+										<div class="ov-service-item">
+											<span>{s.name}</span>
+											<span class="price">Ôé╣{s.price}</span>
+										</div>
+									{/each}
+								{:else if existingBooking.serviceName}
+									<div class="ov-service-item">
+										<span>{existingBooking.serviceName}</span>
+										<span class="price">Ôé╣{existingBooking.price}</span>
+									</div>
+								{/if}
+								<div class="ov-total-row">
+									<span>Total</span>
+									<span class="total-price"
+										>Ôé╣{existingBooking.totalAmount || existingBooking.price || 0}</span
+									>
+								</div>
+							</div>
+						</div>
+
+						{#if existingBooking.notes}
+							<div class="ov-section">
+								<h4>Notes</h4>
+								<p class="ov-notes">{existingBooking.notes}</p>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE FORM -->
+					<section class="form-section">
+						<h3>Client Details</h3>
+						<div class="form-group">
+							<input
+								type="text"
+								id="name"
+								bind:value={name}
+								placeholder="Client Name *"
+								class="input-lg"
+							/>
+						</div>
+						<div class="form-group">
+							<input
+								type="tel"
+								id="phone"
+								bind:value={phone}
+								placeholder="Phone Number (Optional)"
+							/>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<h3>Time & Date</h3>
+						<div class="row">
+							<div class="form-group">
+								<input type="date" id="date" bind:value={date} />
+							</div>
+							<div class="form-group">
+								<input type="time" id="time" bind:value={time} />
+							</div>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<div class="section-top">
+							<h3>Services</h3>
+							<span class="total-badge">Total: Ôé╣{totalAmount}</span>
+						</div>
+
+						<div class="service-list">
+							{#each selectedServices as item, i}
+								<div class="service-item">
+									<div class="s-info">
+										<input
+											type="text"
+											bind:value={item.name}
+											class="name-input"
+											placeholder="Service Name"
+										/>
+										<div class="s-price-edit">
+											<span>Ôé╣</span>
+											<input
+												type="number"
+												value={item.price}
+												oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
+												class="price-input"
+											/>
+										</div>
+									</div>
+									<button class="remove-btn" onclick={() => removeService(i)}>├ù</button>
+								</div>
+							{/each}
+						</div>
+
+						<div class="add-service-row">
+							<select id="service" bind:value={tempServiceId} class="service-select">
+								<option value="" disabled selected>Select from catalog +</option>
+								{#each $staffServices as service}
+									<option value={service.id}>{service.name} - Ôé╣{service.price}</option>
+								{/each}
+							</select>
+							{#if tempServiceId}
+								<button class="confirm-add-btn" onclick={addService}>Add</button>
+							{/if}
+						</div>
+						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
+					</section>
+
+					<div class="form-group notes-group">
+						<textarea id="notes" bind:value={notes} placeholder="Add special requests or notes..."
+						></textarea>
+					</div>
+				{/if}
+			</div>
+
+			<!-- FOOTER -->
+			<div class="modal-footer">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE ACTIONS (Status changes) -->
+					<div class="status-actions">
+						{#if existingBooking.status === 'pending'}
+							<button class="action-btn confirm" onclick={() => handleStatusChange('confirmed')}>
+								Confirm Booking
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Decline
+							</button>
+						{:else if existingBooking.status === 'confirmed'}
+							<button class="action-btn start" onclick={() => handleStatusChange('in-progress')}>
+								Start Service
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Cancel
+							</button>
+						{:else if existingBooking.status === 'in-progress'}
+							<button class="action-btn complete" onclick={() => handleStatusChange('completed')}>
+								Complete Service
+							</button>
+						{:else}
+							<!-- Completed or Cancelled -->
+							<button class="action-btn outline" onclick={() => (isOpen = false)}>Close</button>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE ACTIONS -->
+					<div class="edit-actions">
+						{#if internalMode === 'edit'}
+							<button class="cancel-btn" onclick={() => (internalMode = 'view')}>Cancel Edit</button
+							>
+						{:else}
+							<button class="cancel-btn" onclick={() => (isOpen = false)}>Cancel</button>
+						{/if}
+
+						<button class="save-btn" onclick={handleSubmit} disabled={isSubmitting}>
+							{isSubmitting
+								? 'Saving...'
+								: internalMode === 'create'
+									? 'Create Booking'
+									: 'Save Changes'}
+						</button>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>[36m
+{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\staff\BookingModal.svelte[39m:216:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m	<div class="modal-backdrop" onclick={() => (isOpen = false)}>
+		[35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+			<!-- HEADER -->
+			<div class="modal-header">
+				<h2>
+					{#if internalMode === 'create'}
+						New Booking
+					{:else if internalMode === 'edit'}
+						Edit Booking
+					{:else}
+						Booking Details
+					{/if}
+				</h2>
+				<div class="header-actions">
+					{#if internalMode === 'view'}
+						<button class="icon-btn edit-toggle" onclick={toggleEditMode} aria-label="Edit">
+							Ô£Å´©Å
+						</button>
+					{/if}
+					<button class="close-btn" onclick={() => (isOpen = false)}>&times;</button>
+				</div>
+			</div>
+
+			<div class="modal-body">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE (Overview) -->
+					<div class="overview-container">
+						<div class="overview-card">
+							<div class="ov-header">
+								<div class="client-avatar-placeholder">
+									{existingBooking.userName?.[0] || 'G'}
+								</div>
+								<div class="ov-client-info">
+									<h3>{existingBooking.userName || 'Guest'}</h3>
+									<p>{existingBooking.userPhone || 'No phone provided'}</p>
+								</div>
+								<span class={`status-badge-lg ${existingBooking.status}`}
+									>{existingBooking.status}</span
+								>
+							</div>
+
+							<div class="ov-time-row">
+								<div class="ov-time-block">
+									<span class="ov-label">Date</span>
+									<span class="ov-value">{existingBooking.date}</span>
+								</div>
+								<div class="ov-divider"></div>
+								<div class="ov-time-block">
+									<span class="ov-label">Time</span>
+									<span class="ov-value">{existingBooking.time}</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="ov-section">
+							<h4>Services</h4>
+							<div class="ov-service-list">
+								{#if existingBooking.servicesList}
+									{#each existingBooking.servicesList as s}
+										<div class="ov-service-item">
+											<span>{s.name}</span>
+											<span class="price">Ôé╣{s.price}</span>
+										</div>
+									{/each}
+								{:else if existingBooking.serviceName}
+									<div class="ov-service-item">
+										<span>{existingBooking.serviceName}</span>
+										<span class="price">Ôé╣{existingBooking.price}</span>
+									</div>
+								{/if}
+								<div class="ov-total-row">
+									<span>Total</span>
+									<span class="total-price"
+										>Ôé╣{existingBooking.totalAmount || existingBooking.price || 0}</span
+									>
+								</div>
+							</div>
+						</div>
+
+						{#if existingBooking.notes}
+							<div class="ov-section">
+								<h4>Notes</h4>
+								<p class="ov-notes">{existingBooking.notes}</p>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE FORM -->
+					<section class="form-section">
+						<h3>Client Details</h3>
+						<div class="form-group">
+							<input
+								type="text"
+								id="name"
+								bind:value={name}
+								placeholder="Client Name *"
+								class="input-lg"
+							/>
+						</div>
+						<div class="form-group">
+							<input
+								type="tel"
+								id="phone"
+								bind:value={phone}
+								placeholder="Phone Number (Optional)"
+							/>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<h3>Time & Date</h3>
+						<div class="row">
+							<div class="form-group">
+								<input type="date" id="date" bind:value={date} />
+							</div>
+							<div class="form-group">
+								<input type="time" id="time" bind:value={time} />
+							</div>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<div class="section-top">
+							<h3>Services</h3>
+							<span class="total-badge">Total: Ôé╣{totalAmount}</span>
+						</div>
+
+						<div class="service-list">
+							{#each selectedServices as item, i}
+								<div class="service-item">
+									<div class="s-info">
+										<input
+											type="text"
+											bind:value={item.name}
+											class="name-input"
+											placeholder="Service Name"
+										/>
+										<div class="s-price-edit">
+											<span>Ôé╣</span>
+											<input
+												type="number"
+												value={item.price}
+												oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
+												class="price-input"
+											/>
+										</div>
+									</div>
+									<button class="remove-btn" onclick={() => removeService(i)}>├ù</button>
+								</div>
+							{/each}
+						</div>
+
+						<div class="add-service-row">
+							<select id="service" bind:value={tempServiceId} class="service-select">
+								<option value="" disabled selected>Select from catalog +</option>
+								{#each $staffServices as service}
+									<option value={service.id}>{service.name} - Ôé╣{service.price}</option>
+								{/each}
+							</select>
+							{#if tempServiceId}
+								<button class="confirm-add-btn" onclick={addService}>Add</button>
+							{/if}
+						</div>
+						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
+					</section>
+
+					<div class="form-group notes-group">
+						<textarea id="notes" bind:value={notes} placeholder="Add special requests or notes..."
+						></textarea>
+					</div>
+				{/if}
+			</div>
+
+			<!-- FOOTER -->
+			<div class="modal-footer">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE ACTIONS (Status changes) -->
+					<div class="status-actions">
+						{#if existingBooking.status === 'pending'}
+							<button class="action-btn confirm" onclick={() => handleStatusChange('confirmed')}>
+								Confirm Booking
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Decline
+							</button>
+						{:else if existingBooking.status === 'confirmed'}
+							<button class="action-btn start" onclick={() => handleStatusChange('in-progress')}>
+								Start Service
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Cancel
+							</button>
+						{:else if existingBooking.status === 'in-progress'}
+							<button class="action-btn complete" onclick={() => handleStatusChange('completed')}>
+								Complete Service
+							</button>
+						{:else}
+							<!-- Completed or Cancelled -->
+							<button class="action-btn outline" onclick={() => (isOpen = false)}>Close</button>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE ACTIONS -->
+					<div class="edit-actions">
+						{#if internalMode === 'edit'}
+							<button class="cancel-btn" onclick={() => (internalMode = 'view')}>Cancel Edit</button
+							>
+						{:else}
+							<button class="cancel-btn" onclick={() => (isOpen = false)}>Cancel</button>
+						{/if}
+
+						<button class="save-btn" onclick={handleSubmit} disabled={isSubmitting}>
+							{isSubmitting
+								? 'Saving...'
+								: internalMode === 'create'
+									? 'Create Booking'
+									: 'Save Changes'}
+						</button>
+					</div>
+				{/if}
+			</div>
+		</div>[36m
+	</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\staff\BookingModal.svelte[39m:216:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m	<div class="modal-backdrop" onclick={() => (isOpen = false)}>
+		[35m<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+			<!-- HEADER -->
+			<div class="modal-header">
+				<h2>
+					{#if internalMode === 'create'}
+						New Booking
+					{:else if internalMode === 'edit'}
+						Edit Booking
+					{:else}
+						Booking Details
+					{/if}
+				</h2>
+				<div class="header-actions">
+					{#if internalMode === 'view'}
+						<button class="icon-btn edit-toggle" onclick={toggleEditMode} aria-label="Edit">
+							Ô£Å´©Å
+						</button>
+					{/if}
+					<button class="close-btn" onclick={() => (isOpen = false)}>&times;</button>
+				</div>
+			</div>
+
+			<div class="modal-body">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE (Overview) -->
+					<div class="overview-container">
+						<div class="overview-card">
+							<div class="ov-header">
+								<div class="client-avatar-placeholder">
+									{existingBooking.userName?.[0] || 'G'}
+								</div>
+								<div class="ov-client-info">
+									<h3>{existingBooking.userName || 'Guest'}</h3>
+									<p>{existingBooking.userPhone || 'No phone provided'}</p>
+								</div>
+								<span class={`status-badge-lg ${existingBooking.status}`}
+									>{existingBooking.status}</span
+								>
+							</div>
+
+							<div class="ov-time-row">
+								<div class="ov-time-block">
+									<span class="ov-label">Date</span>
+									<span class="ov-value">{existingBooking.date}</span>
+								</div>
+								<div class="ov-divider"></div>
+								<div class="ov-time-block">
+									<span class="ov-label">Time</span>
+									<span class="ov-value">{existingBooking.time}</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="ov-section">
+							<h4>Services</h4>
+							<div class="ov-service-list">
+								{#if existingBooking.servicesList}
+									{#each existingBooking.servicesList as s}
+										<div class="ov-service-item">
+											<span>{s.name}</span>
+											<span class="price">Ôé╣{s.price}</span>
+										</div>
+									{/each}
+								{:else if existingBooking.serviceName}
+									<div class="ov-service-item">
+										<span>{existingBooking.serviceName}</span>
+										<span class="price">Ôé╣{existingBooking.price}</span>
+									</div>
+								{/if}
+								<div class="ov-total-row">
+									<span>Total</span>
+									<span class="total-price"
+										>Ôé╣{existingBooking.totalAmount || existingBooking.price || 0}</span
+									>
+								</div>
+							</div>
+						</div>
+
+						{#if existingBooking.notes}
+							<div class="ov-section">
+								<h4>Notes</h4>
+								<p class="ov-notes">{existingBooking.notes}</p>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE FORM -->
+					<section class="form-section">
+						<h3>Client Details</h3>
+						<div class="form-group">
+							<input
+								type="text"
+								id="name"
+								bind:value={name}
+								placeholder="Client Name *"
+								class="input-lg"
+							/>
+						</div>
+						<div class="form-group">
+							<input
+								type="tel"
+								id="phone"
+								bind:value={phone}
+								placeholder="Phone Number (Optional)"
+							/>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<h3>Time & Date</h3>
+						<div class="row">
+							<div class="form-group">
+								<input type="date" id="date" bind:value={date} />
+							</div>
+							<div class="form-group">
+								<input type="time" id="time" bind:value={time} />
+							</div>
+						</div>
+					</section>
+
+					<section class="form-section">
+						<div class="section-top">
+							<h3>Services</h3>
+							<span class="total-badge">Total: Ôé╣{totalAmount}</span>
+						</div>
+
+						<div class="service-list">
+							{#each selectedServices as item, i}
+								<div class="service-item">
+									<div class="s-info">
+										<input
+											type="text"
+											bind:value={item.name}
+											class="name-input"
+											placeholder="Service Name"
+										/>
+										<div class="s-price-edit">
+											<span>Ôé╣</span>
+											<input
+												type="number"
+												value={item.price}
+												oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
+												class="price-input"
+											/>
+										</div>
+									</div>
+									<button class="remove-btn" onclick={() => removeService(i)}>├ù</button>
+								</div>
+							{/each}
+						</div>
+
+						<div class="add-service-row">
+							<select id="service" bind:value={tempServiceId} class="service-select">
+								<option value="" disabled selected>Select from catalog +</option>
+								{#each $staffServices as service}
+									<option value={service.id}>{service.name} - Ôé╣{service.price}</option>
+								{/each}
+							</select>
+							{#if tempServiceId}
+								<button class="confirm-add-btn" onclick={addService}>Add</button>
+							{/if}
+						</div>
+						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
+					</section>
+
+					<div class="form-group notes-group">
+						<textarea id="notes" bind:value={notes} placeholder="Add special requests or notes..."
+						></textarea>
+					</div>
+				{/if}
+			</div>
+
+			<!-- FOOTER -->
+			<div class="modal-footer">
+				{#if internalMode === 'view' && existingBooking}
+					<!-- VIEW MODE ACTIONS (Status changes) -->
+					<div class="status-actions">
+						{#if existingBooking.status === 'pending'}
+							<button class="action-btn confirm" onclick={() => handleStatusChange('confirmed')}>
+								Confirm Booking
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Decline
+							</button>
+						{:else if existingBooking.status === 'confirmed'}
+							<button class="action-btn start" onclick={() => handleStatusChange('in-progress')}>
+								Start Service
+							</button>
+							<button class="action-btn cancel" onclick={() => handleStatusChange('cancelled')}>
+								Cancel
+							</button>
+						{:else if existingBooking.status === 'in-progress'}
+							<button class="action-btn complete" onclick={() => handleStatusChange('completed')}>
+								Complete Service
+							</button>
+						{:else}
+							<!-- Completed or Cancelled -->
+							<button class="action-btn outline" onclick={() => (isOpen = false)}>Close</button>
+						{/if}
+					</div>
+				{:else}
+					<!-- EDIT/CREATE ACTIONS -->
+					<div class="edit-actions">
+						{#if internalMode === 'edit'}
+							<button class="cancel-btn" onclick={() => (internalMode = 'view')}>Cancel Edit</button
+							>
+						{:else}
+							<button class="cancel-btn" onclick={() => (isOpen = false)}>Cancel</button>
+						{/if}
+
+						<button class="save-btn" onclick={handleSubmit} disabled={isSubmitting}>
+							{isSubmitting
+								? 'Saving...'
+								: internalMode === 'create'
+									? 'Create Booking'
+									: 'Save Changes'}
+						</button>
+					</div>
+				{/if}
+			</div>
+		</div>[36m
+	</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\staff\ClientDrawer.svelte[39m:136:22
+[31mError[39m: Type 'string' is not assignable to type 'StatusType'. (ts)
+[36m								</div>
+								<StatusBadge [35mstatus[36m={booking.status} size="sm" />
+							</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\you\QuickActions.svelte[39m:141:2
+[33mWarn[39m: Unused CSS selector ".action-arrow"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.action-arrow[36m {
+		color: var(--color-text-secondary);[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\lib\components\you\TierProgress.svelte[39m:56:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--gradient-gold);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\+layout.svelte[39m:131:3
+[33mWarn[39m: `<svelte:component>` is deprecated in runes mode ÔÇö components are dynamic by default
+https://svelte.dev/e/svelte_component_deprecated (svelte)
+[36m	{#if SimulatorComponent}
+		[35m<svelte:component this={SimulatorComponent}>
+			<div id="app-root">
+				<Header />
+				<main class="app-content" class:immersive={isHomePage}>
+					{@render children()}
+				</main>
+				<MobileNav />
+				<InstallPrompt />
+				<Toast />
+			</div>
+		</svelte:component>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\+layout.svelte[39m:119:71
+[31mError[39m: Argument of type '"info"' is not assignable to parameter of type '"success" | "error" | "logout" | undefined'. (ts)
+[36m						if (cancelledCount === overdueBookings.length) {
+							showToast(`Auto-cancelled ${cancelledCount} overdue bookings`, [35m'info'[36m);
+						}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\invoice\+page.svelte[39m:833:2
+[33mWarn[39m: Unused CSS selector "[data-theme='clean'] .inv-action-btn.primary"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m[data-theme='clean'] .inv-action-btn.primary[36m {
+		color: #fff;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\invoice\+page.svelte[39m:192:59
+[31mError[39m: Argument of type '"info"' is not assignable to parameter of type '"success" | "error" | "logout" | undefined'. (ts)
+[36m				URL.revokeObjectURL(url);
+				showToast('Share not supported ÔÇö downloaded instead', [35m'info'[36m);
+			}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\services\+page.svelte[39m:198:2
+[33mWarn[39m: Elements with the 'dialog' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus (svelte)
+[36m	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	[35m<div class="admin-action-sheet-overlay" onclick={closeSheet} role="dialog">
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div class="admin-action-sheet" onclick={(e) => e.stopPropagation()} role="document">
+			<div class="admin-action-sheet-header">
+				<div>
+					<h3>{selectedService.name}</h3>
+					<span style="font-size: 12px; color: var(--admin-text-secondary);"
+						>{selectedService.category}</span
+					>
+				</div>
+				<button class="admin-header-btn" onclick={closeSheet} aria-label="Close">
+					<X size={20} />
+				</button>
+			</div>
+
+			<button class="admin-action-sheet-item" onclick={() => editService(selectedService!)}>
+				<Edit size={18} color="var(--admin-accent)" />
+				Edit Service
+			</button>
+
+			<button
+				class="admin-action-sheet-item"
+				onclick={() => deleteService(selectedService!)}
+				style="color: var(--admin-red);"
+			>
+				<Trash2 size={18} color="var(--admin-red)" />
+				Delete Service
+			</button>
+
+			<button class="admin-action-sheet-cancel" onclick={closeSheet}>Cancel</button>
+		</div>
+	</div>[36m
+{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\services\+page.svelte[39m:200:3
+[33mWarn[39m: Non-interactive element `<div>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions (svelte)
+[36m		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		[35m<div class="admin-action-sheet" onclick={(e) => e.stopPropagation()} role="document">
+			<div class="admin-action-sheet-header">
+				<div>
+					<h3>{selectedService.name}</h3>
+					<span style="font-size: 12px; color: var(--admin-text-secondary);"
+						>{selectedService.category}</span
+					>
+				</div>
+				<button class="admin-header-btn" onclick={closeSheet} aria-label="Close">
+					<X size={20} />
+				</button>
+			</div>
+
+			<button class="admin-action-sheet-item" onclick={() => editService(selectedService!)}>
+				<Edit size={18} color="var(--admin-accent)" />
+				Edit Service
+			</button>
+
+			<button
+				class="admin-action-sheet-item"
+				onclick={() => deleteService(selectedService!)}
+				style="color: var(--admin-red);"
+			>
+				<Trash2 size={18} color="var(--admin-red)" />
+				Delete Service
+			</button>
+
+			<button class="admin-action-sheet-cancel" onclick={closeSheet}>Cancel</button>
+		</div>[36m
+	</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\services\+page.svelte[39m:74:10
+[31mError[39m: Cannot find name 'updateDoc'. (ts)
+[36m			const newStatus = !service.isActive; // Toggle
+			await [35mupdateDoc[36m(doc(db, 'services', service.id), {
+				isActive: newStatus,[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\services\add\+page.svelte[39m:533:2
+[33mWarn[39m: Unused CSS selector ".admin-spinner"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.admin-spinner[36m {
+		animation: spin 1s linear infinite;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\services\add\+page.svelte[39m:537:2
+[33mWarn[39m: Unused CSS selector ".admin-spinner-small"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.admin-spinner-small[36m {
+		width: 18px;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\services\categories\+page.svelte[39m:186:68
+[33mWarn[39m: Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus (svelte)
+[36m						{#if editingId === cat.id}
+							<input type="text" bind:value={editName} class="edit-input" [35mautoFocus[36m />
+							<div class="actions">[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\services\categories\+page.svelte[39m:230:2
+[33mWarn[39m: Unused CSS selector ".spin"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.spin[36m {
+		animation: spin 1s linear infinite;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\settings\+page.svelte[39m:60:2
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m<div class="admin-settings-list">
+	[35m<div
+		class="admin-settings-item"
+		role="button"
+		tabindex="0"
+		onclick={() => comingSoon('Edit Profile')}
+	>
+		<div class="admin-settings-item-left">
+			<UserCircle size={20} color="var(--admin-accent)" />
+			<span style="font-size: 16px; font-weight: 500;">Edit Profile</span>
+		</div>
+		<ChevronRight size={16} color="var(--admin-text-tertiary)" />
+	</div>[36m[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\settings\+page.svelte[39m:73:2
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m
+	[35m<div class="admin-settings-item" role="button" tabindex="0" onclick={handleMigration}>
+		<div class="admin-settings-item-left">
+			<Database size={20} color="var(--admin-indigo)" />
+			<span style="font-size: 16px; font-weight: 500;">
+				{isMigrating ? 'Migrating...' : 'Migrate Services'}
+			</span>
+		</div>
+		{#if !isMigrating}
+			<ChevronRight size={16} color="var(--admin-text-tertiary)" />
+		{/if}
+	</div>[36m[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\settings\+page.svelte[39m:85:2
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m
+	[35m<div
+		class="admin-settings-item"
+		role="button"
+		tabindex="0"
+		onclick={() => comingSoon('Notifications')}
+	>
+		<div class="admin-settings-item-left">
+			<Bell size={20} color="var(--admin-red)" />
+			<span style="font-size: 16px; font-weight: 500;">Notifications</span>
+		</div>
+		<ChevronRight size={16} color="var(--admin-text-tertiary)" />
+	</div>[36m[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\settings\+page.svelte[39m:98:2
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m
+	[35m<div class="admin-settings-item" role="button" tabindex="0" onclick={handleLogout}>
+		<div class="admin-settings-item-left">
+			<LogOut size={20} color="var(--admin-red)" />
+			<span style="font-size: 16px; font-weight: 500; color: var(--admin-red);">Logout</span>
+		</div>
+	</div>[36m
+</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\users\+page.svelte[39m:172:2
+[33mWarn[39m: Elements with the 'dialog' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus (svelte)
+[36m	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	[35m<div class="admin-action-sheet-overlay" onclick={closeSheet} role="dialog">
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div class="admin-action-sheet" onclick={(e) => e.stopPropagation()} role="document">
+			<div class="admin-action-sheet-header">
+				<div>
+					<h3>{name}</h3>
+					<span style="font-size: 12px; color: var(--admin-text-secondary);">{selectedUser.id}</span
+					>
+				</div>
+				<button class="admin-header-btn" onclick={closeSheet} aria-label="Close">
+					<X size={20} />
+				</button>
+			</div>
+
+			<button class="admin-action-sheet-item" onclick={() => viewBookingHistory(selectedUser!.id)}>
+				<History size={18} color="var(--admin-accent)" />
+				View Booking History
+			</button>
+
+			{#if selectedUser.email && selectedUser.email !== 'No email'}
+				<a href="mailto:{selectedUser.email}" class="admin-action-sheet-item" onclick={closeSheet}>
+					<Mail size={18} color="var(--admin-green)" />
+					Send Email
+				</a>
+			{/if}
+
+			{#if phone}
+				<a href="tel:{phone}" class="admin-action-sheet-item" onclick={closeSheet}>
+					<Phone size={18} color="var(--admin-green)" />
+					Call User
+				</a>
+			{/if}
+
+			<button class="admin-action-sheet-item" onclick={() => copyUserId(selectedUser!.id)}>
+				<Copy size={18} color="var(--admin-text-secondary)" />
+				Copy User ID
+			</button>
+
+			<button class="admin-action-sheet-cancel" onclick={closeSheet}>Cancel</button>
+		</div>
+	</div>[36m
+{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\(admin)\admin\users\+page.svelte[39m:174:3
+[33mWarn[39m: Non-interactive element `<div>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions (svelte)
+[36m		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		[35m<div class="admin-action-sheet" onclick={(e) => e.stopPropagation()} role="document">
+			<div class="admin-action-sheet-header">
+				<div>
+					<h3>{name}</h3>
+					<span style="font-size: 12px; color: var(--admin-text-secondary);">{selectedUser.id}</span
+					>
+				</div>
+				<button class="admin-header-btn" onclick={closeSheet} aria-label="Close">
+					<X size={20} />
+				</button>
+			</div>
+
+			<button class="admin-action-sheet-item" onclick={() => viewBookingHistory(selectedUser!.id)}>
+				<History size={18} color="var(--admin-accent)" />
+				View Booking History
+			</button>
+
+			{#if selectedUser.email && selectedUser.email !== 'No email'}
+				<a href="mailto:{selectedUser.email}" class="admin-action-sheet-item" onclick={closeSheet}>
+					<Mail size={18} color="var(--admin-green)" />
+					Send Email
+				</a>
+			{/if}
+
+			{#if phone}
+				<a href="tel:{phone}" class="admin-action-sheet-item" onclick={closeSheet}>
+					<Phone size={18} color="var(--admin-green)" />
+					Call User
+				</a>
+			{/if}
+
+			<button class="admin-action-sheet-item" onclick={() => copyUserId(selectedUser!.id)}>
+				<Copy size={18} color="var(--admin-text-secondary)" />
+				Copy User ID
+			</button>
+
+			<button class="admin-action-sheet-cancel" onclick={closeSheet}>Cancel</button>
+		</div>[36m
+	</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:820:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m	{#if showSummaryModal}
+		[35m<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeSummaryModal}>
+			<div
+				class="summary-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeSummaryModal}><X size={20} /></button>
+
+				<div class="summary-header">
+					<h3 class="font-cinzel text-2xl font-bold">
+						Booking <span class="text-gradient-gold">Summary</span>
+					</h3>
+					<p>Please review your details before confirming.</p>
+				</div>
+
+				<div class="summary-content-scroll">
+					<!-- Booking Details Card (Services, Requests, DateTime) -->
+					<div class="booking-details-card">
+						<div class="card-header">
+							<h4>BOOKING DETAILS</h4>
+							<button class="edit-link" on:click={closeSummaryModal}>Edit</button>
+						</div>
+
+						<!-- Services -->
+						<div class="detail-section">
+							<span class="detail-label">Services ({$cart.length})</span>
+							<div class="summary-list">
+								{#each $cart as item}
+									<div class="summary-service-card">
+										<div class="service-icon-box">
+											<Scissors size={18} />
+										</div>
+										<div class="service-info">
+											<span class="service-name">{item.name}</span>
+											<span class="service-price">{fmt(item.price)}</span>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Special Requests -->
+						<div class="detail-section">
+							<span class="detail-label">Special Requests</span>
+							{#if userNotes.trim()}
+								<div class="special-req-card">
+									<div class="req-icon">
+										<FileText size={18} />
+									</div>
+									<p class="req-text">"{userNotes}"</p>
+								</div>
+							{:else}
+								<div class="special-req-empty">
+									<span>None</span>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Date & Time -->
+						<div class="detail-section">
+							<span class="detail-label">Date & Time</span>
+							<div class="date-time-row">
+								<div class="dt-card date-card">
+									<div class="dt-icon">
+										<Calendar size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Date</span>
+										<span class="dt-value"
+											>{selectedDate ? formatDisplayDate(selectedDate) : '-'}</span
+										>
+									</div>
+								</div>
+								<div class="dt-card time-card">
+									<div class="dt-icon">
+										<Clock size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Time</span>
+										<span class="dt-value">{selectedTime}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Payment Method Section (Outside Card) -->
+					<div class="payment-section-standalone mt-2">
+						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
+							Payment Method
+						</h4>
+						<div class="payment-options-grid">
+							<button
+								class="payment-option compact {paymentType === 'free' ? 'active' : ''}"
+								on:click={() => (paymentType = 'free')}
+							>
+								<div class="option-icon-wrapper">
+									<MapPin size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay at Salon</span>
+								</div>
+								<div class="radio-indicator"></div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'token' ? 'active' : ''}"
+								on:click={() => (paymentType = 'token')}
+							>
+								<div class="option-icon-wrapper">
+									<Sparkles size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Token Advance</span>
+								</div>
+								<div class="price-tag-badge">Ôé╣50</div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'full' ? 'active' : ''}"
+								on:click={() => (paymentType = 'full')}
+							>
+								<div class="option-icon-wrapper">
+									<Check size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay Full</span>
+								</div>
+								<div class="price-tag-badge">{fmt(offerTotal)}</div>
+							</button>
+						</div>
+
+						<!-- INLINE SUB METHODS -->
+						{#if paymentType === 'token' || paymentType === 'full'}
+							<div class="payment-sub-methods" transition:slide>
+								<div class="section-label-sm">
+									<h4>Select Payment Method</h4>
+								</div>
+								<div class="detailed-payment-grid">
+									<button
+										class="method-card {selectedPaymentMethod === 'upi' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('upi')}
+									>
+										<Smartphone size={20} />
+										<span>UPI</span>
+									</button>
+									<button
+										class="method-card {selectedPaymentMethod === 'qr' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('qr')}
+									>
+										<QrCode size={20} />
+										<span>QR</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'card' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('card')}
+									>
+										<CreditCard size={20} />
+										<span>Card</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'erupee' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('erupee')}
+									>
+										<Banknote size={20} />
+										<span>e-Rupee</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'crypto' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('crypto')}
+									>
+										<Bitcoin size={20} />
+										<span>Crypto</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'paylater' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('paylater')}
+									>
+										<Clock size={20} />
+										<span>Pay Later</span>
+									</button>
+								</div>
+
+								{#if showUPIApps && selectedPaymentMethod === 'upi'}
+									<div class="upi-apps-row" transition:slide>
+										<div class="upi-app-icon">GPay</div>
+										<div class="upi-app-icon">PhonePe</div>
+										<div class="upi-app-icon">Paytm</div>
+										<div class="upi-app-icon">BHIM</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Coupon & Totals Section -->
+					<div class="totals-section">
+						<!-- Coupon Input -->
+						<div class="coupon-input-wrapper">
+							{#if couponApplied}
+								<div class="coupon-applied">
+									<div class="coupon-badge">
+										<Sparkles size={14} />
+										<span>{couponCode.toUpperCase()}</span>
+									</div>
+									<button class="remove-coupon" on:click={removeCoupon}>
+										<X size={14} />
+									</button>
+								</div>
+							{:else}
+								<div class="coupon-input-row">
+									<input
+										type="text"
+										placeholder="Enter coupon code"
+										bind:value={couponCode}
+										class="coupon-input"
+										disabled={isApplyingCoupon}
+									/>
+									<button
+										class="apply-coupon-btn"
+										on:click={applyCoupon}
+										disabled={isApplyingCoupon || !couponCode.trim()}
+									>
+										{#if isApplyingCoupon}
+											<div class="spinner-sm"></div>
+										{:else}
+											Apply
+										{/if}
+									</button>
+								</div>
+								{#if couponError}
+									<p class="coupon-error">{couponError}</p>
+								{/if}
+							{/if}
+						</div>
+
+						<!-- Price Breakdown -->
+						<div class="price-breakdown">
+							<div class="breakdown-row">
+								<span>Original Amount</span>
+								<span>{fmt(originalTotal)}</span>
+							</div>
+
+							{#if offersDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Offers Discount</span>
+									<span class="text-green">-{fmt(offersDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if couponDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Coupon Discount</span>
+									<span class="text-green">-{fmt(couponDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if totalSavings > 0}
+								<div class="savings-row">
+									<Sparkles size={14} class="text-gold" />
+									<span>You Saved {fmt(totalSavings)}</span>
+								</div>
+							{/if}
+
+							<div class="total-row">
+								<span>Total Amount</span>
+								<span class="text-gold">{fmt(finalTotal)}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="summary-actions">
+					<button
+						class="btn-primary-shiny w-full text-lg py-4"
+						disabled={isSubmitting ||
+							paymentType === '' ||
+							(paymentType !== 'free' && !selectedPaymentMethod)}
+						on:click={submitBooking}
+					>
+						{#if isSubmitting}
+							<div class="spinner"></div>
+							Confirming...
+						{:else if paymentType === 'free'}
+							Confirm Appointment
+						{:else if paymentType === 'token'}
+							Pay Ôé╣50 & Confirm
+						{:else}
+							Pay {fmt(offerTotal)} & Confirm
+						{/if}
+					</button>
+				</div>
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:820:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m	{#if showSummaryModal}
+		[35m<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeSummaryModal}>
+			<div
+				class="summary-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeSummaryModal}><X size={20} /></button>
+
+				<div class="summary-header">
+					<h3 class="font-cinzel text-2xl font-bold">
+						Booking <span class="text-gradient-gold">Summary</span>
+					</h3>
+					<p>Please review your details before confirming.</p>
+				</div>
+
+				<div class="summary-content-scroll">
+					<!-- Booking Details Card (Services, Requests, DateTime) -->
+					<div class="booking-details-card">
+						<div class="card-header">
+							<h4>BOOKING DETAILS</h4>
+							<button class="edit-link" on:click={closeSummaryModal}>Edit</button>
+						</div>
+
+						<!-- Services -->
+						<div class="detail-section">
+							<span class="detail-label">Services ({$cart.length})</span>
+							<div class="summary-list">
+								{#each $cart as item}
+									<div class="summary-service-card">
+										<div class="service-icon-box">
+											<Scissors size={18} />
+										</div>
+										<div class="service-info">
+											<span class="service-name">{item.name}</span>
+											<span class="service-price">{fmt(item.price)}</span>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Special Requests -->
+						<div class="detail-section">
+							<span class="detail-label">Special Requests</span>
+							{#if userNotes.trim()}
+								<div class="special-req-card">
+									<div class="req-icon">
+										<FileText size={18} />
+									</div>
+									<p class="req-text">"{userNotes}"</p>
+								</div>
+							{:else}
+								<div class="special-req-empty">
+									<span>None</span>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Date & Time -->
+						<div class="detail-section">
+							<span class="detail-label">Date & Time</span>
+							<div class="date-time-row">
+								<div class="dt-card date-card">
+									<div class="dt-icon">
+										<Calendar size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Date</span>
+										<span class="dt-value"
+											>{selectedDate ? formatDisplayDate(selectedDate) : '-'}</span
+										>
+									</div>
+								</div>
+								<div class="dt-card time-card">
+									<div class="dt-icon">
+										<Clock size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Time</span>
+										<span class="dt-value">{selectedTime}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Payment Method Section (Outside Card) -->
+					<div class="payment-section-standalone mt-2">
+						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
+							Payment Method
+						</h4>
+						<div class="payment-options-grid">
+							<button
+								class="payment-option compact {paymentType === 'free' ? 'active' : ''}"
+								on:click={() => (paymentType = 'free')}
+							>
+								<div class="option-icon-wrapper">
+									<MapPin size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay at Salon</span>
+								</div>
+								<div class="radio-indicator"></div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'token' ? 'active' : ''}"
+								on:click={() => (paymentType = 'token')}
+							>
+								<div class="option-icon-wrapper">
+									<Sparkles size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Token Advance</span>
+								</div>
+								<div class="price-tag-badge">Ôé╣50</div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'full' ? 'active' : ''}"
+								on:click={() => (paymentType = 'full')}
+							>
+								<div class="option-icon-wrapper">
+									<Check size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay Full</span>
+								</div>
+								<div class="price-tag-badge">{fmt(offerTotal)}</div>
+							</button>
+						</div>
+
+						<!-- INLINE SUB METHODS -->
+						{#if paymentType === 'token' || paymentType === 'full'}
+							<div class="payment-sub-methods" transition:slide>
+								<div class="section-label-sm">
+									<h4>Select Payment Method</h4>
+								</div>
+								<div class="detailed-payment-grid">
+									<button
+										class="method-card {selectedPaymentMethod === 'upi' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('upi')}
+									>
+										<Smartphone size={20} />
+										<span>UPI</span>
+									</button>
+									<button
+										class="method-card {selectedPaymentMethod === 'qr' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('qr')}
+									>
+										<QrCode size={20} />
+										<span>QR</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'card' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('card')}
+									>
+										<CreditCard size={20} />
+										<span>Card</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'erupee' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('erupee')}
+									>
+										<Banknote size={20} />
+										<span>e-Rupee</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'crypto' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('crypto')}
+									>
+										<Bitcoin size={20} />
+										<span>Crypto</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'paylater' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('paylater')}
+									>
+										<Clock size={20} />
+										<span>Pay Later</span>
+									</button>
+								</div>
+
+								{#if showUPIApps && selectedPaymentMethod === 'upi'}
+									<div class="upi-apps-row" transition:slide>
+										<div class="upi-app-icon">GPay</div>
+										<div class="upi-app-icon">PhonePe</div>
+										<div class="upi-app-icon">Paytm</div>
+										<div class="upi-app-icon">BHIM</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Coupon & Totals Section -->
+					<div class="totals-section">
+						<!-- Coupon Input -->
+						<div class="coupon-input-wrapper">
+							{#if couponApplied}
+								<div class="coupon-applied">
+									<div class="coupon-badge">
+										<Sparkles size={14} />
+										<span>{couponCode.toUpperCase()}</span>
+									</div>
+									<button class="remove-coupon" on:click={removeCoupon}>
+										<X size={14} />
+									</button>
+								</div>
+							{:else}
+								<div class="coupon-input-row">
+									<input
+										type="text"
+										placeholder="Enter coupon code"
+										bind:value={couponCode}
+										class="coupon-input"
+										disabled={isApplyingCoupon}
+									/>
+									<button
+										class="apply-coupon-btn"
+										on:click={applyCoupon}
+										disabled={isApplyingCoupon || !couponCode.trim()}
+									>
+										{#if isApplyingCoupon}
+											<div class="spinner-sm"></div>
+										{:else}
+											Apply
+										{/if}
+									</button>
+								</div>
+								{#if couponError}
+									<p class="coupon-error">{couponError}</p>
+								{/if}
+							{/if}
+						</div>
+
+						<!-- Price Breakdown -->
+						<div class="price-breakdown">
+							<div class="breakdown-row">
+								<span>Original Amount</span>
+								<span>{fmt(originalTotal)}</span>
+							</div>
+
+							{#if offersDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Offers Discount</span>
+									<span class="text-green">-{fmt(offersDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if couponDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Coupon Discount</span>
+									<span class="text-green">-{fmt(couponDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if totalSavings > 0}
+								<div class="savings-row">
+									<Sparkles size={14} class="text-gold" />
+									<span>You Saved {fmt(totalSavings)}</span>
+								</div>
+							{/if}
+
+							<div class="total-row">
+								<span>Total Amount</span>
+								<span class="text-gold">{fmt(finalTotal)}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="summary-actions">
+					<button
+						class="btn-primary-shiny w-full text-lg py-4"
+						disabled={isSubmitting ||
+							paymentType === '' ||
+							(paymentType !== 'free' && !selectedPaymentMethod)}
+						on:click={submitBooking}
+					>
+						{#if isSubmitting}
+							<div class="spinner"></div>
+							Confirming...
+						{:else if paymentType === 'free'}
+							Confirm Appointment
+						{:else if paymentType === 'token'}
+							Pay Ôé╣50 & Confirm
+						{:else}
+							Pay {fmt(offerTotal)} & Confirm
+						{/if}
+					</button>
+				</div>
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:821:4
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeSummaryModal}>
+			[35m<div
+				class="summary-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeSummaryModal}><X size={20} /></button>
+
+				<div class="summary-header">
+					<h3 class="font-cinzel text-2xl font-bold">
+						Booking <span class="text-gradient-gold">Summary</span>
+					</h3>
+					<p>Please review your details before confirming.</p>
+				</div>
+
+				<div class="summary-content-scroll">
+					<!-- Booking Details Card (Services, Requests, DateTime) -->
+					<div class="booking-details-card">
+						<div class="card-header">
+							<h4>BOOKING DETAILS</h4>
+							<button class="edit-link" on:click={closeSummaryModal}>Edit</button>
+						</div>
+
+						<!-- Services -->
+						<div class="detail-section">
+							<span class="detail-label">Services ({$cart.length})</span>
+							<div class="summary-list">
+								{#each $cart as item}
+									<div class="summary-service-card">
+										<div class="service-icon-box">
+											<Scissors size={18} />
+										</div>
+										<div class="service-info">
+											<span class="service-name">{item.name}</span>
+											<span class="service-price">{fmt(item.price)}</span>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Special Requests -->
+						<div class="detail-section">
+							<span class="detail-label">Special Requests</span>
+							{#if userNotes.trim()}
+								<div class="special-req-card">
+									<div class="req-icon">
+										<FileText size={18} />
+									</div>
+									<p class="req-text">"{userNotes}"</p>
+								</div>
+							{:else}
+								<div class="special-req-empty">
+									<span>None</span>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Date & Time -->
+						<div class="detail-section">
+							<span class="detail-label">Date & Time</span>
+							<div class="date-time-row">
+								<div class="dt-card date-card">
+									<div class="dt-icon">
+										<Calendar size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Date</span>
+										<span class="dt-value"
+											>{selectedDate ? formatDisplayDate(selectedDate) : '-'}</span
+										>
+									</div>
+								</div>
+								<div class="dt-card time-card">
+									<div class="dt-icon">
+										<Clock size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Time</span>
+										<span class="dt-value">{selectedTime}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Payment Method Section (Outside Card) -->
+					<div class="payment-section-standalone mt-2">
+						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
+							Payment Method
+						</h4>
+						<div class="payment-options-grid">
+							<button
+								class="payment-option compact {paymentType === 'free' ? 'active' : ''}"
+								on:click={() => (paymentType = 'free')}
+							>
+								<div class="option-icon-wrapper">
+									<MapPin size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay at Salon</span>
+								</div>
+								<div class="radio-indicator"></div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'token' ? 'active' : ''}"
+								on:click={() => (paymentType = 'token')}
+							>
+								<div class="option-icon-wrapper">
+									<Sparkles size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Token Advance</span>
+								</div>
+								<div class="price-tag-badge">Ôé╣50</div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'full' ? 'active' : ''}"
+								on:click={() => (paymentType = 'full')}
+							>
+								<div class="option-icon-wrapper">
+									<Check size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay Full</span>
+								</div>
+								<div class="price-tag-badge">{fmt(offerTotal)}</div>
+							</button>
+						</div>
+
+						<!-- INLINE SUB METHODS -->
+						{#if paymentType === 'token' || paymentType === 'full'}
+							<div class="payment-sub-methods" transition:slide>
+								<div class="section-label-sm">
+									<h4>Select Payment Method</h4>
+								</div>
+								<div class="detailed-payment-grid">
+									<button
+										class="method-card {selectedPaymentMethod === 'upi' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('upi')}
+									>
+										<Smartphone size={20} />
+										<span>UPI</span>
+									</button>
+									<button
+										class="method-card {selectedPaymentMethod === 'qr' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('qr')}
+									>
+										<QrCode size={20} />
+										<span>QR</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'card' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('card')}
+									>
+										<CreditCard size={20} />
+										<span>Card</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'erupee' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('erupee')}
+									>
+										<Banknote size={20} />
+										<span>e-Rupee</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'crypto' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('crypto')}
+									>
+										<Bitcoin size={20} />
+										<span>Crypto</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'paylater' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('paylater')}
+									>
+										<Clock size={20} />
+										<span>Pay Later</span>
+									</button>
+								</div>
+
+								{#if showUPIApps && selectedPaymentMethod === 'upi'}
+									<div class="upi-apps-row" transition:slide>
+										<div class="upi-app-icon">GPay</div>
+										<div class="upi-app-icon">PhonePe</div>
+										<div class="upi-app-icon">Paytm</div>
+										<div class="upi-app-icon">BHIM</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Coupon & Totals Section -->
+					<div class="totals-section">
+						<!-- Coupon Input -->
+						<div class="coupon-input-wrapper">
+							{#if couponApplied}
+								<div class="coupon-applied">
+									<div class="coupon-badge">
+										<Sparkles size={14} />
+										<span>{couponCode.toUpperCase()}</span>
+									</div>
+									<button class="remove-coupon" on:click={removeCoupon}>
+										<X size={14} />
+									</button>
+								</div>
+							{:else}
+								<div class="coupon-input-row">
+									<input
+										type="text"
+										placeholder="Enter coupon code"
+										bind:value={couponCode}
+										class="coupon-input"
+										disabled={isApplyingCoupon}
+									/>
+									<button
+										class="apply-coupon-btn"
+										on:click={applyCoupon}
+										disabled={isApplyingCoupon || !couponCode.trim()}
+									>
+										{#if isApplyingCoupon}
+											<div class="spinner-sm"></div>
+										{:else}
+											Apply
+										{/if}
+									</button>
+								</div>
+								{#if couponError}
+									<p class="coupon-error">{couponError}</p>
+								{/if}
+							{/if}
+						</div>
+
+						<!-- Price Breakdown -->
+						<div class="price-breakdown">
+							<div class="breakdown-row">
+								<span>Original Amount</span>
+								<span>{fmt(originalTotal)}</span>
+							</div>
+
+							{#if offersDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Offers Discount</span>
+									<span class="text-green">-{fmt(offersDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if couponDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Coupon Discount</span>
+									<span class="text-green">-{fmt(couponDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if totalSavings > 0}
+								<div class="savings-row">
+									<Sparkles size={14} class="text-gold" />
+									<span>You Saved {fmt(totalSavings)}</span>
+								</div>
+							{/if}
+
+							<div class="total-row">
+								<span>Total Amount</span>
+								<span class="text-gold">{fmt(finalTotal)}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="summary-actions">
+					<button
+						class="btn-primary-shiny w-full text-lg py-4"
+						disabled={isSubmitting ||
+							paymentType === '' ||
+							(paymentType !== 'free' && !selectedPaymentMethod)}
+						on:click={submitBooking}
+					>
+						{#if isSubmitting}
+							<div class="spinner"></div>
+							Confirming...
+						{:else if paymentType === 'free'}
+							Confirm Appointment
+						{:else if paymentType === 'token'}
+							Pay Ôé╣50 & Confirm
+						{:else}
+							Pay {fmt(offerTotal)} & Confirm
+						{/if}
+					</button>
+				</div>
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:821:4
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeSummaryModal}>
+			[35m<div
+				class="summary-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeSummaryModal}><X size={20} /></button>
+
+				<div class="summary-header">
+					<h3 class="font-cinzel text-2xl font-bold">
+						Booking <span class="text-gradient-gold">Summary</span>
+					</h3>
+					<p>Please review your details before confirming.</p>
+				</div>
+
+				<div class="summary-content-scroll">
+					<!-- Booking Details Card (Services, Requests, DateTime) -->
+					<div class="booking-details-card">
+						<div class="card-header">
+							<h4>BOOKING DETAILS</h4>
+							<button class="edit-link" on:click={closeSummaryModal}>Edit</button>
+						</div>
+
+						<!-- Services -->
+						<div class="detail-section">
+							<span class="detail-label">Services ({$cart.length})</span>
+							<div class="summary-list">
+								{#each $cart as item}
+									<div class="summary-service-card">
+										<div class="service-icon-box">
+											<Scissors size={18} />
+										</div>
+										<div class="service-info">
+											<span class="service-name">{item.name}</span>
+											<span class="service-price">{fmt(item.price)}</span>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Special Requests -->
+						<div class="detail-section">
+							<span class="detail-label">Special Requests</span>
+							{#if userNotes.trim()}
+								<div class="special-req-card">
+									<div class="req-icon">
+										<FileText size={18} />
+									</div>
+									<p class="req-text">"{userNotes}"</p>
+								</div>
+							{:else}
+								<div class="special-req-empty">
+									<span>None</span>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Date & Time -->
+						<div class="detail-section">
+							<span class="detail-label">Date & Time</span>
+							<div class="date-time-row">
+								<div class="dt-card date-card">
+									<div class="dt-icon">
+										<Calendar size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Date</span>
+										<span class="dt-value"
+											>{selectedDate ? formatDisplayDate(selectedDate) : '-'}</span
+										>
+									</div>
+								</div>
+								<div class="dt-card time-card">
+									<div class="dt-icon">
+										<Clock size={18} />
+									</div>
+									<div class="dt-info">
+										<span class="dt-label">Time</span>
+										<span class="dt-value">{selectedTime}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Payment Method Section (Outside Card) -->
+					<div class="payment-section-standalone mt-2">
+						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
+							Payment Method
+						</h4>
+						<div class="payment-options-grid">
+							<button
+								class="payment-option compact {paymentType === 'free' ? 'active' : ''}"
+								on:click={() => (paymentType = 'free')}
+							>
+								<div class="option-icon-wrapper">
+									<MapPin size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay at Salon</span>
+								</div>
+								<div class="radio-indicator"></div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'token' ? 'active' : ''}"
+								on:click={() => (paymentType = 'token')}
+							>
+								<div class="option-icon-wrapper">
+									<Sparkles size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Token Advance</span>
+								</div>
+								<div class="price-tag-badge">Ôé╣50</div>
+							</button>
+
+							<button
+								class="payment-option compact {paymentType === 'full' ? 'active' : ''}"
+								on:click={() => (paymentType = 'full')}
+							>
+								<div class="option-icon-wrapper">
+									<Check size={20} />
+								</div>
+								<div class="option-content">
+									<span class="option-label">Pay Full</span>
+								</div>
+								<div class="price-tag-badge">{fmt(offerTotal)}</div>
+							</button>
+						</div>
+
+						<!-- INLINE SUB METHODS -->
+						{#if paymentType === 'token' || paymentType === 'full'}
+							<div class="payment-sub-methods" transition:slide>
+								<div class="section-label-sm">
+									<h4>Select Payment Method</h4>
+								</div>
+								<div class="detailed-payment-grid">
+									<button
+										class="method-card {selectedPaymentMethod === 'upi' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('upi')}
+									>
+										<Smartphone size={20} />
+										<span>UPI</span>
+									</button>
+									<button
+										class="method-card {selectedPaymentMethod === 'qr' ? 'active' : ''}"
+										on:click={() => handlePaymentMethodSelect('qr')}
+									>
+										<QrCode size={20} />
+										<span>QR</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'card' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('card')}
+									>
+										<CreditCard size={20} />
+										<span>Card</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'erupee' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('erupee')}
+									>
+										<Banknote size={20} />
+										<span>e-Rupee</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'crypto' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('crypto')}
+									>
+										<Bitcoin size={20} />
+										<span>Crypto</span>
+									</button>
+									<button
+										class="method-card {bouncingMethod === 'paylater' ? 'shake-anim' : ''}"
+										on:click={() => handlePaymentMethodSelect('paylater')}
+									>
+										<Clock size={20} />
+										<span>Pay Later</span>
+									</button>
+								</div>
+
+								{#if showUPIApps && selectedPaymentMethod === 'upi'}
+									<div class="upi-apps-row" transition:slide>
+										<div class="upi-app-icon">GPay</div>
+										<div class="upi-app-icon">PhonePe</div>
+										<div class="upi-app-icon">Paytm</div>
+										<div class="upi-app-icon">BHIM</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Coupon & Totals Section -->
+					<div class="totals-section">
+						<!-- Coupon Input -->
+						<div class="coupon-input-wrapper">
+							{#if couponApplied}
+								<div class="coupon-applied">
+									<div class="coupon-badge">
+										<Sparkles size={14} />
+										<span>{couponCode.toUpperCase()}</span>
+									</div>
+									<button class="remove-coupon" on:click={removeCoupon}>
+										<X size={14} />
+									</button>
+								</div>
+							{:else}
+								<div class="coupon-input-row">
+									<input
+										type="text"
+										placeholder="Enter coupon code"
+										bind:value={couponCode}
+										class="coupon-input"
+										disabled={isApplyingCoupon}
+									/>
+									<button
+										class="apply-coupon-btn"
+										on:click={applyCoupon}
+										disabled={isApplyingCoupon || !couponCode.trim()}
+									>
+										{#if isApplyingCoupon}
+											<div class="spinner-sm"></div>
+										{:else}
+											Apply
+										{/if}
+									</button>
+								</div>
+								{#if couponError}
+									<p class="coupon-error">{couponError}</p>
+								{/if}
+							{/if}
+						</div>
+
+						<!-- Price Breakdown -->
+						<div class="price-breakdown">
+							<div class="breakdown-row">
+								<span>Original Amount</span>
+								<span>{fmt(originalTotal)}</span>
+							</div>
+
+							{#if offersDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Offers Discount</span>
+									<span class="text-green">-{fmt(offersDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if couponDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Coupon Discount</span>
+									<span class="text-green">-{fmt(couponDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if totalSavings > 0}
+								<div class="savings-row">
+									<Sparkles size={14} class="text-gold" />
+									<span>You Saved {fmt(totalSavings)}</span>
+								</div>
+							{/if}
+
+							<div class="total-row">
+								<span>Total Amount</span>
+								<span class="text-gold">{fmt(finalTotal)}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="summary-actions">
+					<button
+						class="btn-primary-shiny w-full text-lg py-4"
+						disabled={isSubmitting ||
+							paymentType === '' ||
+							(paymentType !== 'free' && !selectedPaymentMethod)}
+						on:click={submitBooking}
+					>
+						{#if isSubmitting}
+							<div class="spinner"></div>
+							Confirming...
+						{:else if paymentType === 'free'}
+							Confirm Appointment
+						{:else if paymentType === 'token'}
+							Pay Ôé╣50 & Confirm
+						{:else}
+							Pay {fmt(offerTotal)} & Confirm
+						{/if}
+					</button>
+				</div>
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1118:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m	{#if showDateModal}
+		[35m<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeDateModal}>
+			<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeDateModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					{#if !isCurrentMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(-1)}>
+							<ChevronLeft size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+						<!-- Spacer -->
+					{/if}
+					<h3 class="current-month-label">
+						{currentViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+					</h3>
+					{#if !isMaxMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(1)}>
+							<ChevronRight size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+					{/if}
+				</div>
+
+				<div class="weekdays-grid">
+					<span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span
+					><span>Sa</span>
+				</div>
+
+				<div class="custom-calendar-grid">
+					{#each calendarDays as day}
+						{#if day.isPadding}
+							<div class="cal-day empty"></div>
+						{:else}
+							<button
+								class="cal-day {day.available ? 'available' : 'disabled'} {selectedDate ===
+								day.dateStr
+									? 'selected'
+									: ''}"
+								disabled={!day.available}
+								on:click={() => handleDateSelect(day.dateStr)}
+							>
+								{day.day}
+							</button>
+						{/if}
+					{/each}
+				</div>
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1118:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m	{#if showDateModal}
+		[35m<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeDateModal}>
+			<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeDateModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					{#if !isCurrentMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(-1)}>
+							<ChevronLeft size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+						<!-- Spacer -->
+					{/if}
+					<h3 class="current-month-label">
+						{currentViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+					</h3>
+					{#if !isMaxMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(1)}>
+							<ChevronRight size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+					{/if}
+				</div>
+
+				<div class="weekdays-grid">
+					<span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span
+					><span>Sa</span>
+				</div>
+
+				<div class="custom-calendar-grid">
+					{#each calendarDays as day}
+						{#if day.isPadding}
+							<div class="cal-day empty"></div>
+						{:else}
+							<button
+								class="cal-day {day.available ? 'available' : 'disabled'} {selectedDate ===
+								day.dateStr
+									? 'selected'
+									: ''}"
+								disabled={!day.available}
+								on:click={() => handleDateSelect(day.dateStr)}
+							>
+								{day.day}
+							</button>
+						{/if}
+					{/each}
+				</div>
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1119:4
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeDateModal}>
+			[35m<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeDateModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					{#if !isCurrentMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(-1)}>
+							<ChevronLeft size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+						<!-- Spacer -->
+					{/if}
+					<h3 class="current-month-label">
+						{currentViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+					</h3>
+					{#if !isMaxMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(1)}>
+							<ChevronRight size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+					{/if}
+				</div>
+
+				<div class="weekdays-grid">
+					<span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span
+					><span>Sa</span>
+				</div>
+
+				<div class="custom-calendar-grid">
+					{#each calendarDays as day}
+						{#if day.isPadding}
+							<div class="cal-day empty"></div>
+						{:else}
+							<button
+								class="cal-day {day.available ? 'available' : 'disabled'} {selectedDate ===
+								day.dateStr
+									? 'selected'
+									: ''}"
+								disabled={!day.available}
+								on:click={() => handleDateSelect(day.dateStr)}
+							>
+								{day.day}
+							</button>
+						{/if}
+					{/each}
+				</div>
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1119:4
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeDateModal}>
+			[35m<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeDateModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					{#if !isCurrentMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(-1)}>
+							<ChevronLeft size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+						<!-- Spacer -->
+					{/if}
+					<h3 class="current-month-label">
+						{currentViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+					</h3>
+					{#if !isMaxMonthView}
+						<button class="nav-arrow-btn" on:click={() => changeMonth(1)}>
+							<ChevronRight size={20} />
+						</button>
+					{:else}
+						<div class="w-9 h-9"></div>
+					{/if}
+				</div>
+
+				<div class="weekdays-grid">
+					<span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span
+					><span>Sa</span>
+				</div>
+
+				<div class="custom-calendar-grid">
+					{#each calendarDays as day}
+						{#if day.isPadding}
+							<div class="cal-day empty"></div>
+						{:else}
+							<button
+								class="cal-day {day.available ? 'available' : 'disabled'} {selectedDate ===
+								day.dateStr
+									? 'selected'
+									: ''}"
+								disabled={!day.available}
+								on:click={() => handleDateSelect(day.dateStr)}
+							>
+								{day.day}
+							</button>
+						{/if}
+					{/each}
+				</div>
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1176:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m	{#if showTimeModal}
+		[35m<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeTimeModal}>
+			<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeTimeModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					<h3 class="current-month-label">Select Time</h3>
+				</div>
+
+				{#if timeSlots.length === 0}
+					<div class="empty-state-box">
+						<Clock size={32} class="opacity-40 mb-2" />
+						<p>No slots available for this date.</p>
+					</div>
+				{:else}
+					<div class="time-slot-grid">
+						{#each timeSlots as t}
+							<button
+								class="time-slot {selectedTime === t ? 'selected' : ''}"
+								on:click={() => handleTimeSelect(t)}
+							>
+								{t}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1176:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m	{#if showTimeModal}
+		[35m<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeTimeModal}>
+			<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeTimeModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					<h3 class="current-month-label">Select Time</h3>
+				</div>
+
+				{#if timeSlots.length === 0}
+					<div class="empty-state-box">
+						<Clock size={32} class="opacity-40 mb-2" />
+						<p>No slots available for this date.</p>
+					</div>
+				{:else}
+					<div class="time-slot-grid">
+						{#each timeSlots as t}
+							<button
+								class="time-slot {selectedTime === t ? 'selected' : ''}"
+								on:click={() => handleTimeSelect(t)}
+							>
+								{t}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1177:4
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeTimeModal}>
+			[35m<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeTimeModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					<h3 class="current-month-label">Select Time</h3>
+				</div>
+
+				{#if timeSlots.length === 0}
+					<div class="empty-state-box">
+						<Clock size={32} class="opacity-40 mb-2" />
+						<p>No slots available for this date.</p>
+					</div>
+				{:else}
+					<div class="time-slot-grid">
+						{#each timeSlots as t}
+							<button
+								class="time-slot {selectedTime === t ? 'selected' : ''}"
+								on:click={() => handleTimeSelect(t)}
+							>
+								{t}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1177:4
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={closeTimeModal}>
+			[35m<div
+				class="custom-picker-modal glass-panel"
+				transition:scale={{ start: 0.9, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<button class="modal-close-btn" on:click={closeTimeModal}><X size={20} /></button>
+
+				<div class="picker-header">
+					<h3 class="current-month-label">Select Time</h3>
+				</div>
+
+				{#if timeSlots.length === 0}
+					<div class="empty-state-box">
+						<Clock size={32} class="opacity-40 mb-2" />
+						<p>No slots available for this date.</p>
+					</div>
+				{:else}
+					<div class="time-slot-grid">
+						{#each timeSlots as t}
+							<button
+								class="time-slot {selectedTime === t ? 'selected' : ''}"
+								on:click={() => handleTimeSelect(t)}
+							>
+								{t}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1375:2
+[33mWarn[39m: Unused CSS selector ".premium-input-trigger.disabled"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.premium-input-trigger.disabled[36m {
+		opacity: 0.5;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1815:2
+[33mWarn[39m: Unused CSS selector ".option-desc"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.option-desc[36m {
+		font-size: 0.85rem;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2049:2
+[33mWarn[39m: Unused CSS selector ".booking-details-card .detail-value"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.booking-details-card .detail-value[36m {
+		color: var(--color-text-primary);[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2064:2
+[33mWarn[39m: Unused CSS selector ".detail-value"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.detail-value[36m {
+		font-size: 1rem;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2069:2
+[33mWarn[39m: Unused CSS selector ".summary-section h4"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.summary-section h4[36m {
+		font-size: 0.9rem;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2125:2
+[33mWarn[39m: Unused CSS selector ".summary-item"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.summary-item[36m {
+		/* Legacy fallback */[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2308:2
+[33mWarn[39m: Unused CSS selector ".payment-methods-wrapper"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	/* PAYMENT METHODS */
+	[35m.payment-methods-wrapper[36m {
+		margin-top: 20px;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2550:2
+[33mWarn[39m: Unused CSS selector ".summary-card"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	/* Summary Cards Phase 2 */
+	[35m.summary-card[36m {
+		background: var(--color-surface);[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2557:2
+[33mWarn[39m: Unused CSS selector ".summary-card h4"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.summary-card h4[36m {
+		font-size: 0.9rem;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2677:2
+[33mWarn[39m: Unused CSS selector ".payment-card"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	/* Payment Card Specifics */
+	[35m.payment-card[36m {
+		background: rgba(212, 175, 55, 0.05); /* Subtle Gold Tint */[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2682:2
+[33mWarn[39m: Unused CSS selector ".payment-card h4"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	}
+	[35m.payment-card h4[36m {
+		color: var(--color-accent-gold);[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2691:2
+[33mWarn[39m: Unused CSS selector ".total-card"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m	/* Total Card */
+	[35m.total-card[36m {
+		background: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:1295:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--gradient-gold);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:2860:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--gradient-gold);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:307:9
+[31mError[39m: Variable 'slots' implicitly has type 'any[]' in some locations where its type cannot be determined. (ts)
+[36m	function generateTimeSlots(dateStr: string) {
+		const [35mslots[36m = [];
+		const startH = 10;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:360:15
+[31mError[39m: Variable 'slots' implicitly has an 'any[]' type. (ts)
+[36m		}
+		timeSlots = [35mslots[36m;
+	}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:529:9
+[31mError[39m: Variable 'particles' implicitly has type 'any[]' in some locations where its type cannot be determined. (ts)
+[36m
+		const [35mparticles[36m = [];
+		const colors = ['#D4AF37', '#F7E7CE', '#FFFFFF', '#B76E79'];[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\booking\+page.svelte[39m:551:4
+[31mError[39m: Variable 'particles' implicitly has an 'any[]' type. (ts)
+[36m			let activeParticles = 0;
+			[35mparticles[36m.forEach((p) => {
+				p.y += p.speedY;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\complete-profile\+page.svelte[39m:296:7
+[33mWarn[39m: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+[36m					<div class="gender-section">
+						[35m<label class="section-label">I identify as</label>[36m
+						<div class="gender-grid">[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\login\+page.svelte[39m:168:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: var(--gradient-gold);
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\notifications\+page.svelte[39m:162:22
+[31mError[39m: Expected 1-2 arguments, but got 3. (ts)
+[36m										class:high-priority={item.priority === 'high'}
+										animate:fly[35m={{ y: 20, duration: 400 }[36m}
+									>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\bookings\+page.svelte[39m:314:14
+[31mError[39m: Expected 1 arguments, but got 4. (ts)
+[36m													booking.id,
+													[35mbooking.userName || 'Client',
+													booking.servicesList?.map((s: any) => s.name).join(', ') || 'Service',
+													dur[36m
+												);[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\bookings\[id]\+page.svelte[39m:199:4
+[33mWarn[39m: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+[36m		<div class="summary-header">
+			[35m<button class="back-btn" onclick={() => goto('/staff/dashboard')}>
+				<svg
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path d="M19 12H5M12 19l-7-7 7-7" />
+				</svg>
+			</button>[36m
+			<h1 class="page-title">Booking & Services Summary</h1>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\bookings\[id]\+page.svelte[39m:289:6
+[33mWarn[39m: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+[36m				<div class="fin-item">
+					[35m<label>Coupon Code</label>[36m
+					<input type="text" class="s-input" bind:value={couponCode} placeholder="e.g. SAVE20" />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\bookings\[id]\+page.svelte[39m:294:6
+[33mWarn[39m: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+[36m				<div class="fin-item">
+					[35m<label>Extra Discount (Ôé╣)</label>[36m
+					<input type="number" class="s-input" bind:value={discountAmount} placeholder="0" />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\bookings\[id]\+page.svelte[39m:299:6
+[33mWarn[39m: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+[36m				<div class="fin-item">
+					[35m<label>Extra Charges (Ôé╣)</label>[36m
+					<input type="number" class="s-input" bind:value={extraCharge} placeholder="0" />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\bookings\[id]\+page.svelte[39m:90:17
+[31mError[39m: Cannot find module 'jspdf-autotable' or its corresponding type declarations. (ts)
+[36m			const jsPDFModule = await import('jspdf');
+			await import([35m'jspdf-autotable'[36m);
+			const jsPDF = jsPDFModule.default;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\dashboard\+page.svelte[39m:152:41
+[31mError[39m: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'. (ts)
+[36m				<p class="hero-greeting">{getGreeting()}</p>
+				<h2 class="hero-name">{getFirstName([35m$staffUser?.displayName[36m)} Ô£¿</h2>
+				<p class="hero-date">[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\dashboard\+page.svelte[39m:165:52
+[31mError[39m: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'. (ts)
+[36m				{:else}
+					<div class="avatar-placeholder">{getFirstName([35m$staffUser?.displayName[36m)?.[0] || 'S'}</div>
+				{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\dashboard\+page.svelte[39m:234:52
+[31mError[39m: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m					<span class="upnext-countdown">
+						{getTimeRemaining($upcomingBookings[0].date, [35m$upcomingBookings[0].time[36m)}
+					</span>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\dashboard\+page.svelte[39m:370:10
+[31mError[39m: Type 'string' is not assignable to type 'StatusType'. (ts)
+[36m								<StatusBadge
+									[35mstatus[36m={booking.status}
+									size="sm"[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\dashboard\+page.svelte[39m:379:31
+[31mError[39m: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m									<span class="meta-icon">­ƒòÉ</span>
+									<span>{formatTime12h([35mbooking.time[36m)}</span>
+								</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\dashboard\+page.svelte[39m:458:50
+[31mError[39m: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m						<div class="si-time">
+							<span class="si-time-text">{formatTime12h([35mbooking.time[36m)}</span>
+						</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\dashboard\+page.svelte[39m:469:22
+[31mError[39m: Type 'string' is not assignable to type 'StatusType'. (ts)
+[36m								<h4 class="si-name">{booking.userName || 'Guest'}</h4>
+								<StatusBadge [35mstatus[36m={booking.status} size="sm" />
+							</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:300:4
+[33mWarn[39m: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+[36m		<div class="date-nav">
+			[35m<button class="nav-arrow" onclick={() => changeDate(-1)}>
+				<svg
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg
+				>
+			</button>[36m
+			<div class="date-display" onclick={setToday}>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:311:4
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m			</button>
+			[35m<div class="date-display" onclick={setToday}>
+				{#if viewMode === 'day'}
+					<span class="date-main">
+						{selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+					</span>
+					<span class="date-sub">
+						{selectedDate.toLocaleDateString('en-US', {
+							month: 'long',
+							day: 'numeric',
+							year: 'numeric'
+						})}
+					</span>
+				{:else if viewMode === 'week'}
+					<span class="date-main">
+						{weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ÔÇö {weekDays[6].toLocaleDateString(
+							'en-US',
+							{ month: 'short', day: 'numeric' }
+						)}
+					</span>
+				{:else}
+					<span class="date-main">
+						{selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+					</span>
+				{/if}
+			</div>[36m
+			<button class="nav-arrow" onclick={() => changeDate(1)}>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:311:4
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m			</button>
+			[35m<div class="date-display" onclick={setToday}>
+				{#if viewMode === 'day'}
+					<span class="date-main">
+						{selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+					</span>
+					<span class="date-sub">
+						{selectedDate.toLocaleDateString('en-US', {
+							month: 'long',
+							day: 'numeric',
+							year: 'numeric'
+						})}
+					</span>
+				{:else if viewMode === 'week'}
+					<span class="date-main">
+						{weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ÔÇö {weekDays[6].toLocaleDateString(
+							'en-US',
+							{ month: 'short', day: 'numeric' }
+						)}
+					</span>
+				{:else}
+					<span class="date-main">
+						{selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+					</span>
+				{/if}
+			</div>[36m
+			<button class="nav-arrow" onclick={() => changeDate(1)}>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:336:4
+[33mWarn[39m: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+[36m			</div>
+			[35m<button class="nav-arrow" onclick={() => changeDate(1)}>
+				<svg
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg
+				>
+			</button>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:164:32
+[31mError[39m: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m		dailyBookings.forEach((b) => {
+			const parsed = parseTimeStr([35mb.time[36m);
+			if (!parsed) {[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:193:79
+[31mError[39m: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m
+	let scheduledBookings = $derived(dailyBookings.filter((b) => getTimePosition([35mb.time[36m) !== null));[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:195:81
+[31mError[39m: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m
+	let unscheduledBookings = $derived(dailyBookings.filter((b) => getTimePosition([35mb.time[36m) === null));[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:204:34
+[31mError[39m: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+[36m		const events = bookings.map((b) => {
+			const { h, m } = parseTimeStr([35mb.time[36m)!;
+			const start = (h - 8) * 60 + m; // minutes from 8AM[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\staff\schedule\+page.svelte[39m:376:23
+[31mError[39m: Type 'string' is not assignable to type 'StatusType'. (ts)
+[36m								>
+									<StatusBadge [35mstatus[36m={booking.status} dot />
+									<div class="uc-info">[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:244:37
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m						{/if}
+						<button class="edit-btn-mini" [35mon:click={() => alert('Change photo coming soon!')}[36m>
+							<Camera size={12} color="#000" />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:253:33
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m						{user.displayName || 'Valued Member'}
+						<button class="edit-icon" [35mon:click={editProfile}[36m>Ô£Ä</button>
+					</h1>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:276:6
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m				{#if latestBooking}
+					[35m<div class="ticket-widget" on:click={() => goto('/you/bookings')}>
+						<div class="ticket-content">
+							<!-- Top Row: Date & Status -->
+							<div class="ticket-header">
+								<div class="date-badge">
+									<span class="month"
+										>{new Date(latestBooking.date)
+											.toLocaleString('default', { month: 'short' })
+											.toUpperCase()}</span
+									>
+									<span class="day">{latestBooking.date?.split('-')[2]}</span>
+								</div>
+								<div class="status-group">
+									{#if latestBooking.status === 'confirmed'}
+										<div class="time-remaining">
+											<Clock size={12} />
+											<span>{formatNextBookingTime(latestBooking.date, latestBooking.time)}</span>
+										</div>
+									{/if}
+									<span class="status-tag {latestBooking.status}">{latestBooking.status}</span>
+								</div>
+							</div>
+
+							<!-- Middle Row: Service Details -->
+							<div class="ticket-body">
+								<h3 class="service-title">
+									{getServiceName(latestBooking.services?.[0])}
+									{#if (latestBooking.services?.length || 0) > 1}
+										<span class="plus-more">+{latestBooking.services.length - 1} more</span>
+									{/if}
+								</h3>
+								<div class="ticket-meta">
+									<span class="meta-item"
+										><Calendar size={12} /> {formatServiceDate(latestBooking.date)}</span
+									>
+									<span class="meta-item"><Clock size={12} /> {latestBooking.time}</span>
+								</div>
+							</div>
+
+							<!-- Bottom: Action -->
+							<div class="ticket-footer">
+								<span class="view-text">View Booking</span>
+								<ChevronRight size={16} />
+							</div>
+						</div>
+
+						<!-- Decorative Elements -->
+						<div class="ticket-notch-left"></div>
+						<div class="ticket-notch-right"></div>
+						<div class="ticket-dash-line"></div>
+					</div>[36m
+				{:else}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:276:6
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m				{#if latestBooking}
+					[35m<div class="ticket-widget" on:click={() => goto('/you/bookings')}>
+						<div class="ticket-content">
+							<!-- Top Row: Date & Status -->
+							<div class="ticket-header">
+								<div class="date-badge">
+									<span class="month"
+										>{new Date(latestBooking.date)
+											.toLocaleString('default', { month: 'short' })
+											.toUpperCase()}</span
+									>
+									<span class="day">{latestBooking.date?.split('-')[2]}</span>
+								</div>
+								<div class="status-group">
+									{#if latestBooking.status === 'confirmed'}
+										<div class="time-remaining">
+											<Clock size={12} />
+											<span>{formatNextBookingTime(latestBooking.date, latestBooking.time)}</span>
+										</div>
+									{/if}
+									<span class="status-tag {latestBooking.status}">{latestBooking.status}</span>
+								</div>
+							</div>
+
+							<!-- Middle Row: Service Details -->
+							<div class="ticket-body">
+								<h3 class="service-title">
+									{getServiceName(latestBooking.services?.[0])}
+									{#if (latestBooking.services?.length || 0) > 1}
+										<span class="plus-more">+{latestBooking.services.length - 1} more</span>
+									{/if}
+								</h3>
+								<div class="ticket-meta">
+									<span class="meta-item"
+										><Calendar size={12} /> {formatServiceDate(latestBooking.date)}</span
+									>
+									<span class="meta-item"><Clock size={12} /> {latestBooking.time}</span>
+								</div>
+							</div>
+
+							<!-- Bottom: Action -->
+							<div class="ticket-footer">
+								<span class="view-text">View Booking</span>
+								<ChevronRight size={16} />
+							</div>
+						</div>
+
+						<!-- Decorative Elements -->
+						<div class="ticket-notch-left"></div>
+						<div class="ticket-notch-right"></div>
+						<div class="ticket-dash-line"></div>
+					</div>[36m
+				{:else}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:276:33
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m				{#if latestBooking}
+					<div class="ticket-widget" [35mon:click={() => goto('/you/bookings')}[36m>
+						<div class="ticket-content">[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:342:35
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m						<div class="confirm-actions">
+							<button class="cancel-btn" [35mon:click={cancelLogout}[36m>Cancel</button>
+							<button class="confirm-btn" on:click={confirmLogout}>Yes, Sign Out</button>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:343:36
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m							<button class="cancel-btn" on:click={cancelLogout}>Cancel</button>
+							<button class="confirm-btn" [35mon:click={confirmLogout}[36m>Yes, Sign Out</button>
+						</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\+page.svelte[39m:347:33
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m				{:else}
+					<button class="logout-btn" [35mon:click={handleLogout}[36m>
+						<LogOut size={18} />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:174:28
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m	<header class="page-header">
+		<button class="icon-btn" [35mon:click={handleBack}[36m>
+			<ChevronLeft size={24} />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:194:29
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m				<p>Add an address to speed up your bookings.</p>
+				<button class="cta-btn" [35mon:click={openAddModal}[36m>
+					<Plus size={20} /> Add New Address[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:222:40
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m						<div class="card-actions">
+							<button class="action-btn edit" [35mon:click={() => openEditModal(addr)}[36m>
+								<Edit2 size={16} />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:225:42
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m							</button>
+							<button class="action-btn delete" [35mon:click={() => deleteAddress(addr.id)}[36m>
+								<Trash2 size={16} />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:232:29
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m
+				<button class="add-fab" [35mon:click={openAddModal}[36m>
+					<Plus size={24} />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:241:3
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m	{#if showAddModal}
+		[35m<div
+			class="modal-overlay"
+			transition:fade={{ duration: 200 }}
+			on:click={() => (showAddModal = false)}
+		>
+			<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} on:click|stopPropagation>
+				<div class="modal-header">
+					<h2>{isEditing ? 'Edit Address' : 'New Address'}</h2>
+					<button class="close-btn" on:click={() => (showAddModal = false)}>
+						<X size={20} />
+					</button>
+				</div>
+
+				<div class="modal-body">
+					<!-- Label Selection -->
+					<div class="label-group">
+						{#each ['Home', 'Work', 'Other'] as lbl}
+							<button
+								class="choice-chip"
+								class:active={formData.label === lbl}
+								on:click={() => (formData.label = lbl)}
+							>
+								{lbl}
+							</button>
+						{/each}
+					</div>
+
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 1"
+						bind:value={formData.addressLine1}
+					/>
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 2 (Optional)"
+						bind:value={formData.addressLine2}
+					/>
+					<div class="row">
+						<input type="text" class="modal-input" placeholder="City" bind:value={formData.city} />
+						<input
+							type="text"
+							class="modal-input"
+							placeholder="Zip Code"
+							bind:value={formData.zipCode}
+						/>
+					</div>
+
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={formData.isDefault} />
+						<span class="checkbox-text">Set as default address</span>
+					</label>
+
+					<button class="save-btn-modal" on:click={saveAddress} disabled={saving}>
+						{saving ? 'Saving...' : 'Save Address'}
+					</button>
+				</div>
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:241:3
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m	{#if showAddModal}
+		[35m<div
+			class="modal-overlay"
+			transition:fade={{ duration: 200 }}
+			on:click={() => (showAddModal = false)}
+		>
+			<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} on:click|stopPropagation>
+				<div class="modal-header">
+					<h2>{isEditing ? 'Edit Address' : 'New Address'}</h2>
+					<button class="close-btn" on:click={() => (showAddModal = false)}>
+						<X size={20} />
+					</button>
+				</div>
+
+				<div class="modal-body">
+					<!-- Label Selection -->
+					<div class="label-group">
+						{#each ['Home', 'Work', 'Other'] as lbl}
+							<button
+								class="choice-chip"
+								class:active={formData.label === lbl}
+								on:click={() => (formData.label = lbl)}
+							>
+								{lbl}
+							</button>
+						{/each}
+					</div>
+
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 1"
+						bind:value={formData.addressLine1}
+					/>
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 2 (Optional)"
+						bind:value={formData.addressLine2}
+					/>
+					<div class="row">
+						<input type="text" class="modal-input" placeholder="City" bind:value={formData.city} />
+						<input
+							type="text"
+							class="modal-input"
+							placeholder="Zip Code"
+							bind:value={formData.zipCode}
+						/>
+					</div>
+
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={formData.isDefault} />
+						<span class="checkbox-text">Set as default address</span>
+					</label>
+
+					<button class="save-btn-modal" on:click={saveAddress} disabled={saving}>
+						{saving ? 'Saving...' : 'Save Address'}
+					</button>
+				</div>
+			</div>
+		</div>[36m
+	{/if}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:244:4
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m			transition:fade={{ duration: 200 }}
+			[35mon:click={() => (showAddModal = false)}[36m
+		>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:246:4
+[33mWarn[39m: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+[36m		>
+			[35m<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} on:click|stopPropagation>
+				<div class="modal-header">
+					<h2>{isEditing ? 'Edit Address' : 'New Address'}</h2>
+					<button class="close-btn" on:click={() => (showAddModal = false)}>
+						<X size={20} />
+					</button>
+				</div>
+
+				<div class="modal-body">
+					<!-- Label Selection -->
+					<div class="label-group">
+						{#each ['Home', 'Work', 'Other'] as lbl}
+							<button
+								class="choice-chip"
+								class:active={formData.label === lbl}
+								on:click={() => (formData.label = lbl)}
+							>
+								{lbl}
+							</button>
+						{/each}
+					</div>
+
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 1"
+						bind:value={formData.addressLine1}
+					/>
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 2 (Optional)"
+						bind:value={formData.addressLine2}
+					/>
+					<div class="row">
+						<input type="text" class="modal-input" placeholder="City" bind:value={formData.city} />
+						<input
+							type="text"
+							class="modal-input"
+							placeholder="Zip Code"
+							bind:value={formData.zipCode}
+						/>
+					</div>
+
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={formData.isDefault} />
+						<span class="checkbox-text">Set as default address</span>
+					</label>
+
+					<button class="save-btn-modal" on:click={saveAddress} disabled={saving}>
+						{saving ? 'Saving...' : 'Save Address'}
+					</button>
+				</div>
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:246:4
+[33mWarn[39m: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+[36m		>
+			[35m<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} on:click|stopPropagation>
+				<div class="modal-header">
+					<h2>{isEditing ? 'Edit Address' : 'New Address'}</h2>
+					<button class="close-btn" on:click={() => (showAddModal = false)}>
+						<X size={20} />
+					</button>
+				</div>
+
+				<div class="modal-body">
+					<!-- Label Selection -->
+					<div class="label-group">
+						{#each ['Home', 'Work', 'Other'] as lbl}
+							<button
+								class="choice-chip"
+								class:active={formData.label === lbl}
+								on:click={() => (formData.label = lbl)}
+							>
+								{lbl}
+							</button>
+						{/each}
+					</div>
+
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 1"
+						bind:value={formData.addressLine1}
+					/>
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="Address Line 2 (Optional)"
+						bind:value={formData.addressLine2}
+					/>
+					<div class="row">
+						<input type="text" class="modal-input" placeholder="City" bind:value={formData.city} />
+						<input
+							type="text"
+							class="modal-input"
+							placeholder="Zip Code"
+							bind:value={formData.zipCode}
+						/>
+					</div>
+
+					<label class="checkbox-row">
+						<input type="checkbox" bind:checked={formData.isDefault} />
+						<span class="checkbox-text">Set as default address</span>
+					</label>
+
+					<button class="save-btn-modal" on:click={saveAddress} disabled={saving}>
+						{saving ? 'Saving...' : 'Save Address'}
+					</button>
+				</div>
+			</div>[36m
+		</div>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:246:73
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m		>
+			<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} [35mon:click|stopPropagation[36m>
+				<div class="modal-header">[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:249:32
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m					<h2>{isEditing ? 'Edit Address' : 'New Address'}</h2>
+					<button class="close-btn" [35mon:click={() => (showAddModal = false)}[36m>
+						<X size={20} />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:261:9
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m								class:active={formData.label === lbl}
+								[35mon:click={() => (formData.label = lbl)}[36m
+							>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\addresses\+page.svelte[39m:295:37
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m
+					<button class="save-btn-modal" [35mon:click={saveAddress}[36m disabled={saving}>
+						{saving ? 'Saving...' : 'Save Address'}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\bookings\+page.svelte[39m:903:3
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m		background: linear-gradient(90deg, var(--color-text-primary), var(--color-text-secondary));
+		[35m-webkit-background-clip[36m: text;
+		-webkit-text-fill-color: transparent;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\personal-details\+page.svelte[39m:119:28
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m	<header class="page-header">
+		<button class="icon-btn" [35mon:click={handleBack}[36m>
+			<ChevronLeft size={24} />[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\personal-details\+page.svelte[39m:123:28
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m		<h1 class="page-title">Personal Details</h1>
+		<button class="text-btn" [35mon:click={toggleEdit}[36m>
+			{isEditing ? 'Cancel' : 'Edit'}[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\personal-details\+page.svelte[39m:149:8
+[33mWarn[39m: Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m							class:hidden={!isEditing}
+							[35mon:click={() => alert('Photo upload coming soon!')}[36m
+						>[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\personal-details\+page.svelte[39m:159:32
+[33mWarn[39m: Using `on:submit` to listen to the submit event is deprecated. Use the event attribute `onsubmit` instead
+https://svelte.dev/e/event_directive_deprecated (svelte)
+[36m				<!-- FORM SECTION -->
+				<form class="details-form" [35mon:submit|preventDefault={saveDetails}[36m>
+					<!-- Full Name -->[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\personal-details\+page.svelte[39m:437:2
+[33mWarn[39m: Unused CSS selector ".label-icon"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.label-icon[36m {
+		color: var(--color-accent-gold);[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\personal-details\+page.svelte[39m:465:2
+[33mWarn[39m: Unused CSS selector ".helper-text"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+	[35m.helper-text[36m {
+		font-size: 0.75rem;[39m
+
+c:\Users\banar\Desktop\AGY\NewBlancbeu\SvelteBlancbeu\[32msrc\routes\you\personal-details\+page.svelte[39m:31:10
+[31mError[39m: Argument of type '() => Promise<() => void>' is not assignable to parameter of type '() => Promise<never> | (() => any)'.
+  Type 'Promise<() => void>' is not assignable to type 'Promise<never> | (() => any)'.
+    Type 'Promise<() => void>' is not assignable to type 'Promise<never>'.
+      Type '() => void' is not assignable to type 'never'. (ts)
+[36m
+	onMount([35masync () => {[36m
+		// Wait for auth to be ready[39m
+
+====================================
+[31msvelte-check found 28 errors and 103 warnings in 33 files
+[39m

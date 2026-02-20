@@ -171,11 +171,16 @@
 		if (unsubscribe) unsubscribe();
 	});
 
-	const handleLogout = async () => {
-		if (confirm('Are you sure you want to sign out?')) {
-			isLoggingOut = true; // Prevent auto-redirect to /login
-			await logout();
-		}
+	const handleLogout = () => {
+		isLoggingOut = true;
+	};
+
+	const cancelLogout = () => {
+		isLoggingOut = false;
+	};
+
+	const confirmLogout = async () => {
+		await logout();
 	};
 
 	// --- FORMATTERS ---
@@ -329,10 +334,21 @@
 				<QuickActions />
 
 				<!-- LOGOUT -->
-				<button class="logout-btn" on:click={handleLogout}>
-					<LogOut size={18} />
-					<span>Sign Out</span>
-				</button>
+				<!-- LOGOUT -->
+				{#if isLoggingOut}
+					<div class="logout-confirmation" in:fade>
+						<p class="confirm-text">Are you sure you want to sign out?</p>
+						<div class="confirm-actions">
+							<button class="cancel-btn" on:click={cancelLogout}>Cancel</button>
+							<button class="confirm-btn" on:click={confirmLogout}>Yes, Sign Out</button>
+						</div>
+					</div>
+				{:else}
+					<button class="logout-btn" on:click={handleLogout}>
+						<LogOut size={18} />
+						<span>Sign Out</span>
+					</button>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -641,5 +657,42 @@
 		color: var(--color-text-secondary);
 		font-size: 0.9rem;
 		margin-bottom: 24px;
+	}
+
+	/* LOGOUT CONFIRMATION */
+	.logout-confirmation {
+		margin-top: 40px;
+		background: rgba(255, 59, 48, 0.05);
+		border: 1px solid rgba(255, 59, 48, 0.2);
+		border-radius: var(--radius-md);
+		padding: 16px;
+		text-align: center;
+	}
+	.confirm-text {
+		color: var(--color-text-primary);
+		margin-bottom: 12px;
+		font-weight: 500;
+	}
+	.confirm-actions {
+		display: flex;
+		gap: 12px;
+		justify-content: center;
+	}
+	.cancel-btn,
+	.confirm-btn {
+		padding: 10px 20px;
+		border-radius: 8px;
+		font-weight: 600;
+		font-size: 0.9rem;
+		cursor: pointer;
+		border: none;
+	}
+	.cancel-btn {
+		background: rgba(255, 255, 255, 0.1);
+		color: var(--color-text-primary);
+	}
+	.confirm-btn {
+		background: #ff3b30;
+		color: white;
 	}
 </style>

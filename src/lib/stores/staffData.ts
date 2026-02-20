@@ -8,11 +8,47 @@ export const staffBookings = writable<Booking[]>([]);
 export const staffServices = writable<Service[]>([]);
 
 // Derived stats
+// Derived stats
 export const upcomingBookings = derived(staffBookings, ($b) => {
-    // Filter for today and future (pending/confirmed/in-progress)
-    return $b.filter(b =>
-        (b.status === 'pending' || b.status === 'confirmed' || b.status === 'in-progress')
-    );
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    return $b
+        .filter(b => {
+            // Only show active statuses
+            if (b.status !== 'pending' && b.status !== 'confirmed' && b.status !== 'in-progress') return false;
+            if (!b.date) return false;
+
+            const bookingDate = typeof b.date === 'string' ? b.date.split('T')[0] : '';
+
+            // Today's bookings: ALWAYS include if still active (pending/confirmed/in-progress)
+            // A confirmed booking is still work to do, regardless of scheduled time
+            if (bookingDate === todayStr) return true;
+
+            // Future bookings: always include
+            if (bookingDate > todayStr) return true;
+
+            // Past dates: exclude
+            return false;
+        })
+        .sort((a, b) => {
+            // Sort by date, then by time
+            const dateA = (a.date || '').split('T')[0];
+            const dateB = (b.date || '').split('T')[0];
+            if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+            // Parse time for sorting (handle both "HH:MM" and "HH:MM AM/PM")
+            const parseTime = (t: string) => {
+                if (!t) return 0;
+                const cleaned = t.replace(/\s*(AM|PM)\s*/i, '').trim();
+                const [h, m] = cleaned.split(':').map(Number);
+                const isPM = /PM/i.test(t) && h !== 12;
+                const isAM12 = /AM/i.test(t) && h === 12;
+                const hours = isPM ? h + 12 : isAM12 ? 0 : h;
+                return (hours || 0) * 60 + (m || 0);
+            };
+            return parseTime(a.time || '') - parseTime(b.time || '');
+        });
 });
 
 export const todayBookings = derived(staffBookings, ($b) => {
@@ -104,5 +140,20 @@ export async function updateBookingDetails(id: string, updates: Partial<Booking>
     } catch (e) {
         console.error("Error updating booking:", e);
         throw e;
+    }
+}
+
+export async function getBookingHistory(userId: string): Promise<Booking[]> {
+    try {
+        const q = query(
+            collection(db, 'bookings'),
+            where('userId', '==', userId),
+            orderBy('date', 'desc')
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Booking));
+    } catch (e) {
+        console.error("Error fetching history:", e);
+        return [];
     }
 }

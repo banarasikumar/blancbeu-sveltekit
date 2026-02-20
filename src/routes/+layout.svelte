@@ -22,6 +22,7 @@
 
 	let isHomePage = $derived(page.url.pathname === '/');
 	let isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
+	let isStaffRoute = $derived(page.url.pathname.startsWith('/staff'));
 
 	// Derived theme color for address bar (Android Chrome, Safari, Edge, etc.)
 	let metaThemeColor = $derived(THEME_COLORS[$theme]);
@@ -109,8 +110,8 @@
 	<meta name="msapplication-navbutton-color" content={metaThemeColor} />
 </svelte:head>
 
-{#if isAdminRoute}
-	<!-- Admin routes: pass through directly to (admin)/+layout.svelte -->
+{#if isAdminRoute || isStaffRoute}
+	<!-- Admin & Staff routes: pass through directly to their respective +layout.svelte -->
 	{@render children()}
 {:else if !mounted}
 	<!-- Pre-mount overlay: CSS hides on mobile, shows on desktop -->
