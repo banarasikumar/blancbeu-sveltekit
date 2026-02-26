@@ -77,24 +77,24 @@
 
 	/* Status Colors */
 	.status-badge.pending {
-		background: var(--s-pending-bg);
-		color: var(--s-pending-text);
+		background: var(--s-pending);
+		color: #ffffff;
 	}
 	.status-badge.confirmed {
-		background: var(--s-confirmed-bg);
-		color: var(--s-confirmed-text);
+		background: var(--s-confirmed);
+		color: #ffffff;
 	}
 	.status-badge.in-progress {
-		background: var(--s-in-progress-bg);
-		color: var(--s-in-progress-text);
+		background: var(--s-in-progress);
+		color: #ffffff;
 	}
 	.status-badge.completed {
-		background: var(--s-completed-bg);
-		color: var(--s-completed-text);
+		background: var(--s-completed);
+		color: #ffffff;
 	}
 	.status-badge.cancelled {
-		background: var(--s-cancelled-bg);
-		color: var(--s-cancelled-text);
+		background: var(--s-cancelled);
+		color: #ffffff;
 	}
 
 	/* Dot */

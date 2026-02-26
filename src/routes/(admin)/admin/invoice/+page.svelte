@@ -101,7 +101,7 @@
 	function selectBooking(b: Booking) {
 		selectedBooking = b;
 		invoiceNumber = `INV-${b.id.slice(0, 6).toUpperCase()}`;
-		taxPercent = 18; // Default GST
+		taxPercent = 0;
 		discount = 0;
 		invoiceNotes = '';
 		phase = 'build';
@@ -127,7 +127,7 @@
 			scale: 3,
 			useCORS: true,
 			logging: false,
-			backgroundColor: '#ffffff'
+			backgroundColor: '#FDF2F5'
 		});
 
 		const imgData = canvas.toDataURL('image/png');
@@ -311,95 +311,116 @@
 	<!-- Invoice Preview -->
 	<div class="inv-preview-wrapper">
 		<div class="inv-preview" bind:this={invoiceRef}>
+			<!-- Background decorative elements (CSS-based) -->
+			<div class="inv-bg-decor inv-bg-blob-tl"></div>
+			<div class="inv-bg-decor inv-bg-blob-br"></div>
+			<div class="inv-bg-decor inv-bg-heart inv-heart-1">♥</div>
+			<div class="inv-bg-decor inv-bg-heart inv-heart-2">♥</div>
+			<div class="inv-bg-decor inv-bg-heart inv-heart-3">♥</div>
+			<div class="inv-bg-decor inv-bg-heart inv-heart-4">♥</div>
+			<div class="inv-bg-decor inv-bg-heart inv-heart-5">♥</div>
+
 			<!-- Header -->
 			<div class="inv-header">
 				<div class="inv-brand">
 					<span class="inv-brand-name">BLANCBEU</span>
-					<span class="inv-brand-sub">Premium Salon</span>
+					<span class="inv-brand-sub">Premium Salon & Spa</span>
 				</div>
-				<div class="inv-invoice-meta">
-					<span class="inv-invoice-label">INVOICE</span>
-					<span class="inv-invoice-num">{invoiceNumber}</span>
-					<span class="inv-invoice-date"
-						>{new Date().toLocaleDateString('en-IN', {
+			</div>
+
+			<!-- INVOICE Title -->
+			<div class="inv-title-row">
+				<span class="inv-title">INVOICE</span>
+			</div>
+
+			<!-- Meta Row -->
+			<div class="inv-meta-row">
+				<div class="inv-meta-left">
+					<span class="inv-meta-line">INVOICE NO.: {invoiceNumber}</span>
+					<span class="inv-meta-line"
+						>DATE: {new Date().toLocaleDateString('en-IN', {
 							day: '2-digit',
-							month: 'short',
+							month: '2-digit',
 							year: 'numeric'
 						})}</span
 					>
 				</div>
+				<div class="inv-meta-right">
+					<span class="inv-meta-label">INVOICE TO:</span>
+					<span class="inv-client-name">{selectedBooking?.userName || 'Guest'}</span>
+					{#if selectedBooking?.userEmail}
+						<span class="inv-client-detail">{selectedBooking.userEmail}</span>
+					{/if}
+					{#if selectedBooking?.userPhone}
+						<span class="inv-client-detail">{selectedBooking.userPhone}</span>
+					{/if}
+				</div>
 			</div>
 
-			<div class="inv-divider"></div>
-
-			<!-- Client -->
-			<div class="inv-client-section">
-				<span class="inv-section-label">BILL TO</span>
-				<span class="inv-client-name">{selectedBooking?.userName || 'Guest'}</span>
-				{#if selectedBooking?.userEmail}
-					<span class="inv-client-detail"><Mail size={11} /> {selectedBooking.userEmail}</span>
-				{/if}
-				{#if selectedBooking?.userPhone}
-					<span class="inv-client-detail"><Phone size={11} /> {selectedBooking.userPhone}</span>
-				{/if}
-				<span class="inv-client-detail"
-					><Calendar size={11} />
-					{formatFirestoreDate(selectedBooking?.date)} at {selectedBooking?.time || '--:--'}</span
-				>
-			</div>
-
-			<div class="inv-divider"></div>
-
-			<!-- Line Items -->
-			<div class="inv-items-section">
-				<div class="inv-items-header">
-					<span>Service</span>
-					<span>Amount</span>
+			<!-- Line Items Table -->
+			<div class="inv-table">
+				<div class="inv-table-head">
+					<span class="inv-th inv-th-name">ITEM NAME</span>
+					<span class="inv-th inv-th-price">PRICE</span>
+					<span class="inv-th inv-th-qty">QTY</span>
+					<span class="inv-th inv-th-total">TOTAL</span>
 				</div>
 				{#each serviceItems as item, i}
-					<div class="inv-item-row" class:alt={i % 2 === 1}>
-						<span class="inv-item-name">{item.name}</span>
-						<span class="inv-item-price">{fmt(item.price)}</span>
+					<div class="inv-table-row" class:inv-row-alt={i % 2 === 0}>
+						<span class="inv-td inv-td-name">{item.name}</span>
+						<span class="inv-td inv-td-price">{fmt(item.price)}</span>
+						<span class="inv-td inv-td-qty">1</span>
+						<span class="inv-td inv-td-total">{fmt(item.price)}</span>
 					</div>
 				{/each}
 			</div>
 
-			<div class="inv-divider"></div>
-
-			<!-- Totals -->
-			<div class="inv-totals">
-				<div class="inv-total-row">
-					<span>Subtotal</span>
-					<span>{fmt(subtotal)}</span>
+			<!-- Summary / Totals -->
+			<div class="inv-summary-row">
+				<div class="inv-notes-area">
+					{#if invoiceNotes}
+						<span class="inv-notes-label">NOTES</span>
+						<p class="inv-notes-text">{invoiceNotes}</p>
+					{/if}
+					<div class="inv-payment-info">
+						<span class="inv-payment-label">PAYMENT INFO:</span>
+						<span class="inv-payment-text"
+							>Payment accepted at salon. Cash, UPI, or card.</span
+						>
+					</div>
 				</div>
-				{#if taxPercent > 0}
-					<div class="inv-total-row">
-						<span>Tax ({taxPercent}%)</span>
-						<span>{fmt(taxAmount)}</span>
+				<div class="inv-totals">
+					<div class="inv-total-line">
+						<span>SUBTOTAL</span>
+						<span>{fmt(subtotal)}</span>
 					</div>
-				{/if}
-				{#if discount > 0}
-					<div class="inv-total-row discount">
-						<span>Discount</span>
-						<span>-{fmt(discount)}</span>
+					{#if taxPercent > 0}
+						<div class="inv-total-line">
+							<span>TAX ({taxPercent}%)</span>
+							<span>{fmt(taxAmount)}</span>
+						</div>
+					{:else}
+						<div class="inv-total-line">
+							<span>TAX</span>
+							<span>00%</span>
+						</div>
+					{/if}
+					{#if discount > 0}
+						<div class="inv-total-line inv-total-discount">
+							<span>DISCOUNT</span>
+							<span>-{fmt(discount)}</span>
+						</div>
+					{/if}
+					<div class="inv-total-line inv-total-grand">
+						<span>GRAND TOTAL</span>
+						<span>{fmt(totalAmount)}</span>
 					</div>
-				{/if}
-				<div class="inv-total-row grand">
-					<span>Total</span>
-					<span>{fmt(totalAmount)}</span>
 				</div>
 			</div>
 
-			{#if invoiceNotes}
-				<div class="inv-notes-section">
-					<span class="inv-section-label">NOTES</span>
-					<p>{invoiceNotes}</p>
-				</div>
-			{/if}
-
 			<!-- Footer -->
 			<div class="inv-footer">
-				<span>Thank you for choosing Blancbeu!</span>
+				<span>Thank you for choosing Blancbeu! ♥</span>
 			</div>
 		</div>
 	</div>
@@ -571,10 +592,12 @@
 	}
 
 	.inv-form-group input:focus {
-		border-color: var(--admin-accent);
+		border-color: #f5a3c7;
 	}
 
-	/* ––– Invoice Preview ––– */
+	/* ════════════════════════════════════════
+	   INVOICE PREVIEW — Pink Floral Theme
+	   ════════════════════════════════════════ */
 	.inv-preview-wrapper {
 		margin-bottom: 20px;
 		border-radius: var(--admin-radius-lg);
@@ -583,148 +606,293 @@
 	}
 
 	.inv-preview {
-		background: #ffffff;
-		color: #1a1a1a;
-		padding: 28px 24px;
-		font-family:
-			'Inter',
-			-apple-system,
-			BlinkMacSystemFont,
-			sans-serif;
+		background: #fdf2f5;
+		color: #333;
+		padding: 32px 28px;
+		font-family: 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+		position: relative;
+		overflow: hidden;
+		min-height: 500px;
 	}
 
+	/* ––– Decorative background elements ––– */
+	.inv-bg-decor {
+		position: absolute;
+		pointer-events: none;
+		z-index: 0;
+	}
+
+	.inv-bg-blob-tl {
+		top: -30px;
+		left: -30px;
+		width: 140px;
+		height: 140px;
+		border-radius: 60% 40% 55% 45%;
+		background: radial-gradient(circle at 40% 40%, #f8c8dc, #f5a3c7aa);
+		opacity: 0.5;
+	}
+
+	.inv-bg-blob-br {
+		bottom: -30px;
+		right: -20px;
+		width: 160px;
+		height: 160px;
+		border-radius: 45% 55% 40% 60%;
+		background: radial-gradient(circle at 60% 60%, #f8c8dc, #f5a3c7aa);
+		opacity: 0.5;
+	}
+
+	.inv-bg-heart {
+		font-size: 10px;
+		color: #e8799e;
+		opacity: 0.5;
+	}
+
+	.inv-heart-1 {
+		top: 40px;
+		left: 100px;
+		font-size: 8px;
+		color: #333;
+	}
+	.inv-heart-2 {
+		top: 100px;
+		right: 60px;
+		font-size: 12px;
+		color: #f5a3c7;
+	}
+	.inv-heart-3 {
+		bottom: 120px;
+		left: 20px;
+		font-size: 14px;
+		color: #f5a3c7;
+	}
+	.inv-heart-4 {
+		top: 200px;
+		right: 30px;
+		font-size: 8px;
+		color: #333;
+	}
+	.inv-heart-5 {
+		bottom: 80px;
+		right: 100px;
+		font-size: 10px;
+		color: #f5a3c7;
+	}
+
+	/* ––– Header ––– */
 	.inv-header {
 		display: flex;
-		justify-content: space-between;
+		justify-content: flex-end;
 		align-items: flex-start;
-		margin-bottom: 4px;
+		margin-bottom: 8px;
+		position: relative;
+		z-index: 1;
 	}
 
 	.inv-brand {
 		display: flex;
 		flex-direction: column;
+		align-items: flex-end;
 	}
 
 	.inv-brand-name {
-		font-family: 'Outfit', sans-serif;
-		font-size: 24px;
+		font-family: 'Abhaya Libre', 'Georgia', serif;
+		font-size: 20px;
 		font-weight: 800;
-		letter-spacing: 2px;
-		color: #1a1a1a;
+		letter-spacing: 3px;
+		color: #333;
 	}
 
 	.inv-brand-sub {
+		font-size: 9px;
+		color: #999;
+		font-weight: 500;
+		letter-spacing: 1.5px;
+		text-transform: uppercase;
+	}
+
+	/* ––– INVOICE Title ––– */
+	.inv-title-row {
+		text-align: center;
+		margin: 16px 0 20px;
+		position: relative;
+		z-index: 1;
+	}
+
+	.inv-title {
+		font-family: 'Abhaya Libre', 'Georgia', serif;
+		font-size: 30px;
+		font-weight: 800;
+		letter-spacing: 6px;
+		color: #333;
+	}
+
+	/* ––– Meta Row ––– */
+	.inv-meta-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 20px;
+		position: relative;
+		z-index: 1;
+	}
+
+	.inv-meta-left,
+	.inv-meta-right {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.inv-meta-right {
+		align-items: flex-end;
+	}
+
+	.inv-meta-line {
+		font-size: 10px;
+		color: #777;
+		font-weight: 500;
+		letter-spacing: 0.5px;
+		text-transform: uppercase;
+	}
+
+	.inv-meta-label {
+		font-size: 10px;
+		color: #777;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		text-transform: uppercase;
+	}
+
+	.inv-client-name {
+		font-size: 13px;
+		font-weight: 700;
+		color: #333;
+		text-transform: uppercase;
+	}
+
+	.inv-client-detail {
 		font-size: 11px;
 		color: #888;
-		font-weight: 500;
+	}
+
+	/* ════════════════════════════════════
+	   TABLE — Pink Headers + Alt Rows
+	   ════════════════════════════════════ */
+	.inv-table {
+		position: relative;
+		z-index: 1;
+		margin-bottom: 4px;
+	}
+
+	.inv-table-head {
+		display: grid;
+		grid-template-columns: 1fr 70px 40px 70px;
+		background: #f5a3c7;
+		padding: 8px 12px;
+		border-radius: 4px 4px 0 0;
+	}
+
+	.inv-th {
+		font-size: 9px;
+		font-weight: 800;
+		color: #fff;
 		letter-spacing: 1px;
 		text-transform: uppercase;
 	}
 
-	.inv-invoice-meta {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 2px;
+	.inv-th-price,
+	.inv-th-total {
+		text-align: right;
 	}
 
-	.inv-invoice-label {
-		font-size: 20px;
-		font-weight: 800;
-		color: #d4af37;
-		letter-spacing: 3px;
+	.inv-th-qty {
+		text-align: center;
 	}
 
-	.inv-invoice-num {
-		font-size: 13px;
-		font-weight: 600;
-		color: #555;
-		font-family: 'SF Mono', 'Fira Code', monospace;
+	.inv-table-row {
+		display: grid;
+		grid-template-columns: 1fr 70px 40px 70px;
+		padding: 8px 12px;
+		border-bottom: 1px solid #f8dfe8;
 	}
 
-	.inv-invoice-date {
+	.inv-table-row.inv-row-alt {
+		background: rgba(245, 163, 199, 0.1);
+	}
+
+	.inv-td {
 		font-size: 12px;
-		color: #999;
+		color: #444;
 		font-weight: 500;
 	}
 
-	.inv-divider {
-		height: 1px;
-		background: #e8e8e8;
-		margin: 16px 0;
+	.inv-td-name {
+		font-weight: 600;
 	}
 
-	.inv-client-section {
+	.inv-td-price,
+	.inv-td-total {
+		text-align: right;
+		font-family: 'SF Mono', 'Fira Code', monospace;
+		font-size: 11px;
+	}
+
+	.inv-td-qty {
+		text-align: center;
+	}
+
+	/* ════════════════════════════════════
+	   SUMMARY ROW
+	   ════════════════════════════════════ */
+	.inv-summary-row {
 		display: flex;
-		flex-direction: column;
-		gap: 4px;
+		justify-content: space-between;
+		gap: 20px;
+		margin-top: 16px;
+		position: relative;
+		z-index: 1;
 	}
 
-	.inv-section-label {
+	.inv-notes-area {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.inv-notes-label {
 		font-size: 10px;
 		font-weight: 800;
-		letter-spacing: 1.5px;
-		color: #aaa;
+		letter-spacing: 1px;
+		color: #999;
+		text-transform: uppercase;
+		display: block;
 		margin-bottom: 4px;
 	}
 
-	.inv-client-name {
-		font-size: 16px;
-		font-weight: 700;
-		color: #1a1a1a;
-	}
-
-	.inv-client-detail {
-		font-size: 12px;
+	.inv-notes-text {
+		font-size: 11px;
 		color: #666;
-		display: flex;
-		align-items: center;
-		gap: 6px;
+		line-height: 1.5;
+		margin: 0 0 12px 0;
 	}
 
-	/* ––– Line Items ––– */
-	.inv-items-section {
-		display: flex;
-		flex-direction: column;
+	.inv-payment-info {
+		margin-top: 12px;
 	}
 
-	.inv-items-header {
-		display: flex;
-		justify-content: space-between;
-		padding: 8px 0;
+	.inv-payment-label {
 		font-size: 10px;
 		font-weight: 800;
-		letter-spacing: 1.5px;
-		color: #aaa;
-		text-transform: uppercase;
-		border-bottom: 1px solid #e8e8e8;
+		letter-spacing: 0.5px;
+		color: #555;
+		display: block;
+		margin-bottom: 3px;
 	}
 
-	.inv-item-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 10px 0;
-		border-bottom: 1px solid #f0f0f0;
-	}
-
-	.inv-item-row.alt {
-		background: #fafafa;
-		margin: 0 -24px;
-		padding: 10px 24px;
-	}
-
-	.inv-item-name {
-		font-size: 14px;
-		font-weight: 600;
-		color: #333;
-	}
-
-	.inv-item-price {
-		font-size: 14px;
-		font-weight: 700;
-		color: #1a1a1a;
-		font-family: 'SF Mono', 'Fira Code', monospace;
+	.inv-payment-text {
+		font-size: 10px;
+		color: #888;
+		line-height: 1.5;
 	}
 
 	/* ––– Totals ––– */
@@ -733,61 +901,57 @@
 		flex-direction: column;
 		align-items: flex-end;
 		gap: 6px;
+		min-width: 150px;
 	}
 
-	.inv-total-row {
+	.inv-total-line {
 		display: flex;
 		justify-content: space-between;
-		width: 60%;
-		font-size: 13px;
-		color: #555;
-		font-weight: 500;
+		width: 100%;
+		font-size: 11px;
+		font-weight: 600;
+		color: #666;
 	}
 
-	.inv-total-row.discount {
+	.inv-total-line span:first-child {
+		margin-right: 16px;
+	}
+
+	.inv-total-line span:last-child {
+		font-family: 'SF Mono', 'Fira Code', monospace;
+		font-size: 11px;
+	}
+
+	.inv-total-discount {
 		color: #30d158;
 	}
 
-	.inv-total-row.grand {
-		font-size: 18px;
+	.inv-total-grand {
+		font-size: 15px;
 		font-weight: 800;
-		color: #1a1a1a;
+		color: #333;
 		padding-top: 8px;
-		margin-top: 6px;
-		border-top: 2px solid #1a1a1a;
-	}
-
-	.inv-total-row.grand span:last-child {
-		font-family: 'SF Mono', 'Fira Code', monospace;
-	}
-
-	/* ––– Notes ––– */
-	.inv-notes-section {
-		margin-top: 16px;
-		padding: 12px;
-		background: #f9f9f9;
-		border-radius: 8px;
-		border: 1px solid #eee;
-	}
-
-	.inv-notes-section p {
-		font-size: 13px;
-		color: #555;
-		line-height: 1.5;
 		margin-top: 4px;
+		border-top: 2px solid #333;
+	}
+
+	.inv-total-grand span:last-child {
+		font-size: 14px;
 	}
 
 	/* ––– Footer ––– */
 	.inv-footer {
 		text-align: center;
-		margin-top: 20px;
+		margin-top: 28px;
 		padding-top: 12px;
-		border-top: 1px dashed #ddd;
+		border-top: 1px dashed #f5a3c7;
+		position: relative;
+		z-index: 1;
 	}
 
 	.inv-footer span {
-		font-size: 12px;
-		color: #aaa;
+		font-size: 11px;
+		color: #d48ba5;
 		font-weight: 500;
 		font-style: italic;
 	}
@@ -825,13 +989,9 @@
 	}
 
 	.inv-action-btn.primary {
-		background: var(--admin-accent);
-		color: #000;
-		box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25);
-	}
-
-	[data-theme='clean'] .inv-action-btn.primary {
+		background: linear-gradient(135deg, #f5a3c7, #e8799e);
 		color: #fff;
+		box-shadow: 0 4px 16px rgba(245, 163, 199, 0.35);
 	}
 
 	.inv-action-btn.secondary {

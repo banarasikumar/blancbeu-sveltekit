@@ -100,13 +100,6 @@
 		return remMins > 0 ? `${diffHrs}h ${remMins}m` : `${diffHrs}h`;
 	}
 
-	async function handleStartService(booking: any) {
-		// Just call the timer action - it handles status update and auto-pause
-		startServiceTimer(booking);
-		showToast('Service timer started', 'success');
-		if ('vibrate' in navigator) navigator.vibrate([10, 50, 10]);
-	}
-
 	async function handleCompleteService(booking: any) {
 		goto(`/staff/bookings/${booking.id}`);
 	}
@@ -133,13 +126,31 @@
 		return `${mins}m`;
 	}
 
-	// Only show remaining schedule (not completed/cancelled)
-	let remainingSchedule = $derived(
-		$todayBookings
-			.filter((b) => b.status !== 'completed' && b.status !== 'cancelled')
-			.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-			.slice(0, 5)
-	);
+	// Payment info helpers
+	function getPaymentLabel(booking: any): string {
+		const p = booking.payment;
+		if (!p) return '';
+		if (p.type === 'full') return 'Prepaid';
+		if (p.type === 'token') return 'Token';
+		if (p.type === 'free' || p.method === 'pay_at_salon') return 'Pay at Salon';
+		return '';
+	}
+
+	function getPaymentMethodIcon(booking: any): string {
+		const p = booking.payment;
+		if (!p) return '';
+		if (p.type === 'full') return '💳';
+		if (p.type === 'token') return '🪙';
+		return '🏪';
+	}
+
+	function getPaymentBadgeClass(booking: any): string {
+		const p = booking.payment;
+		if (!p) return '';
+		if (p.type === 'full') return 'payment-prepaid';
+		if (p.type === 'token') return 'payment-token';
+		return 'payment-salon';
+	}
 </script>
 
 <div class="dashboard s-stagger">
@@ -228,12 +239,20 @@
 	{#if $upcomingBookings.length > 0}
 		<section class="upnext-section">
 			<div class="s-section-header">
-				<h3 class="s-section-title">Up Next</h3>
-				{#if $upcomingBookings[0]}
-					<span class="upnext-countdown">
-						{getTimeRemaining($upcomingBookings[0].date, $upcomingBookings[0].time)}
-					</span>
-				{/if}
+				<div style="display: flex; align-items: center; gap: 8px;">
+					<h3 class="s-section-title">Today's Queue</h3>
+					{#if $upcomingBookings[0]}
+						<span class="upnext-countdown">
+							{getTimeRemaining($upcomingBookings[0].date, $upcomingBookings[0].time)}
+						</span>
+					{/if}
+				</div>
+				<button
+					class="s-section-action"
+					onclick={() => goto('/staff/schedule')}
+					style="background: none; border: none; font-size: 0.85rem; color: var(--s-text-secondary); cursor: pointer; padding: 0;"
+					>View All →</button
+				>
 			</div>
 
 			<div class="upnext-list">
@@ -241,7 +260,7 @@
 					<div
 						class="upnext-card s-card s-card-interactive {booking.status === 'in-progress'
 							? 'active-service-mode'
-							: ''}"
+							: 'card-' + booking.status}"
 						onclick={() => openBooking(booking)}
 						role="button"
 						tabindex="0"
@@ -313,10 +332,41 @@
 										<span class="remaining-text">{formattedRemaining} remaining</span>
 									{/if}
 								</div>
+								{#if booking.payment}
+									<div class="db-payment timer-payment">
+										<span class="payment-badge {getPaymentBadgeClass(booking)}">
+											{getPaymentMethodIcon(booking)}
+											{getPaymentLabel(booking)}
+										</span>
+										<span class="meta-item" style="font-weight:700;color:var(--s-text-primary)"
+											>₹{booking.totalAmount || booking.price || '-'}</span
+										>
+										{#if booking.payment.type === 'token' && booking.payment.amount}
+											<div class="payment-details">
+												<span class="payment-paid">✓ ₹{booking.payment.amount} paid</span>
+												<span class="payment-due"
+													>• ₹{(booking.totalAmount || booking.price || 0) - booking.payment.amount} due</span
+												>
+											</div>
+										{:else if booking.payment.type === 'full' && booking.payment.amount}
+											<span class="payment-paid">✓ Fully paid</span>
+										{/if}
+									</div>
+								{/if}
+								<div class="timer-notes" class:notes-empty={!booking.notes}>
+									<span class="timer-notes-icon">📝</span>
+									<p class="timer-notes-text">
+										{#if booking.notes}
+											{booking.notes}
+										{:else}
+											<span class="notes-none">Notes: None</span>
+										{/if}
+									</p>
+								</div>
 								<div class="timer-actions">
 									{#if !booking.isTimerRunning}
 										<button
-											class="s-btn s-btn-outline s-btn-sm"
+											class="timer-btn-outline"
 											onclick={(e) => {
 												e.stopPropagation();
 												console.log('[Dashboard] Resume clicked for:', booking.id);
@@ -327,7 +377,7 @@
 										</button>
 									{:else}
 										<button
-											class="s-btn s-btn-outline s-btn-sm"
+											class="timer-btn-outline"
 											onclick={(e) => {
 												e.stopPropagation();
 												console.log('[Dashboard] Pause clicked for:', booking.id);
@@ -338,8 +388,7 @@
 										</button>
 									{/if}
 									<button
-										class="s-btn s-btn-success s-btn-sm"
-										style="flex:1"
+										class="timer-btn-complete"
 										onclick={(e) => {
 											e.stopPropagation();
 											handleCompleteService(booking);
@@ -394,28 +443,51 @@
 								</div>
 							</div>
 
+							{#if booking.payment}
+								<div class="db-payment">
+									<span class="payment-badge {getPaymentBadgeClass(booking)}">
+										{getPaymentMethodIcon(booking)}
+										{getPaymentLabel(booking)}
+									</span>
+									{#if booking.payment.type === 'token' && booking.payment.amount}
+										<div class="payment-details">
+											<span class="payment-paid">✓ ₹{booking.payment.amount} paid</span>
+											<span class="payment-due"
+												>• ₹{(booking.totalAmount || booking.price || 0) - booking.payment.amount} due</span
+											>
+										</div>
+									{:else if booking.payment.type === 'full' && booking.payment.amount}
+										<span class="payment-paid">✓ Fully paid</span>
+									{/if}
+								</div>
+							{/if}
+
 							<div class="upnext-actions">
 								{#if booking.status === 'pending'}
 									<button
-										class="s-btn s-btn-sm"
-										style="background: var(--s-confirmed); color: white; flex: 1"
-										onclick={(e) => handleStatusChange(booking.id, 'confirmed', e)}
+										class="action-btn-soft confirm"
+										onclick={(e) => {
+											e.stopPropagation();
+											openBooking(booking);
+										}}
 									>
 										✓ Confirm
 									</button>
 									<button
-										class="s-btn s-btn-sm s-btn-danger"
-										onclick={(e) => handleStatusChange(booking.id, 'cancelled', e)}
+										class="action-btn-soft decline"
+										onclick={(e) => {
+											e.stopPropagation();
+											openBooking(booking);
+										}}
 									>
-										✕
+										✕ Decline
 									</button>
 								{:else if booking.status === 'confirmed'}
 									<button
-										class="s-btn s-btn-sm s-btn-accent"
-										style="flex: 1"
+										class="action-btn-premium"
 										onclick={(e) => {
 											e.stopPropagation();
-											handleStartService(booking);
+											openBooking(booking);
 										}}
 									>
 										▶ Start Service
@@ -434,64 +506,6 @@
 				title="All Caught Up!"
 				description="No upcoming appointments. Time for a break?"
 			/>
-		</section>
-	{/if}
-
-	<!-- ━━━ TODAY'S REMAINING SCHEDULE ━━━ -->
-	{#if remainingSchedule.length > 0}
-		<section class="schedule-preview">
-			<div class="s-section-header">
-				<h3 class="s-section-title">Today's Queue</h3>
-				<button class="s-section-action" onclick={() => goto('/staff/schedule')}>View All →</button>
-			</div>
-
-			<div class="schedule-list">
-				{#each remainingSchedule as booking, i}
-					<div
-						class="schedule-item s-card-interactive"
-						onclick={() => openBooking(booking)}
-						role="button"
-						tabindex="0"
-						onkeydown={(e) => e.key === 'Enter' && openBooking(booking)}
-					>
-						<div class="si-time">
-							<span class="si-time-text">{formatTime12h(booking.time)}</span>
-						</div>
-						<div class="si-connector">
-							<div class="si-dot {booking.status}"></div>
-							{#if i < remainingSchedule.length - 1}
-								<div class="si-line"></div>
-							{/if}
-						</div>
-						<div class="si-content">
-							<div class="si-top">
-								<h4 class="si-name">{booking.userName || 'Guest'}</h4>
-								<StatusBadge status={booking.status} size="sm" />
-							</div>
-							<p class="si-service">
-								{#if booking.servicesList?.length}
-									{booking.servicesList[0].name}
-									{#if booking.servicesList.length > 1}
-										<span class="si-more">+{booking.servicesList.length - 1}</span>
-									{/if}
-								{:else}
-									{booking.serviceName || 'Service'}
-								{/if}
-							</p>
-							<div class="si-meta">
-								{#if booking.servicesList?.some((s: any) => s.duration)}
-									<span
-										>⏱ {formatDuration(
-											booking.servicesList.reduce((a: number, s: any) => a + (s.duration || 0), 0)
-										)}</span
-									>
-								{/if}
-								<span>₹{booking.totalAmount || booking.price || '-'}</span>
-							</div>
-						</div>
-					</div>
-				{/each}
-			</div>
 		</section>
 	{/if}
 </div>
@@ -690,7 +704,109 @@
 
 	.timer-actions {
 		display: flex;
-		gap: var(--s-space-sm);
+		gap: var(--s-space-md);
+		margin-top: var(--s-space-sm);
+	}
+
+	.timer-notes {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		margin-top: var(--s-space-sm);
+		margin-bottom: var(--s-space-xs);
+		padding: 10px 14px;
+		background: #fef9c3;
+		border-radius: var(--s-radius-md);
+		border-left: 3px solid #eab308;
+	}
+	:global(.staff-app.dark) .timer-notes {
+		background: rgba(234, 179, 8, 0.1);
+		border-left-color: #facc15;
+	}
+
+	.timer-notes-icon {
+		font-size: 0.9rem;
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
+
+	.timer-notes-text {
+		margin: 0;
+		font-size: var(--s-text-sm);
+		font-weight: 500;
+		color: #92400e;
+		line-height: 1.4;
+		font-style: italic;
+	}
+	:global(.staff-app.dark) .timer-notes-text {
+		color: #fde68a;
+	}
+
+	.timer-notes.notes-empty {
+		background: var(--s-bg-tertiary);
+		border-left-color: var(--s-border);
+	}
+	:global(.staff-app.dark) .timer-notes.notes-empty {
+		background: rgba(255, 255, 255, 0.04);
+		border-left-color: rgba(255, 255, 255, 0.1);
+	}
+
+	.notes-none {
+		color: var(--s-text-tertiary);
+		font-style: italic;
+		font-weight: 400;
+	}
+
+	.timer-btn-outline {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 12px 18px;
+		border-radius: var(--s-radius-lg);
+		font-weight: 700;
+		font-size: 0.9rem;
+		background: transparent;
+		color: var(--s-text-primary);
+		border: 1.5px solid var(--s-border-strong);
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+	.timer-btn-outline:active {
+		transform: scale(0.97);
+	}
+	:global(.staff-app.dark) .timer-btn-outline {
+		border-color: rgba(255, 255, 255, 0.2);
+	}
+
+	.timer-btn-complete {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 12px 20px;
+		border-radius: var(--s-radius-lg);
+		font-weight: 700;
+		font-size: 0.9rem;
+		border: none;
+		cursor: pointer;
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+		transition: all 0.3s ease;
+	}
+	@media (hover: hover) {
+		.timer-btn-complete:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+		}
+	}
+	.timer-btn-complete:active {
+		transform: translateY(0);
+	}
+	:global(.staff-app.dark) .timer-btn-complete {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 	}
 
 	/* ━━━ STATS ROW ━━━ */
@@ -768,8 +884,99 @@
 		border-radius: var(--s-radius-full);
 	}
 
+	/* ═══════════════════════════════════════════
+	   UPNEXT CARD — Premium Elevated Design
+	   ═══════════════════════════════════════════ */
 	.upnext-card {
 		padding: var(--s-space-lg);
+		border-radius: var(--s-radius-xl);
+		position: relative;
+		overflow: hidden;
+		background: var(--s-surface);
+		border: 1px solid var(--s-border);
+		box-shadow:
+			0 2px 4px rgba(0, 0, 0, 0.04),
+			0 6px 18px rgba(0, 0, 0, 0.06);
+		transition:
+			transform var(--s-duration-normal) var(--s-ease),
+			box-shadow var(--s-duration-normal) var(--s-ease);
+	}
+	:global(.staff-app.dark) .upnext-card {
+		background: var(--s-surface-raised);
+		border-color: var(--s-border-strong);
+		box-shadow:
+			0 2px 6px rgba(0, 0, 0, 0.25),
+			0 8px 24px rgba(0, 0, 0, 0.35);
+	}
+	@media (hover: hover) {
+		.upnext-card:hover {
+			transform: translateY(-3px);
+			box-shadow:
+				0 6px 12px rgba(0, 0, 0, 0.08),
+				0 12px 36px rgba(0, 0, 0, 0.12);
+		}
+		:global(.staff-app.dark) .upnext-card:hover {
+			box-shadow:
+				0 8px 16px rgba(0, 0, 0, 0.35),
+				0 16px 40px rgba(0, 0, 0, 0.45);
+		}
+	}
+	.upnext-card:active {
+		transform: scale(0.985);
+	}
+
+	/* ── Status Left Accent Bar ── */
+	.card-pending,
+	.card-confirmed,
+	.card-completed,
+	.card-cancelled {
+		padding-left: calc(var(--s-space-lg) + 4px);
+	}
+	.card-pending::before,
+	.card-confirmed::before,
+	.card-completed::before,
+	.card-cancelled::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 8px;
+		bottom: 8px;
+		width: 3.5px;
+		border-radius: 0 var(--s-radius-sm) var(--s-radius-sm) 0;
+	}
+
+	/* ── Status-Specific Styles ── */
+	.card-pending {
+		background: var(--s-pending-bg);
+		border-color: var(--s-border);
+	}
+	.card-pending::before {
+		background: var(--s-pending);
+	}
+
+	.card-confirmed {
+		background: var(--s-confirmed-bg);
+		border-color: var(--s-border);
+	}
+	.card-confirmed::before {
+		background: var(--s-confirmed);
+	}
+
+	.card-completed {
+		background: var(--s-completed-bg);
+		border-color: var(--s-border);
+	}
+	.card-completed::before {
+		background: var(--s-completed);
+	}
+
+	.card-cancelled {
+		background: var(--s-cancelled-bg);
+		border-color: var(--s-border);
+		opacity: 0.75;
+	}
+	.card-cancelled::before {
+		background: var(--s-cancelled);
 	}
 
 	.upnext-top {
@@ -835,7 +1042,86 @@
 
 	.upnext-actions {
 		display: flex;
-		gap: var(--s-space-sm);
+		gap: var(--s-space-md);
+		margin-top: var(--s-space-sm);
+	}
+
+	.action-btn-soft {
+		flex: 1;
+		padding: 10px 16px;
+		border-radius: var(--s-radius-lg);
+		font-weight: 700;
+		font-size: 0.85rem;
+		border: none;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+	}
+
+	.action-btn-soft.confirm {
+		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+		color: white;
+		box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+	}
+	@media (hover: hover) {
+		.action-btn-soft.confirm:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+		}
+	}
+	:global(.staff-app.dark) .action-btn-soft.confirm {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+	}
+
+	.action-btn-soft.decline {
+		flex: 0.5;
+		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+		color: white;
+		box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+	}
+	@media (hover: hover) {
+		.action-btn-soft.decline:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+		}
+	}
+	:global(.staff-app.dark) .action-btn-soft.decline {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+	}
+
+	.action-btn-premium {
+		flex: 1;
+		padding: 10px 18px;
+		border-radius: var(--s-radius-lg);
+		font-weight: 700;
+		font-size: 0.85rem;
+		border: none;
+		cursor: pointer;
+		background: linear-gradient(135deg, var(--s-accent) 0%, var(--s-accent-dark, #b08d4f) 100%);
+		color: white;
+		box-shadow: 0 2px 8px rgba(201, 169, 110, 0.2);
+		transition: all 0.3s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		letter-spacing: 0.02em;
+	}
+
+	@media (hover: hover) {
+		.action-btn-premium:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 12px rgba(201, 169, 110, 0.3);
+		}
+	}
+	.action-btn-premium:active {
+		transform: translateY(0);
+	}
+	:global(.staff-app.dark) .action-btn-premium {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 	}
 
 	/* Active Service Mode Modifier */
@@ -844,6 +1130,83 @@
 		border: 2px solid var(--s-accent);
 		box-shadow: var(--s-shadow-glow);
 		animation: s-scaleIn 0.4s var(--s-ease-spring);
+	}
+
+	/* ── Payment Info ── */
+	.db-payment {
+		display: flex;
+		align-items: center;
+		gap: var(--s-space-sm);
+		margin-top: var(--s-space-sm);
+		flex-wrap: wrap;
+	}
+
+	.db-payment.timer-payment {
+		justify-content: center;
+		margin-bottom: var(--s-space-sm);
+		padding-top: var(--s-space-sm);
+		border-top: 1px solid var(--s-border);
+	}
+
+	.payment-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 3px 10px;
+		border-radius: var(--s-radius-full);
+		font-size: 0.7rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		white-space: nowrap;
+	}
+
+	.payment-prepaid {
+		background: rgba(16, 185, 129, 0.12);
+		color: #059669;
+	}
+	:global(.staff-app.dark) .payment-prepaid {
+		background: rgba(16, 185, 129, 0.15);
+		color: #34d399;
+	}
+
+	.payment-token {
+		background: rgba(217, 164, 6, 0.12);
+		color: #b45309;
+	}
+	:global(.staff-app.dark) .payment-token {
+		background: rgba(217, 164, 6, 0.15);
+		color: #fbbf24;
+	}
+
+	.payment-salon {
+		background: rgba(59, 130, 246, 0.1);
+		color: #2563eb;
+	}
+	:global(.staff-app.dark) .payment-salon {
+		background: rgba(59, 130, 246, 0.15);
+		color: #60a5fa;
+	}
+
+	.payment-details {
+		display: flex;
+		align-items: center;
+		gap: var(--s-space-sm);
+	}
+
+	.payment-paid {
+		font-size: var(--s-text-xs);
+		font-weight: 600;
+		color: #059669;
+	}
+	:global(.staff-app.dark) .payment-paid {
+		color: #34d399;
+	}
+
+	.payment-due {
+		font-size: var(--s-text-xs);
+		font-weight: 600;
+		color: var(--s-error, #ef4444);
 	}
 
 	/* ━━━ SCHEDULE PREVIEW ━━━ */

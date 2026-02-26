@@ -5,6 +5,7 @@
 	import { updateBookingStatus, updateBookingDetails } from '$lib/stores/adminData';
 	import { completeTimer } from '$lib/stores/serviceTimer';
 	import { showToast } from '$lib/stores/toast';
+	import { generateAndSendInvoice } from '$lib/utils/invoice';
 
 	// The booking ID from the URL
 	let bookingId = $derived(page.params.id);
@@ -85,223 +86,15 @@
 			// completeTimer handles both the serviceTimer doc and the booking status update implicitly
 			await completeTimer(originalBooking);
 
-			// 3. Generate PDF
-			const jsPDFModule = await import('jspdf');
-			const autoTableModule = await import('jspdf-autotable');
-			const jsPDF = jsPDFModule.default;
-			const autoTable = autoTableModule.default;
-			const doc = new jsPDF();
-
-			// --- SPECTACULAR INVOICE DESIGN ---
-			const pageWidth = doc.internal.pageSize.getWidth();
-			const pageHeight = doc.internal.pageSize.getHeight();
-
-			// 1. Backgrounds & Aesthetic Artwork
-			doc.setFillColor(254, 252, 250); // Very light cream
-			doc.rect(0, 0, pageWidth, pageHeight, 'F');
-
-			try {
-				const response = await fetch('/invoice-bg.png');
-				if (response.ok) {
-					const blob = await response.blob();
-					const reader = new FileReader();
-					const base64data = await new Promise<string>((resolve) => {
-						reader.onloadend = () => resolve(reader.result as string);
-						reader.readAsDataURL(blob);
-					});
-
-					// Draw the feminine floral art heavily anchored to the bottom left
-					// 150x150 mm square, shifted slightly off-page for an artistic bleed effect
-					doc.addImage(base64data, 'PNG', -10, pageHeight - 130, 150, 150, undefined, 'FAST');
-
-					// Overlay a very faint semi-transparent white box to soften the image slightly into a watermark
-					// JS PDF opacity hack via GState (supported in modern jsPDF)
-					try {
-						doc.setGState(new (doc.GState as any)({ opacity: 0.65 }));
-						doc.setFillColor(254, 252, 250);
-						doc.rect(-10, pageHeight - 130, 150, 150, 'F');
-						doc.setGState(new (doc.GState as any)({ opacity: 1.0 }));
-					} catch (e) {}
-				}
-			} catch (err) {
-				console.error('Art graphic failed to load', err);
-			}
-
-			// 2. Beautiful Top Graphic Banner
-			doc.setFillColor(26, 26, 46); // Rich Dark Navy / Brand Background
-			doc.rect(0, 0, pageWidth, 55, 'F');
-
-			// 3. Artistic Accent Shapes
-			doc.setFillColor(201, 169, 110); // Brand Gold
-			doc.triangle(pageWidth - 40, 0, pageWidth, 0, pageWidth, 40, 'F'); // Top right corner ribbon
-
-			// Subtle circle behind brand name
-			doc.setFillColor(32, 32, 54);
-			doc.circle(45, 27, 20, 'F');
-
-			// 4. Header Text inside the dark banner
-			doc.setFont('helvetica', 'bold');
-			doc.setFontSize(32);
-			doc.setTextColor(255, 255, 255);
-			doc.text('BLANCBEU', 20, 32);
-
-			doc.setFont('helvetica', 'normal');
-			doc.setFontSize(10);
-			doc.setTextColor(201, 169, 110); // Gold text
-			doc.text('PREMIUM SALON & SPA', 20, 42);
-
-			doc.setFontSize(26);
-			doc.setTextColor(255, 255, 255);
-			doc.text('INVOICE', pageWidth - 20, 35, { align: 'right' });
-
-			// 5. Personal Greeting
-			doc.setFontSize(14);
-			doc.setFont('helvetica', 'italic');
-			doc.setTextColor(140, 110, 60);
-			const clientName = originalBooking.userName || 'Beautiful';
-			doc.text(`Hi ${clientName},`, 20, 75);
-			doc.setFontSize(11);
-			doc.setTextColor(80, 80, 80);
-			doc.text(
-				'Thank you for treating yourself today! Here are the details of your session.',
-				20,
-				82
-			);
-
-			// 6. Meta Details Box (Date, ID)
-			doc.setFillColor(255, 255, 255);
-			doc.setDrawColor(230, 220, 210);
-			doc.setLineWidth(0.3);
-			doc.roundedRect(pageWidth - 85, 65, 65, 24, 3, 3, 'FD');
-
-			doc.setFontSize(9);
-			doc.setFont('helvetica', 'bold');
-			doc.setTextColor(150, 150, 150);
-			doc.text('BOOKING ID:', pageWidth - 80, 74);
-			doc.text('DATE:', pageWidth - 80, 83);
-
-			doc.setFont('helvetica', 'normal');
-			doc.setTextColor(40, 40, 40);
-			doc.text(originalBooking.id.slice(0, 8).toUpperCase(), pageWidth - 45, 74);
-			doc.text(
-				new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-				pageWidth - 45,
-				83
-			);
-
-			// --- TABLE ---
-			const tableBody = services.map((s) => [s.name, `Rs. ${s.price}`]);
-
-			autoTable(doc, {
-				startY: 100,
-				head: [['Service Description', 'Amount']],
-				body: tableBody,
-				theme: 'plain',
-				headStyles: {
-					fillColor: [201, 169, 110], // Gold Head
-					textColor: [255, 255, 255],
-					fontStyle: 'bold',
-					halign: 'left'
-				},
-				bodyStyles: {
-					textColor: [60, 60, 60],
-					padding: 6
-				},
-				alternateRowStyles: {
-					fillColor: [255, 255, 255]
-				},
-				columnStyles: {
-					0: { cellWidth: 'auto' },
-					1: { cellWidth: 40, halign: 'right' }
-				},
-				margin: { left: 20, right: 20 }
+			// 3. Generate PDF & WhatsApp Sharing
+			await generateAndSendInvoice({
+				booking: originalBooking,
+				services,
+				totalAmount,
+				discountAmount,
+				extraCharge,
+				couponCode
 			});
-
-			// @ts-ignore
-			let finalY = doc.lastAutoTable?.finalY || 100;
-
-			// --- SUMMARY CALCULATION SECTION ---
-			const summaryX = pageWidth - 66; // Align with amount column
-
-			finalY += 10;
-			doc.setFontSize(10);
-			doc.setTextColor(120, 120, 120);
-
-			// Subtotal
-			const subtotal = services.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
-			doc.text('Subtotal:', summaryX, finalY);
-			doc.setTextColor(40, 40, 40);
-			doc.text(`Rs. ${subtotal}`, pageWidth - 20, finalY, { align: 'right' });
-
-			// Extra Charges
-			if (extraCharge > 0) {
-				finalY += 8;
-				doc.setTextColor(120, 120, 120);
-				doc.text('Extra Charges:', summaryX, finalY);
-				doc.setTextColor(40, 40, 40);
-				doc.text(`Rs. ${extraCharge}`, pageWidth - 20, finalY, { align: 'right' });
-			}
-
-			// Discount
-			if (discountAmount > 0) {
-				finalY += 8;
-				doc.setTextColor(120, 120, 120);
-				doc.text(`Discount${couponCode ? ` (${couponCode})` : ''}:`, summaryX, finalY);
-				doc.setTextColor(220, 53, 69); // Red down indicator
-				doc.text(`- Rs. ${discountAmount}`, pageWidth - 20, finalY, { align: 'right' });
-			}
-
-			// Grand Total Box
-			finalY += 8;
-			doc.setFillColor(26, 26, 46); // Dark Navy Box
-			doc.roundedRect(summaryX - 10, finalY, 76, 16, 2, 2, 'F');
-
-			doc.setFontSize(12);
-			doc.setFont('helvetica', 'bold');
-			doc.setTextColor(201, 169, 110); // Brand Gold
-			doc.text('TOTAL:', summaryX - 4, finalY + 11);
-			doc.setFontSize(14);
-			doc.setTextColor(255, 255, 255);
-			doc.text(`Rs. ${totalAmount}`, pageWidth - 23, finalY + 11, { align: 'right' });
-
-			// --- FOOTER ---
-			doc.setFontSize(10);
-			doc.setFont('helvetica', 'italic');
-			doc.setTextColor(160, 160, 160);
-			doc.text('We can’t wait to pamper you again!', pageWidth / 2, pageHeight - 20, {
-				align: 'center'
-			});
-
-			// Small styling line at the very bottom
-			doc.setFillColor(201, 169, 110);
-			doc.rect(0, pageHeight - 5, pageWidth, 5, 'F');
-
-			// Save PDF
-			const fileName = `Blancbeu_Invoice_${originalBooking.userName?.replace(/\s+/g, '_') || 'Client'}_${new Date().toISOString().split('T')[0]}.pdf`;
-			doc.save(fileName);
-
-			// 4. WhatsApp Sharing
-			// Since we can't easily attach a PDF directly via a web whatsapp link without a backend,
-			// we generate a nice text receipt summary and open WhatsApp.
-			let msg = `*Invoice from Blancbeu*\nHello ${originalBooking.userName || ''},\nHere is your service summary:\n\n`;
-			services.forEach((s) => {
-				msg += `- ${s.name}: Rs.${s.price}\n`;
-			});
-			if (extraCharge > 0) msg += `Extra Charges: Rs.${extraCharge}\n`;
-			if (discountAmount > 0) msg += `Discount: -Rs.${discountAmount}\n`;
-			msg += `\n*Total Amount: Rs.${totalAmount}*\n\nThank you for choosing us!`;
-
-			const encodedMsg = encodeURIComponent(msg);
-			const phone = originalBooking.userPhone ? originalBooking.userPhone.replace(/\D/g, '') : '';
-
-			// If phone is available, open direct chat. Otherwise open general sharer
-			let waUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
-			if (!phone) {
-				waUrl = `https://api.whatsapp.com/send?text=${encodedMsg}`;
-			}
-
-			// Open whatsapp in new tab
-			window.open(waUrl, '_blank');
 
 			showToast('Service completed and invoice generated!', 'success');
 
@@ -461,12 +254,14 @@
 		<!-- ACTION BUTTONS -->
 		<div class="bottom-actions">
 			<button
-				class="s-btn s-btn-lg s-btn-accent generate-btn"
+				class="s-btn s-btn-lg s-btn-success generate-btn"
 				onclick={finalizeAndGenerateInvoice}
 				disabled={isGenerating || services.length === 0}
 			>
 				{#if isGenerating}
 					<span class="spinner"></span> Processing...
+				{:else if originalBooking?.status === 'completed'}
+					✓ Regenerate Invoice & Send
 				{:else}
 					✓ Complete & Send Invoice
 				{/if}

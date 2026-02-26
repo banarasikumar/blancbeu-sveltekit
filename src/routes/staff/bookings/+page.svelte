@@ -2,8 +2,15 @@
 	import { staffBookings } from '$lib/stores/staffData';
 	import { updateBookingStatus, type Booking } from '$lib/stores/adminData';
 	import { showToast } from '$lib/stores/toast';
-	import { startServiceTimer } from '$lib/stores/serviceTimer';
+	import {
+		now,
+		getElapsedSeconds,
+		startServiceTimer,
+		pauseTimer,
+		resumeTimer
+	} from '$lib/stores/serviceTimer';
 	import BookingModal from '$lib/components/staff/BookingModal.svelte';
+	import CircularProgress from '$lib/components/staff/CircularProgress.svelte';
 	import ClientDrawer from '$lib/components/staff/ClientDrawer.svelte';
 	import StatusBadge from '$lib/components/staff/StatusBadge.svelte';
 	import EmptyState from '$lib/components/staff/EmptyState.svelte';
@@ -64,13 +71,11 @@
 			);
 		}
 
-		// Smart sort: newest-first for completed/cancelled, soonest-first otherwise
-		const showNewestFirst = activeFilter === 'completed' || activeFilter === 'cancelled';
+		// Always sort newest-first
 		return bookings.sort((a, b) => {
-			const dateCmp = (a.date || '').localeCompare(b.date || '');
-			if (dateCmp !== 0) return showNewestFirst ? -dateCmp : dateCmp;
-			const timeCmp = (a.time || '').localeCompare(b.time || '');
-			return showNewestFirst ? -timeCmp : timeCmp;
+			const dateCmp = (b.date || '').localeCompare(a.date || '');
+			if (dateCmp !== 0) return dateCmp;
+			return (b.time || '').localeCompare(a.time || '');
 		});
 	});
 
@@ -149,6 +154,32 @@
 		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 	}
 
+	// Payment info helpers
+	function getPaymentLabel(booking: any): string {
+		const p = booking.payment;
+		if (!p) return '';
+		if (p.type === 'full') return 'Prepaid';
+		if (p.type === 'token') return 'Token';
+		if (p.type === 'free' || p.method === 'pay_at_salon') return 'Pay at Salon';
+		return '';
+	}
+
+	function getPaymentMethodIcon(booking: any): string {
+		const p = booking.payment;
+		if (!p) return '';
+		if (p.type === 'full') return '💳';
+		if (p.type === 'token') return '🪙';
+		return '🏪';
+	}
+
+	function getPaymentBadgeClass(booking: any): string {
+		const p = booking.payment;
+		if (!p) return '';
+		if (p.type === 'full') return 'payment-prepaid';
+		if (p.type === 'token') return 'payment-token';
+		return 'payment-salon';
+	}
+
 	// Group bookings by date
 	let groupedBookings = $derived(() => {
 		const groups: Record<string, any[]> = {};
@@ -157,7 +188,7 @@
 			if (!groups[key]) groups[key] = [];
 			groups[key].push(b);
 		});
-		return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+		return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
 	});
 
 	let pendingBadge = $derived($staffBookings.filter((b) => b.status === 'pending').length);
@@ -239,87 +270,232 @@
 
 					{#each bookings as booking}
 						<div
-							class="booking-card s-card s-card-interactive"
+							class="booking-card s-card s-card-interactive {booking.status === 'in-progress'
+								? 'active-service-mode'
+								: 'card-' + booking.status}"
 							onclick={() => openBooking(booking)}
 							role="button"
 							tabindex="0"
 							onkeydown={(e) => e.key === 'Enter' && openBooking(booking)}
 						>
-							<!-- Status edge -->
-							<div class="bc-edge {booking.status}"></div>
+							{#if booking.status === 'in-progress'}
+								{@const elapsed = getElapsedSeconds(booking, $now)}
+								{@const totalMins =
+									booking.servicesList?.reduce((a: number, s: any) => a + (s.duration || 30), 0) ||
+									30}
+								{@const totalSeconds = totalMins * 60}
+								{@const progress =
+									totalSeconds > 0 ? Math.min(100, (elapsed / totalSeconds) * 100) : 0}
+								{@const isOvertime = elapsed > totalSeconds}
+								{@const remaining = Math.max(0, totalSeconds - elapsed)}
+								{@const formattedElapsed = (() => {
+									const h = Math.floor(elapsed / 3600);
+									const m = Math.floor((elapsed % 3600) / 60);
+									const s = elapsed % 60;
+									return h > 0
+										? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+										: `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+								})()}
+								{@const formattedRemaining = (() => {
+									const h = Math.floor(remaining / 3600);
+									const m = Math.floor((remaining % 3600) / 60);
+									const s = remaining % 60;
+									return h > 0
+										? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+										: `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+								})()}
 
-							<div class="bc-body">
-								<div class="bc-top">
-									<button
-										class="bc-avatar"
-										onclick={(e) => {
-											e.stopPropagation();
-											openClient(booking);
-										}}
-									>
-										{booking.userName?.[0]?.toUpperCase() || 'G'}
-									</button>
-									<div class="bc-info">
-										<h4 class="bc-name">{booking.userName || 'Guest'}</h4>
-										<p class="bc-services">
-											{#if booking.servicesList?.length}
-												{booking.servicesList.map((s: any) => s.name).join(', ')}
+								<div class="active-service-content">
+									<div class="service-timer-header">
+										<div class="timer-info">
+											<span class="timer-label">
+												{#if booking.isTimerRunning}
+													🔴 In Service
+												{:else}
+													⏸ Paused
+												{/if}
+											</span>
+											<h3 class="timer-client">{booking.userName || 'Guest'}</h3>
+											<p class="timer-service">
+												{#if booking.servicesList?.length}
+													{booking.servicesList.map((s: any) => s.name).join(', ')}
+												{:else}
+													{booking.serviceName || 'Service'}
+												{/if}
+											</p>
+										</div>
+										<CircularProgress
+											{progress}
+											size={72}
+											strokeWidth={5}
+											color={isOvertime ? 'var(--s-error)' : 'var(--s-accent)'}
+										>
+											<span class="timer-value" class:overtime={isOvertime}>
+												{isOvertime ? '+' : ''}{formattedElapsed}
+											</span>
+										</CircularProgress>
+									</div>
+									<div class="timer-remaining">
+										{#if isOvertime}
+											<span class="overtime-text"
+												>⚠️ Overtime — was expected {formatDuration(totalMins)}</span
+											>
+										{:else}
+											<span class="remaining-text">{formattedRemaining} remaining</span>
+										{/if}
+									</div>
+									{#if booking.payment}
+										<div class="bc-payment timer-payment">
+											<span class="payment-badge {getPaymentBadgeClass(booking)}">
+												{getPaymentMethodIcon(booking)}
+												{getPaymentLabel(booking)}
+											</span>
+											<span class="bc-meta-item price"
+												>₹{booking.totalAmount || booking.price || '-'}</span
+											>
+											{#if booking.payment.type === 'token' && booking.payment.amount}
+												<div class="payment-details">
+													<span class="payment-paid">✓ ₹{booking.payment.amount} paid</span>
+													<span class="payment-due"
+														>• ₹{(booking.totalAmount || booking.price || 0) -
+															booking.payment.amount} due</span
+													>
+												</div>
+											{:else if booking.payment.type === 'full' && booking.payment.amount}
+												<span class="payment-paid">✓ Fully paid</span>
+											{/if}
+										</div>
+									{/if}
+									<div class="timer-notes" class:notes-empty={!booking.notes}>
+										<span class="timer-notes-icon">📝</span>
+										<p class="timer-notes-text">
+											{#if booking.notes}
+												{booking.notes}
 											{:else}
-												{booking.serviceName || 'Service'}
+												<span class="notes-none">Notes: None</span>
 											{/if}
 										</p>
 									</div>
-									<StatusBadge status={booking.status} size="sm" />
-								</div>
-
-								<div class="bc-meta">
-									<span class="bc-meta-item">🕐 {formatTime12h(booking.time)}</span>
-									{#if booking.servicesList?.some((s: any) => s.duration)}
-										<span class="bc-meta-item"
-											>⏱ {formatDuration(
-												booking.servicesList.reduce((a: number, s: any) => a + (s.duration || 0), 0)
-											)}</span
-										>
-									{/if}
-									<span class="bc-meta-item price"
-										>₹{booking.totalAmount || booking.price || '-'}</span
-									>
-								</div>
-
-								<!-- Quick Actions -->
-								<div class="bc-actions">
-									{#if booking.status === 'pending'}
+									<div class="timer-actions">
+										{#if !booking.isTimerRunning}
+											<button
+												class="timer-btn-outline"
+												onclick={(e) => {
+													e.stopPropagation();
+													resumeTimer(booking);
+												}}
+											>
+												▶ Resume
+											</button>
+										{:else}
+											<button
+												class="timer-btn-outline"
+												onclick={(e) => {
+													e.stopPropagation();
+													pauseTimer(booking);
+												}}
+											>
+												⏸ Pause
+											</button>
+										{/if}
 										<button
-											class="qa s-btn s-btn-sm"
-											style="background: var(--s-confirmed); color: white; flex: 1"
-											onclick={(e) => quickAction(booking.id, 'confirmed', e)}>✓ Confirm</button
-										>
-										<button
-											class="qa s-btn s-btn-sm s-btn-danger"
-											onclick={(e) => quickAction(booking.id, 'cancelled', e)}>✕</button
-										>
-									{:else if booking.status === 'confirmed'}
-										<button
-											class="qa s-btn s-btn-sm s-btn-accent"
-											style="flex: 1"
-											onclick={async (e) => {
-												e.stopPropagation();
-												startServiceTimer(booking);
-												showToast('Timer started!', 'success');
-											}}>▶ Start</button
-										>
-									{:else if booking.status === 'in-progress'}
-										<button
-											class="qa s-btn s-btn-sm"
-											style="background: var(--s-completed); color: white; flex: 1"
+											class="timer-btn-complete"
 											onclick={(e) => {
 												e.stopPropagation();
 												goto(`/staff/bookings/${booking.id}`);
-											}}>✓ Complete</button
+											}}
 										>
-									{/if}
+											✓ Complete Service
+										</button>
+									</div>
 								</div>
-							</div>
+							{:else}
+								<div class="bc-body">
+									<div class="bc-top">
+										<button
+											class="bc-avatar"
+											onclick={(e) => {
+												e.stopPropagation();
+												openClient(booking);
+											}}
+										>
+											{booking.userName?.[0]?.toUpperCase() || 'G'}
+										</button>
+										<div class="bc-info">
+											<h4 class="bc-name">{booking.userName || 'Guest'}</h4>
+											<p class="bc-services">
+												{#if booking.servicesList?.length}
+													{booking.servicesList.map((s: any) => s.name).join(', ')}
+												{:else}
+													{booking.serviceName || 'Service'}
+												{/if}
+											</p>
+										</div>
+										<StatusBadge status={booking.status} size="sm" />
+									</div>
+
+									<div class="bc-meta">
+										<span class="bc-meta-item">🕐 {formatTime12h(booking.time)}</span>
+										{#if booking.servicesList?.some((s: any) => s.duration)}
+											<span class="bc-meta-item"
+												>⏱ {formatDuration(
+													booking.servicesList.reduce(
+														(a: number, s: any) => a + (s.duration || 0),
+														0
+													)
+												)}</span
+											>
+										{/if}
+										<span class="bc-meta-item price"
+											>₹{booking.totalAmount || booking.price || '-'}</span
+										>
+									</div>
+
+									<!-- Payment Info -->
+									{#if booking.payment}
+										<div class="bc-payment">
+											<span class="payment-badge {getPaymentBadgeClass(booking)}">
+												{getPaymentMethodIcon(booking)}
+												{getPaymentLabel(booking)}
+											</span>
+											{#if booking.payment.type === 'token' && booking.payment.amount}
+												<div class="payment-details">
+													<span class="payment-paid">✓ ₹{booking.payment.amount} paid</span>
+													<span class="payment-due"
+														>• ₹{(booking.totalAmount || booking.price || 0) -
+															booking.payment.amount} due</span
+													>
+												</div>
+											{:else if booking.payment.type === 'full' && booking.payment.amount}
+												<span class="payment-paid">✓ Fully paid</span>
+											{/if}
+										</div>
+									{/if}
+
+									<!-- Premium Quick Actions -->
+									<div class="bc-actions">
+										{#if booking.status === 'pending'}
+											<button
+												class="bk-btn bk-btn-confirm"
+												onclick={(e) => quickAction(booking.id, 'confirmed', e)}>✓ Confirm</button
+											>
+											<button
+												class="bk-btn bk-btn-decline"
+												onclick={(e) => quickAction(booking.id, 'cancelled', e)}>✕ Decline</button
+											>
+										{:else if booking.status === 'confirmed'}
+											<button
+												class="bk-btn bk-btn-start"
+												onclick={async (e) => {
+													e.stopPropagation();
+													startServiceTimer(booking);
+													showToast('Timer started!', 'success');
+												}}>▶ Start</button
+											>
+										{/if}
+									</div>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -529,36 +705,296 @@
 		color: var(--s-text-secondary);
 	}
 
-	/* Booking Card */
+	/* ═══════════════════════════════════════════
+	   ACTIVE SERVICE TIMER (In-Progress Cards)
+	   ═══════════════════════════════════════════ */
+	.booking-card.active-service-mode {
+		background: var(--s-surface);
+		border: 2px solid var(--s-accent);
+		box-shadow: var(--s-shadow-glow);
+		animation: s-scaleIn 0.4s var(--s-ease-spring);
+	}
+
+	.active-service-content {
+		padding: var(--s-space-lg);
+	}
+
+	.service-timer-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: var(--s-space-md);
+	}
+
+	.timer-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.timer-label {
+		font-size: var(--s-text-xs);
+		font-weight: 700;
+		text-transform: uppercase;
+		color: var(--s-accent);
+		letter-spacing: 0.05em;
+	}
+
+	.timer-client {
+		margin: 4px 0 2px;
+		font-family: var(--s-font-display);
+		font-size: var(--s-text-lg);
+		font-weight: 700;
+	}
+
+	.timer-service {
+		margin: 0;
+		font-size: var(--s-text-sm);
+		color: var(--s-text-secondary);
+	}
+
+	.timer-value {
+		font-family: var(--s-font-display);
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--s-accent);
+	}
+
+	.timer-value.overtime {
+		color: var(--s-error);
+	}
+
+	.timer-remaining {
+		text-align: center;
+		margin-bottom: var(--s-space-md);
+	}
+
+	.remaining-text {
+		font-size: var(--s-text-sm);
+		color: var(--s-text-secondary);
+		font-weight: 500;
+	}
+
+	.overtime-text {
+		font-size: var(--s-text-sm);
+		color: var(--s-error);
+		font-weight: 600;
+	}
+
+	.timer-actions {
+		display: flex;
+		gap: var(--s-space-md);
+		margin-top: var(--s-space-sm);
+	}
+
+	.timer-notes {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		margin-top: var(--s-space-sm);
+		margin-bottom: var(--s-space-xs);
+		padding: 10px 14px;
+		background: #fef9c3;
+		border-radius: var(--s-radius-md);
+		border-left: 3px solid #eab308;
+	}
+	:global(.staff-app.dark) .timer-notes {
+		background: rgba(234, 179, 8, 0.1);
+		border-left-color: #facc15;
+	}
+
+	.timer-notes-icon {
+		font-size: 0.9rem;
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
+
+	.timer-notes-text {
+		margin: 0;
+		font-size: var(--s-text-sm);
+		font-weight: 500;
+		color: #92400e;
+		line-height: 1.4;
+		font-style: italic;
+	}
+	:global(.staff-app.dark) .timer-notes-text {
+		color: #fde68a;
+	}
+
+	.timer-notes.notes-empty {
+		background: var(--s-bg-tertiary);
+		border-left-color: var(--s-border);
+	}
+	:global(.staff-app.dark) .timer-notes.notes-empty {
+		background: rgba(255, 255, 255, 0.04);
+		border-left-color: rgba(255, 255, 255, 0.1);
+	}
+
+	.notes-none {
+		color: var(--s-text-tertiary);
+		font-style: italic;
+		font-weight: 400;
+	}
+
+	.timer-btn-outline {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 12px 18px;
+		border-radius: var(--s-radius-lg);
+		font-weight: 700;
+		font-size: 0.9rem;
+		background: transparent;
+		color: var(--s-text-primary);
+		border: 1.5px solid var(--s-border-strong);
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+	.timer-btn-outline:active {
+		transform: scale(0.97);
+	}
+	:global(.staff-app.dark) .timer-btn-outline {
+		border-color: rgba(255, 255, 255, 0.2);
+	}
+
+	.timer-btn-complete {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 12px 20px;
+		border-radius: var(--s-radius-lg);
+		font-weight: 700;
+		font-size: 0.9rem;
+		border: none;
+		cursor: pointer;
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+		transition: all 0.3s ease;
+	}
+	@media (hover: hover) {
+		.timer-btn-complete:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+		}
+	}
+	.timer-btn-complete:active {
+		transform: translateY(0);
+	}
+	:global(.staff-app.dark) .timer-btn-complete {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+	}
+
+	/* ═══════════════════════════════════════════
+	   BOOKING CARD — Premium Elevated Design
+	   ═══════════════════════════════════════════ */
 	.booking-card {
 		display: flex;
 		overflow: hidden;
+		position: relative;
+		border-radius: var(--s-radius-xl);
+		background: var(--s-surface);
+		border: 1px solid var(--s-border);
+		box-shadow:
+			0 2px 4px rgba(0, 0, 0, 0.04),
+			0 6px 18px rgba(0, 0, 0, 0.06);
+		transition:
+			transform var(--s-duration-normal) var(--s-ease),
+			box-shadow var(--s-duration-normal) var(--s-ease);
+	}
+	:global(.staff-app.dark) .booking-card {
+		background: var(--s-surface-raised);
+		border-color: var(--s-border-strong);
+		box-shadow:
+			0 2px 6px rgba(0, 0, 0, 0.25),
+			0 8px 24px rgba(0, 0, 0, 0.35);
+	}
+	@media (hover: hover) {
+		.booking-card:hover {
+			transform: translateY(-3px);
+			box-shadow:
+				0 6px 12px rgba(0, 0, 0, 0.08),
+				0 12px 36px rgba(0, 0, 0, 0.12);
+		}
+		:global(.staff-app.dark) .booking-card:hover {
+			box-shadow:
+				0 8px 16px rgba(0, 0, 0, 0.35),
+				0 16px 40px rgba(0, 0, 0, 0.45);
+		}
+	}
+	.booking-card:active {
+		transform: scale(0.985);
 	}
 
-	.bc-edge {
-		width: 4px;
-		flex-shrink: 0;
+	/* ── Status Left Accent Bar ── */
+	.card-pending,
+	.card-confirmed,
+	.card-in-progress,
+	.card-completed,
+	.card-cancelled {
+		padding-left: 4px;
+	}
+	.card-pending::before,
+	.card-confirmed::before,
+	.card-in-progress::before,
+	.card-completed::before,
+	.card-cancelled::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 8px;
+		bottom: 8px;
+		width: 3.5px;
+		border-radius: 0 var(--s-radius-sm) var(--s-radius-sm) 0;
 	}
 
-	.bc-edge.pending {
+	/* ── Status-Specific Styles ── */
+	.card-pending {
+		background: var(--s-pending-bg);
+		border-color: var(--s-border);
+	}
+	.card-pending::before {
 		background: var(--s-pending);
 	}
-	.bc-edge.confirmed {
+
+	.card-confirmed {
+		background: var(--s-confirmed-bg);
+		border-color: var(--s-border);
+	}
+	.card-confirmed::before {
 		background: var(--s-confirmed);
 	}
-	.bc-edge.in-progress {
+
+	.card-in-progress {
+		background: var(--s-in-progress-bg);
+		border-color: var(--s-border);
+	}
+	.card-in-progress::before {
 		background: var(--s-in-progress);
 	}
-	.bc-edge.completed {
+
+	.card-completed {
+		background: var(--s-completed-bg);
+		border-color: var(--s-border);
+	}
+	.card-completed::before {
 		background: var(--s-completed);
 	}
-	.bc-edge.cancelled {
+
+	.card-cancelled {
+		background: var(--s-cancelled-bg);
+		border-color: var(--s-border);
+		opacity: 0.75;
+	}
+	.card-cancelled::before {
 		background: var(--s-cancelled);
 	}
 
 	.bc-body {
 		flex: 1;
-		padding: var(--s-space-md) var(--s-space-lg);
+		padding: var(--s-space-lg);
 	}
 
 	.bc-top {
@@ -568,8 +1004,8 @@
 	}
 
 	.bc-avatar {
-		width: 36px;
-		height: 36px;
+		width: 40px;
+		height: 40px;
 		border-radius: var(--s-radius-md);
 		background: linear-gradient(135deg, var(--s-accent), var(--s-accent-dark, #b08d4f));
 		color: white;
@@ -577,7 +1013,7 @@
 		align-items: center;
 		justify-content: center;
 		font-weight: 700;
-		font-size: 0.9rem;
+		font-size: 1rem;
 		flex-shrink: 0;
 		border: none;
 		cursor: pointer;
@@ -595,12 +1031,13 @@
 
 	.bc-name {
 		margin: 0;
-		font-size: var(--s-text-base);
-		font-weight: 600;
+		font-family: var(--s-font-display);
+		font-size: var(--s-text-md);
+		font-weight: 700;
 	}
 
 	.bc-services {
-		margin: 1px 0 0;
+		margin: 2px 0 0;
 		font-size: var(--s-text-sm);
 		color: var(--s-text-secondary);
 		white-space: nowrap;
@@ -610,15 +1047,18 @@
 
 	.bc-meta {
 		display: flex;
-		gap: var(--s-space-md);
-		margin-top: var(--s-space-sm);
+		gap: var(--s-space-lg);
+		margin-top: var(--s-space-md);
+		padding: var(--s-space-md) 0;
+		border-top: 1px solid var(--s-border);
+		border-bottom: 1px solid var(--s-border);
 		flex-wrap: wrap;
 	}
 
 	.bc-meta-item {
-		font-size: var(--s-text-xs);
+		font-size: var(--s-text-sm);
 		font-weight: 600;
-		color: var(--s-text-tertiary);
+		color: var(--s-text-secondary);
 	}
 
 	.bc-meta-item.price {
@@ -626,10 +1066,159 @@
 		font-weight: 700;
 	}
 
+	/* ── Payment Info ── */
+	.bc-payment {
+		display: flex;
+		align-items: center;
+		gap: var(--s-space-sm);
+		margin-top: var(--s-space-sm);
+		flex-wrap: wrap;
+	}
+
+	.bc-payment.timer-payment {
+		justify-content: center;
+		margin-bottom: var(--s-space-sm);
+		padding-top: var(--s-space-sm);
+		border-top: 1px solid var(--s-border);
+	}
+
+	.payment-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 3px 10px;
+		border-radius: var(--s-radius-full);
+		font-size: 0.7rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		white-space: nowrap;
+	}
+
+	.payment-prepaid {
+		background: rgba(16, 185, 129, 0.12);
+		color: #059669;
+	}
+	:global(.staff-app.dark) .payment-prepaid {
+		background: rgba(16, 185, 129, 0.15);
+		color: #34d399;
+	}
+
+	.payment-token {
+		background: rgba(217, 164, 6, 0.12);
+		color: #b45309;
+	}
+	:global(.staff-app.dark) .payment-token {
+		background: rgba(217, 164, 6, 0.15);
+		color: #fbbf24;
+	}
+
+	.payment-salon {
+		background: rgba(59, 130, 246, 0.1);
+		color: #2563eb;
+	}
+	:global(.staff-app.dark) .payment-salon {
+		background: rgba(59, 130, 246, 0.15);
+		color: #60a5fa;
+	}
+
+	.payment-details {
+		display: flex;
+		align-items: center;
+		gap: var(--s-space-sm);
+	}
+
+	.payment-paid {
+		font-size: var(--s-text-xs);
+		font-weight: 600;
+		color: #059669;
+	}
+	:global(.staff-app.dark) .payment-paid {
+		color: #34d399;
+	}
+
+	.payment-due {
+		font-size: var(--s-text-xs);
+		font-weight: 600;
+		color: var(--s-error, #ef4444);
+	}
+
 	.bc-actions {
 		display: flex;
-		gap: var(--s-space-sm);
+		gap: var(--s-space-md);
 		margin-top: var(--s-space-md);
+	}
+
+	/* Premium Action Buttons */
+	.bk-btn {
+		flex: 1;
+		padding: 10px 16px;
+		border-radius: var(--s-radius-lg);
+		font-weight: 700;
+		font-size: 0.85rem;
+		border: none;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		color: white;
+	}
+	.bk-btn:active {
+		transform: scale(0.97);
+	}
+
+	.bk-btn-confirm {
+		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+		box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+	}
+	@media (hover: hover) {
+		.bk-btn-confirm:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+		}
+	}
+
+	.bk-btn-decline {
+		flex: 0.5;
+		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+		box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+	}
+	@media (hover: hover) {
+		.bk-btn-decline:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+		}
+	}
+
+	.bk-btn-start {
+		background: linear-gradient(135deg, var(--s-accent) 0%, var(--s-accent-dark, #b08d4f) 100%);
+		box-shadow: 0 2px 8px rgba(201, 169, 110, 0.2);
+	}
+	@media (hover: hover) {
+		.bk-btn-start:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 12px rgba(201, 169, 110, 0.3);
+		}
+	}
+
+	.bk-btn-complete {
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+	}
+	@media (hover: hover) {
+		.bk-btn-complete:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+		}
+	}
+
+	:global(.staff-app.dark) .bk-btn-confirm,
+	:global(.staff-app.dark) .bk-btn-decline,
+	:global(.staff-app.dark) .bk-btn-start,
+	:global(.staff-app.dark) .bk-btn-complete {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 	}
 
 	/* FAB */

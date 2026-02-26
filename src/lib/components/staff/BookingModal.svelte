@@ -2,6 +2,8 @@
 	import { staffServices, createBooking, updateBookingDetails } from '$lib/stores/staffData';
 	import { showToast } from '$lib/stores/toast';
 	import type { Booking } from '$lib/stores/adminData';
+	import { goto } from '$app/navigation';
+	import { startServiceTimer } from '$lib/stores/serviceTimer';
 
 	let {
 		isOpen = $bindable(false),
@@ -197,12 +199,14 @@
 		}
 
 		try {
-			// updateBookingStatus is not imported, let's assume we maintain the pattern or import it.
-			// Currently importing from '$lib/stores/staffData' which might not have it.
-			// Let's use the one from adminData if reachable, or just use updateBookingDetails with status field.
-			// updateBookingDetails takes Partial<Booking>, so we can use it!
-			await updateBookingDetails(existingBooking.id, { status: newStatus });
-			showToast(`Status updated to ${newStatus}`, 'success');
+			if (newStatus === 'in-progress') {
+				await startServiceTimer(existingBooking);
+				showToast('Service started successfully', 'success');
+				if ('vibrate' in navigator) navigator.vibrate([10, 50, 10]);
+			} else {
+				await updateBookingDetails(existingBooking.id, { status: newStatus });
+				showToast(`Status updated to ${newStatus}`, 'success');
+			}
 			isOpen = false; // Close modal after action
 		} catch (error) {
 			console.error(error);
@@ -291,12 +295,66 @@
 							</div>
 						</div>
 
-						{#if existingBooking.notes}
+						{#if existingBooking.payment}
 							<div class="ov-section">
-								<h4>Notes</h4>
-								<p class="ov-notes">{existingBooking.notes}</p>
+								<h4>Payment</h4>
+								<div class="ov-payment-card">
+									<div class="ov-payment-row">
+										<span
+											class="ov-payment-badge {existingBooking.payment.type === 'full'
+												? 'payment-prepaid'
+												: existingBooking.payment.type === 'token'
+													? 'payment-token'
+													: 'payment-salon'}"
+										>
+											{existingBooking.payment.type === 'full'
+												? '💳 Prepaid'
+												: existingBooking.payment.type === 'token'
+													? '🪙 Token'
+													: '🏪 Pay at Salon'}
+										</span>
+										{#if existingBooking.payment.method && existingBooking.payment.method !== 'pay_at_salon'}
+											<span class="ov-payment-method"
+												>via {existingBooking.payment.method.toUpperCase()}</span
+											>
+										{/if}
+									</div>
+									{#if existingBooking.payment.type === 'token' && existingBooking.payment.amount}
+										<div class="ov-payment-breakdown">
+											<div class="ov-pay-line paid">
+												<span>✓ Advance Paid</span>
+												<span>₹{existingBooking.payment.amount}</span>
+											</div>
+											<div class="ov-pay-line due">
+												<span>Balance Due</span>
+												<span
+													>₹{(existingBooking.totalAmount || existingBooking.price || 0) -
+														existingBooking.payment.amount}</span
+												>
+											</div>
+										</div>
+									{:else if existingBooking.payment.type === 'full' && existingBooking.payment.amount}
+										<div class="ov-payment-breakdown">
+											<div class="ov-pay-line paid">
+												<span>✓ Fully Paid Online</span>
+												<span>₹{existingBooking.payment.amount}</span>
+											</div>
+										</div>
+									{/if}
+								</div>
 							</div>
 						{/if}
+
+						<div class="ov-section">
+							<h4>Notes</h4>
+							<p class="ov-notes" class:ov-notes-empty={!existingBooking.notes}>
+								{#if existingBooking.notes}
+									{existingBooking.notes}
+								{:else}
+									None
+								{/if}
+							</p>
+						</div>
 					</div>
 				{:else}
 					<!-- EDIT/CREATE FORM -->
@@ -410,6 +468,31 @@
 							</button>
 						{:else}
 							<!-- Completed or Cancelled -->
+							{#if existingBooking.status === 'completed'}
+								<button
+									class="action-btn"
+									style="background: var(--s-brand, #1a1a2e); color: white;"
+									onclick={async () => {
+										isOpen = false;
+										const { generateAndSendInvoice } = await import('$lib/utils/invoice');
+										await generateAndSendInvoice({
+											booking: existingBooking,
+											services: existingBooking.servicesList || [
+												{
+													name: existingBooking.serviceName || 'Service',
+													price: existingBooking.totalAmount || 0
+												}
+											],
+											totalAmount: existingBooking.totalAmount || existingBooking.price || 0,
+											discountAmount: existingBooking.discountAmount || 0,
+											extraCharge: existingBooking.extraCharge || 0,
+											couponCode: existingBooking.couponCode || null
+										});
+									}}
+								>
+									Regenerate Invoice & Send
+								</button>
+							{/if}
 							<button class="action-btn outline" onclick={() => (isOpen = false)}>Close</button>
 						{/if}
 					</div>
@@ -761,6 +844,103 @@
 		margin: 0;
 	}
 
+	.ov-notes.ov-notes-empty {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		color: var(--s-text-tertiary, #9ca3af);
+		font-weight: 400;
+	}
+	:global(.staff-app.dark) .ov-notes.ov-notes-empty {
+		background: rgba(255, 255, 255, 0.04);
+		color: rgba(255, 255, 255, 0.35);
+	}
+
+	/* Payment Section in Overview */
+	.ov-payment-card {
+		background: var(--s-surface, white);
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-lg, 12px);
+		padding: 14px 16px;
+	}
+
+	.ov-payment-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+
+	.ov-payment-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 4px 12px;
+		border-radius: var(--s-radius-full, 20px);
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.ov-payment-badge.payment-prepaid {
+		background: rgba(16, 185, 129, 0.12);
+		color: #059669;
+	}
+	.ov-payment-badge.payment-token {
+		background: rgba(217, 164, 6, 0.12);
+		color: #b45309;
+	}
+	.ov-payment-badge.payment-salon {
+		background: rgba(59, 130, 246, 0.1);
+		color: #2563eb;
+	}
+
+	:global(.staff-app.dark) .ov-payment-badge.payment-prepaid {
+		background: rgba(16, 185, 129, 0.15);
+		color: #34d399;
+	}
+	:global(.staff-app.dark) .ov-payment-badge.payment-token {
+		background: rgba(217, 164, 6, 0.15);
+		color: #fbbf24;
+	}
+	:global(.staff-app.dark) .ov-payment-badge.payment-salon {
+		background: rgba(59, 130, 246, 0.15);
+		color: #60a5fa;
+	}
+
+	.ov-payment-method {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--s-text-tertiary, #9ca3af);
+	}
+
+	.ov-payment-breakdown {
+		margin-top: 10px;
+		padding-top: 10px;
+		border-top: 1px solid var(--s-border, #e5e7eb);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.ov-pay-line {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.9rem;
+		font-weight: 600;
+	}
+
+	.ov-pay-line.paid {
+		color: #059669;
+	}
+	:global(.staff-app.dark) .ov-pay-line.paid {
+		color: #34d399;
+	}
+
+	.ov-pay-line.due {
+		color: var(--s-error, #ef4444);
+	}
+
 	/* ===== EDIT / CREATE FORM ===== */
 	.form-section {
 		margin-bottom: 20px;
@@ -994,17 +1174,38 @@
 	}
 
 	.action-btn.confirm {
-		background: var(--s-confirmed, #2563eb);
+		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+		box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 	}
+	@media (hover: hover) {
+		.action-btn.confirm:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+		}
+	}
+	:global(.staff-app.dark) .action-btn.confirm {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+	}
+
 	.action-btn.start {
 		background: var(--s-in-progress, #9333ea);
 	}
 	.action-btn.complete {
 		background: var(--s-completed, #16a34a);
 	}
+
 	.action-btn.cancel {
-		background: var(--s-cancelled-bg, #fee2e2);
-		color: var(--s-cancelled, #dc2626);
+		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+		box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+	}
+	@media (hover: hover) {
+		.action-btn.cancel:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+		}
+	}
+	:global(.staff-app.dark) .action-btn.cancel {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 	}
 	.action-btn.outline {
 		background: var(--s-surface, white);
