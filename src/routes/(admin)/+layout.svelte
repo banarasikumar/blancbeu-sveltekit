@@ -154,11 +154,13 @@
 			<AdminNav />
 		</div>
 		<AdminToast />
-		<InstallPrompt />
 	{:else}
 		<!-- Fallback: redirect handled by subscription above -->
 		<div class="admin-loading">
 			<div class="admin-spinner"></div>
 		</div>
 	{/if}
+
+	<!-- Mount Install Prompt globally for the admin view regardless of auth state -->
+	<InstallPrompt />
 </div>

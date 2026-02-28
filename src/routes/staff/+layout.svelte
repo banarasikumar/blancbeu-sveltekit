@@ -98,6 +98,8 @@
 		</div>
 	{/if}
 	<Toast />
+
+	<!-- Mount Install Prompt globally for the staff view regardless of auth state -->
 	<InstallPrompt />
 </div>
 
