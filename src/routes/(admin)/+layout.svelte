@@ -138,12 +138,8 @@
 
 <div class="admin-app">
 	{#if $adminAuthState === 'loading' || $adminAuthState === 'checking'}
-		<div class="admin-loading">
-			<div class="admin-spinner"></div>
-			<p style="color: var(--admin-text-secondary); font-size: 14px; font-weight: 500;">
-				{$adminAuthState === 'checking' ? 'Verifying access...' : 'Loading...'}
-			</p>
-		</div>
+		<!-- Global SplashScreen component handles this initial load visually -->
+		<div style="display: none;"></div>
 	{:else if isLoginPage}
 		{@render children()}
 	{:else if $adminAuthState === 'authorized'}

@@ -5,6 +5,7 @@
 	import MobileNav from '$lib/components/layout/MobileNav.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
+	import SplashScreen from '$lib/components/layout/SplashScreen.svelte';
 	import { onMount } from 'svelte';
 	import { onNavigate, afterNavigate } from '$app/navigation';
 	import { initAuth } from '$lib/stores/auth';
@@ -23,6 +24,10 @@
 	let isHomePage = $derived(page.url.pathname === '/');
 	let isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
 	let isStaffRoute = $derived(page.url.pathname.startsWith('/staff'));
+
+	let currentAppType = $derived(isAdminRoute ? 'admin' : isStaffRoute ? 'staff' : 'user');
+
+	let showSplash = $state(true);
 
 	// Derived theme color for address bar (Android Chrome, Safari, Edge, etc.)
 	let metaThemeColor = $derived(THEME_COLORS[$theme]);
@@ -97,6 +102,8 @@
 	{#if isAdminRoute}
 		<!-- Use admin manifest if available, or fallback/nothing for now -->
 		<!-- We will add admin manifest later -->
+	{:else if isStaffRoute}
+		<link rel="manifest" href="/staff/manifest.json" />
 	{:else}
 		<link rel="manifest" href="/manifest.json" />
 	{/if}
@@ -109,6 +116,10 @@
 	<!-- Microsoft Edge / Windows Phone -->
 	<meta name="msapplication-navbutton-color" content={metaThemeColor} />
 </svelte:head>
+
+{#if showSplash}
+	<SplashScreen appType={currentAppType} onComplete={() => (showSplash = false)} />
+{/if}
 
 {#if isAdminRoute || isStaffRoute}
 	<!-- Admin & Staff routes: pass through directly to their respective +layout.svelte -->

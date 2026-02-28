@@ -1,6 +1,6 @@
 {
-    "name": "Blancbeu Staff",
-    "short_name": "Blancbeu Staff",
+    "name": "BStaff",
+    "short_name": "BStaff",
     "start_url": "/staff",
     "scope": "/staff",
     "display": "standalone",

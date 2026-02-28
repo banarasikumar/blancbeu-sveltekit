@@ -66,18 +66,8 @@
 
 <div class="staff-app {$resolvedTheme}">
 	{#if $staffAuthState === 'loading' || $staffAuthState === 'checking'}
-		<div class="loading-screen">
-			<div class="loading-brand">
-				<div class="brand-mark">B</div>
-				<div class="brand-text">Blancbeu</div>
-				<div class="brand-sub">Stylist Portal</div>
-			</div>
-			<div class="loading-dots">
-				<span class="dot"></span>
-				<span class="dot"></span>
-				<span class="dot"></span>
-			</div>
-		</div>
+		<!-- Global SplashScreen component handles this initial load visually -->
+		<div style="display: none;"></div>
 	{:else if isLoginPage}
 		{@render children()}
 	{:else if $staffAuthState === 'authorized'}

@@ -1,6 +1,18 @@
 import type { Booking } from '$lib/stores/adminData';
 
-export async function generateAndSendInvoice(params: {
+// ═══════════════════════════════════════════
+//   MODULE-LEVEL CACHE — Persist across calls
+//   Fonts, SVG background, and libraries are
+//   fetched once and reused for all invoices
+// ═══════════════════════════════════════════
+
+let cachedFonts: { abhayaBold: string | null; montserratReg: string | null; montserratBold: string | null } | null = null;
+let cachedSvgBgDataUrl: string | null = null;
+let cachedJsPDF: any = null;
+let cachedAutoTable: any = null;
+let cachedQRCode: any = null;
+
+export async function generateAndShareInvoice(params: {
     booking: Booking;
     services: { name: string; price: number; originalPrice?: number }[];
     totalAmount: number;
@@ -17,14 +29,18 @@ export async function generateAndSendInvoice(params: {
         couponCode
     } = params;
 
-    // 1. Load jsPDF + autoTable
-    const [jsPDFModule, autoTableModule] = await Promise.all([
-        import('jspdf'),
-        import('jspdf-autotable')
-    ]);
+    // 1. Load jsPDF + autoTable (cached after first load)
+    if (!cachedJsPDF || !cachedAutoTable) {
+        const [jsPDFModule, autoTableModule] = await Promise.all([
+            import('jspdf'),
+            import('jspdf-autotable')
+        ]);
+        cachedJsPDF = jsPDFModule.default;
+        cachedAutoTable = autoTableModule.default;
+    }
 
-    const jsPDF = jsPDFModule.default;
-    const autoTable = autoTableModule.default;
+    const jsPDF = cachedJsPDF;
+    const autoTable = cachedAutoTable;
     const doc = new jsPDF({ format: 'a4', unit: 'pt' });
 
     const pageWidth = doc.internal.pageSize.getWidth();   // ~595pt
@@ -32,25 +48,33 @@ export async function generateAndSendInvoice(params: {
 
     // ═══════════════════════════════════════════
     //   FONTS — Fetch & embed custom TTF fonts
+    //   Cached after first load for instant reuse
     // ═══════════════════════════════════════════
 
-    const fetchBase64Font = async (url: string) => {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Font fetch failed: ${url}`);
-        const buf = await res.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
-    };
+    if (!cachedFonts) {
+        const fetchBase64Font = async (url: string) => {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Font fetch failed: ${url}`);
+            const buf = await res.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            // Chunked base64 conversion — ~100x faster than byte-by-byte
+            let binary = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+            }
+            return btoa(binary);
+        };
 
-    const [abhayaBold, montserratReg, montserratBold] = await Promise.all([
-        fetchBase64Font('/fonts/AbhayaLibre-Bold.ttf').catch(() => null),
-        fetchBase64Font('/fonts/Montserrat-Regular.ttf').catch(() => null),
-        fetchBase64Font('/fonts/Montserrat-Bold.ttf').catch(() => null)
-    ]);
+        const [abhayaBold, montserratReg, montserratBold] = await Promise.all([
+            fetchBase64Font('/fonts/AbhayaLibre-Bold.ttf').catch(() => null),
+            fetchBase64Font('/fonts/Montserrat-Regular.ttf').catch(() => null),
+            fetchBase64Font('/fonts/Montserrat-Bold.ttf').catch(() => null)
+        ]);
+        cachedFonts = { abhayaBold, montserratReg, montserratBold };
+    }
+
+    const { abhayaBold, montserratReg, montserratBold } = cachedFonts;
 
     if (abhayaBold) {
         doc.addFileToVFS('AbhayaLibre-Bold.ttf', abhayaBold);
@@ -72,39 +96,46 @@ export async function generateAndSendInvoice(params: {
     //   SVG BACKGROUND — Render via Canvas (High-DPI)
     // ═══════════════════════════════════════════
 
-    try {
-        const svgRes = await fetch('/invoice-bg-vector.svg');
-        if (svgRes.ok) {
-            const svgText = await svgRes.text();
-            const scale = 3;
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.round(pageWidth * scale);
-            canvas.height = Math.round(pageHeight * scale);
-            const ctx = canvas.getContext('2d')!;
-            ctx.scale(scale, scale);
+    // SVG background — cached as PNG data URL after first render
+    if (!cachedSvgBgDataUrl) {
+        try {
+            const svgRes = await fetch('/invoice-bg-vector.svg');
+            if (svgRes.ok) {
+                const svgText = await svgRes.text();
+                const scale = 3;
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(pageWidth * scale);
+                canvas.height = Math.round(pageHeight * scale);
+                const ctx = canvas.getContext('2d')!;
+                ctx.scale(scale, scale);
 
-            const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
-            const blobUrl = URL.createObjectURL(svgBlob);
+                const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+                const blobUrl = URL.createObjectURL(svgBlob);
 
-            await new Promise<void>((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0, pageWidth, pageHeight);
-                    URL.revokeObjectURL(blobUrl);
-                    resolve();
-                };
-                img.onerror = (e) => {
-                    URL.revokeObjectURL(blobUrl);
-                    reject(e);
-                };
-                img.src = blobUrl;
-            });
+                await new Promise<void>((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, pageWidth, pageHeight);
+                        URL.revokeObjectURL(blobUrl);
+                        resolve();
+                    };
+                    img.onerror = (e) => {
+                        URL.revokeObjectURL(blobUrl);
+                        reject(e);
+                    };
+                    img.src = blobUrl;
+                });
 
-            const pngDataUrl = canvas.toDataURL('image/png');
-            doc.addImage(pngDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+                cachedSvgBgDataUrl = canvas.toDataURL('image/png');
+            }
+        } catch (err) {
+            console.warn('SVG background failed, using plain color fallback', err);
         }
-    } catch (err) {
-        console.warn('SVG background failed, using plain color fallback', err);
+    }
+
+    if (cachedSvgBgDataUrl) {
+        doc.addImage(cachedSvgBgDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+    } else {
         doc.setFillColor(254, 242, 246);
         doc.rect(0, 0, pageWidth, pageHeight, 'F');
     }
@@ -242,7 +273,8 @@ export async function generateAndSendInvoice(params: {
     // — LEFT: UPI QR Code (top) —
     let leftYOffset = finalY;
     try {
-        const QRCode = (await import('qrcode')).default;
+        if (!cachedQRCode) cachedQRCode = (await import('qrcode')).default;
+        const QRCode = cachedQRCode;
         const upiUri = `upi://pay?pa=Q714475106@ybl&pn=BlancBeu Beauty Salon&mc=0000&mode=02&purpose=00&am=${totalAmount}&cu=INR&tn=${invoiceNum}`;
         const qrDataUrl = await QRCode.toDataURL(upiUri, {
             width: 200,
@@ -262,6 +294,76 @@ export async function generateAndSendInvoice(params: {
 
         doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
 
+        // Info note for bills over ₹2,000 — displayed to the RIGHT of the QR
+        if (totalAmount > 2000) {
+            const noteX = qrX + qrSize + 12;
+            let noteY = qrY + 6;
+            const iconR = 3;
+            const textIndent = noteX + iconR * 2 + 4;
+            const maxTextW = pageWidth / 2 - textIndent - 10; // available width for text
+
+            doc.setFont(bodyFont, 'bold');
+            doc.setFontSize(7);
+            doc.setTextColor(180, 60, 90);
+            doc.text('Notice:', noteX, noteY);
+            noteY += 12;
+
+            const bulletItems = [
+                { type: 'red', text: "QR screenshot won't work" },
+                { type: 'none', text: 'as its \u20B92,000+ amount.' },
+                { type: 'green', text: 'Ask Stylist to show QR' },
+                { type: 'green', text: 'Pay by copying UPI ID' },
+                { type: 'green', text: 'Scan from another phone' }
+            ];
+
+            // Set rounded line caps for clean icon drawing
+            doc.setLineCap(1);  // 1 = round
+            doc.setLineJoin(1); // 1 = round
+
+            for (const item of bulletItems) {
+                const cx = noteX + iconR;
+                const cy = noteY - 2;
+
+                if (item.type === 'red') {
+                    // Red circle with white X
+                    doc.setFillColor(220, 60, 60);
+                    doc.circle(cx, cy, iconR, 'F');
+                    doc.setDrawColor(255, 255, 255);
+                    doc.setLineWidth(0.9);
+                    doc.line(cx - 1.3, cy - 1.3, cx + 1.3, cy + 1.3);
+                    doc.line(cx + 1.3, cy - 1.3, cx - 1.3, cy + 1.3);
+                    doc.setFont(bodyFont, 'normal');
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(140, 80, 100);
+                    doc.text(item.text, textIndent, noteY);
+                } else if (item.type === 'green') {
+                    // Green circle with white checkmark
+                    doc.setFillColor(34, 160, 70);
+                    doc.circle(cx, cy, iconR, 'F');
+                    doc.setDrawColor(255, 255, 255);
+                    doc.setLineWidth(0.9);
+                    // Draw check as a single path (short down-right, then long up-right)
+                    doc.line(cx - 1.4, cy - 0.2, cx - 0.2, cy + 1.3);
+                    doc.line(cx - 0.2, cy + 1.3, cx + 1.6, cy - 1.3);
+                    doc.setFont(bodyFont, 'normal');
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(140, 80, 100);
+                    doc.text(item.text, textIndent, noteY);
+                } else {
+                    // Continuation line (no icon, indented under previous)
+                    doc.setFont(bodyFont, 'normal');
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(140, 80, 100);
+                    doc.text('  ' + item.text, textIndent, noteY);
+                }
+                noteY += 10;
+            }
+
+            // Reset line cap to default
+            doc.setLineCap(0);
+            doc.setLineJoin(0);
+        }
+
         // "BlancBeu Beauty Salon" below QR
         doc.setFont(bodyFont, 'bold');
         doc.setFontSize(8);
@@ -278,7 +380,7 @@ export async function generateAndSendInvoice(params: {
         doc.setFont(bodyFont, 'bold');
         doc.setFontSize(8);
         doc.setTextColor(80, 80, 80);
-        doc.text('UPI: Q714475106@ybl', qrX + qrSize / 2, qrY + qrSize + 33, { align: 'center' });
+        doc.text('UPI ID: Q714475106@ybl', qrX + qrSize / 2, qrY + qrSize + 33, { align: 'center' });
 
         leftYOffset = qrY + qrSize + 70;
     } catch (err) {
@@ -448,26 +550,76 @@ export async function generateAndSendInvoice(params: {
     doc.line(pillX + pillPadH, underlineY, pillX + pillPadH + linkWidth, underlineY);
 
     // ═══════════════════════════════════════════
-    //   SAVE PDF
+    //   SHARE PDF VIA SHARE SHEET
     // ═══════════════════════════════════════════
 
     const fileName = `Invoice_${(booking.userName || 'Client').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
 
-    // ═══════════════════════════════════════════
-    //   WHATSAPP SHARING
-    // ═══════════════════════════════════════════
+    const pdfBlob = doc.output('blob');
+    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+    // Use Web Share API to share the PDF file (opens native share sheet on mobile)
+    // Try share directly — canShare may be undefined on HTTP dev servers
+    try {
+        await navigator.share({
+            files: [pdfFile],
+            title: `Invoice - ${booking.userName || 'Client'}`,
+            text: `Invoice from Blancbeu - ${booking.userName || 'Client'}`
+        });
+    } catch (shareErr: any) {
+        // If sharing is not supported or user cancelled, fall back to download
+        if (shareErr?.name === 'AbortError') {
+            // User cancelled — do nothing
+        } else {
+            // Safe download that won't navigate the page away
+            console.warn('Share not available, downloading PDF:', shareErr);
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = blobUrl;
+            downloadLink.download = fileName;
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            // Clean up blob URL after a short delay
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════
+//   START WHATSAPP CHAT — Opens WhatsApp app
+//   with customer's number and text summary
+// ═══════════════════════════════════════════
+
+export function startWhatsAppChat(params: {
+    booking: Booking;
+    services: { name: string; price: number; originalPrice?: number }[];
+    totalAmount: number;
+    discountAmount?: number;
+    extraCharge?: number;
+}) {
+    const { booking, services, totalAmount, discountAmount = 0, extraCharge = 0 } = params;
 
     let msg = `*Invoice from Blancbeu*\nHello ${booking.userName || ''},\nHere is your service summary:\n\n`;
     services.forEach((s) => msg += `- ${s.name}: Rs.${s.price}\n`);
-    if (extraCharge > 0) msg += `Extra Charges: Rs.${extraCharge}\n`;
-    if (discountAmount > 0) msg += `Discount: -Rs.${discountAmount}\n`;
-    msg += `\n*Total Amount: Rs.${totalAmount}*\n\nThank you for choosing us!`;
+    if (extraCharge > 0) msg += `Other Charges: Rs.${extraCharge}\n`;
+    if (discountAmount > 0) msg += `Extra Discount: -Rs.${discountAmount}\n`;
+    msg += `\n*Total Amount: Rs.${totalAmount}*\n\nThank you for choosing Blancbeu! 💖`;
 
     const encodedMsg = encodeURIComponent(msg);
     const phone = booking.userPhone ? booking.userPhone.replace(/\D/g, '') : '';
-    const waUrl = phone
-        ? `https://wa.me/${phone}?text=${encodedMsg}`
-        : `https://api.whatsapp.com/send?text=${encodedMsg}`;
-    window.open(waUrl, '_blank');
+
+    // Use whatsapp:// scheme to launch WhatsApp app directly (not browser)
+    const waAppUrl = phone
+        ? `whatsapp://send?phone=${phone}&text=${encodedMsg}`
+        : `whatsapp://send?text=${encodedMsg}`;
+
+    // Anchor click properly triggers app intent on PWA
+    const waLink = document.createElement('a');
+    waLink.href = waAppUrl;
+    waLink.style.display = 'none';
+    document.body.appendChild(waLink);
+    waLink.click();
+    document.body.removeChild(waLink);
 }

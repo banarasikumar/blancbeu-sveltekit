@@ -18,6 +18,9 @@ export default defineConfig({
             manifest: false // Multi-scope: Manifests are handled manually in static/
         })
     ],
+    server: {
+        host: true
+    },
     build: {
         target: 'esnext',
         minify: 'esbuild',

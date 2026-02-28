@@ -232,10 +232,36 @@
 				<div class="header-actions">
 					{#if internalMode === 'view'}
 						<button class="icon-btn edit-toggle" onclick={toggleEditMode} aria-label="Edit">
-							✏️
+							<svg
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+								<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+							</svg>
 						</button>
 					{/if}
-					<button class="close-btn" onclick={() => (isOpen = false)}>&times;</button>
+					<button class="close-btn" onclick={() => (isOpen = false)} aria-label="Close">
+						<svg
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<line x1="18" y1="6" x2="6" y2="18" />
+							<line x1="6" y1="6" x2="18" y2="18" />
+						</svg>
+					</button>
 				</div>
 			</div>
 
@@ -471,11 +497,31 @@
 							{#if existingBooking.status === 'completed'}
 								<button
 									class="action-btn"
-									style="background: var(--s-brand, #1a1a2e); color: white;"
+									style="background: #25D366; color: white;"
 									onclick={async () => {
-										isOpen = false;
-										const { generateAndSendInvoice } = await import('$lib/utils/invoice');
-										await generateAndSendInvoice({
+										const { startWhatsAppChat } = await import('$lib/utils/invoice');
+										startWhatsAppChat({
+											booking: existingBooking,
+											services: existingBooking.servicesList || [
+												{
+													name: existingBooking.serviceName || 'Service',
+													price: existingBooking.totalAmount || 0
+												}
+											],
+											totalAmount: existingBooking.totalAmount || existingBooking.price || 0,
+											discountAmount: existingBooking.discountAmount || 0,
+											extraCharge: existingBooking.extraCharge || 0
+										});
+									}}
+								>
+									Start Chat
+								</button>
+								<button
+									class="action-btn"
+									style="background: var(--s-accent, #c8956c); color: white;"
+									onclick={async () => {
+										const { generateAndShareInvoice } = await import('$lib/utils/invoice');
+										await generateAndShareInvoice({
 											booking: existingBooking,
 											services: existingBooking.servicesList || [
 												{
@@ -490,10 +536,9 @@
 										});
 									}}
 								>
-									Regenerate Invoice & Send
+									Send Invoice
 								</button>
 							{/if}
-							<button class="action-btn outline" onclick={() => (isOpen = false)}>Close</button>
 						{/if}
 					</div>
 				{:else}
@@ -604,21 +649,21 @@
 	.header-actions {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 16px;
 	}
 
 	.icon-btn.edit-toggle {
 		background: var(--s-bg-tertiary, #f3f4f6);
 		border: none;
-		width: 36px;
-		height: 36px;
+		width: 40px;
+		height: 40px;
 		border-radius: var(--s-radius-full, 50%);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 1.1rem;
+		color: var(--s-text-secondary, #6b7280);
 		cursor: pointer;
-		transition: background var(--s-duration-fast, 0.15s) ease;
+		transition: all var(--s-duration-fast, 0.15s) ease;
 	}
 
 	.icon-btn.edit-toggle:active {
@@ -629,11 +674,9 @@
 	.close-btn {
 		background: var(--s-bg-tertiary, #f3f4f6);
 		border: none;
-		width: 36px;
-		height: 36px;
+		width: 40px;
+		height: 40px;
 		border-radius: var(--s-radius-full, 50%);
-		font-size: 1.3rem;
-		line-height: 1;
 		cursor: pointer;
 		display: flex;
 		align-items: center;

@@ -5,7 +5,8 @@
 	import { updateBookingStatus, updateBookingDetails } from '$lib/stores/adminData';
 	import { completeTimer } from '$lib/stores/serviceTimer';
 	import { showToast } from '$lib/stores/toast';
-	import { generateAndSendInvoice } from '$lib/utils/invoice';
+	import { generateAndShareInvoice, startWhatsAppChat } from '$lib/utils/invoice';
+	import SwipeButton from '$lib/components/staff/SwipeButton.svelte';
 
 	// The booking ID from the URL
 	let bookingId = $derived(page.params.id);
@@ -46,6 +47,12 @@
 	let newServiceName = $state('');
 	let newServicePrice = $state('');
 	let isGenerating = $state(false);
+	let isChatting = $state(false);
+	let isCompleting = $state(false);
+
+	let isEditing = $state(false);
+	let isCompleted = $derived(originalBooking?.status === 'completed');
+	let canEdit = $derived(!isCompleted || isEditing);
 
 	function addService() {
 		if (!newServiceName) return;
@@ -67,12 +74,36 @@
 		services = services.filter((_, i) => i !== index);
 	}
 
-	async function finalizeAndGenerateInvoice() {
+	// Complete the booking — save data + mark as completed
+	async function handleCompleteBooking() {
 		if (!originalBooking) return;
 		try {
-			isGenerating = true;
+			isCompleting = true;
 
-			// 1. Update booking details in backend
+			const updatedData = {
+				servicesList: services,
+				totalAmount: totalAmount,
+				discountAmount: discountAmount,
+				extraCharge: extraCharge,
+				couponCode: couponCode || null
+			};
+			await updateBookingDetails(originalBooking.id, updatedData);
+			await completeTimer(originalBooking);
+
+			showToast('Booking completed!', 'success');
+		} catch (error) {
+			console.error('Error completing booking:', error);
+			showToast('Error completing booking.', 'error');
+		} finally {
+			isCompleting = false;
+		}
+	}
+
+	async function handleSaveChanges() {
+		if (!originalBooking) return;
+		try {
+			isCompleting = true;
+
 			const updatedData = {
 				servicesList: services,
 				totalAmount: totalAmount,
@@ -82,12 +113,35 @@
 			};
 			await updateBookingDetails(originalBooking.id, updatedData);
 
-			// 2. Mark as completed & stop timer
-			// completeTimer handles both the serviceTimer doc and the booking status update implicitly
-			await completeTimer(originalBooking);
+			showToast('Changes saved!', 'success');
+			isEditing = false;
+		} catch (error) {
+			console.error('Error saving changes:', error);
+			showToast('Error saving changes.', 'error');
+		} finally {
+			isCompleting = false;
+		}
+	}
 
-			// 3. Generate PDF & WhatsApp Sharing
-			await generateAndSendInvoice({
+	// Start WhatsApp chat with predefined text (for completed bookings)
+	function handleStartChat() {
+		if (!originalBooking) return;
+		startWhatsAppChat({
+			booking: originalBooking,
+			services,
+			totalAmount,
+			discountAmount,
+			extraCharge
+		});
+	}
+
+	// Generate invoice PDF & open share sheet (for completed bookings)
+	async function handleSendInvoice() {
+		if (!originalBooking) return;
+		try {
+			isGenerating = true;
+
+			await generateAndShareInvoice({
 				booking: originalBooking,
 				services,
 				totalAmount,
@@ -96,13 +150,10 @@
 				couponCode
 			});
 
-			showToast('Service completed and invoice generated!', 'success');
-
-			// Go back to dashboard
-			goto('/staff/dashboard');
+			showToast('Invoice generated!', 'success');
 		} catch (error) {
 			console.error('Error generating invoice:', error);
-			showToast('Error finalizing the service.', 'error');
+			showToast('Error generating invoice.', 'error');
 		} finally {
 			isGenerating = false;
 		}
@@ -133,7 +184,41 @@
 				</svg>
 			</button>
 			<h1 class="page-title">Booking & Services Summary</h1>
-			<div class="spacer"></div>
+			<div class="header-actions">
+				{#if isCompleted && !isEditing}
+					<button class="edit-btn" onclick={() => (isEditing = true)} title="Edit Booking">
+						<svg
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+							<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+						</svg>
+					</button>
+				{:else if isEditing}
+					<button class="cancel-btn" onclick={() => (isEditing = false)} title="Cancel">
+						<svg
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<line x1="18" y1="6" x2="6" y2="18"></line>
+							<line x1="6" y1="6" x2="18" y2="18"></line>
+						</svg>
+					</button>
+				{:else}
+					<div class="spacer"></div>
+				{/if}
+			</div>
 		</div>
 
 		<!-- CLIENT & INFO -->
@@ -152,7 +237,7 @@
 		</section>
 
 		<!-- SERVICES EDIT -->
-		<section class="services-edit s-card">
+		<section class="services-edit s-card" class:readonly-mode={!canEdit}>
 			<div class="section-header">
 				<h3>Services Output</h3>
 			</div>
@@ -166,6 +251,7 @@
 								class="s-input inline-edit title"
 								bind:value={service.name}
 								placeholder="Service Name"
+								readonly={!canEdit}
 							/>
 						</div>
 						<div class="service-price">
@@ -175,35 +261,42 @@
 								class="s-input inline-edit price"
 								bind:value={service.price}
 								placeholder="0"
+								readonly={!canEdit}
 							/>
-							<button class="remove-btn" onclick={() => removeService(index)} title="Remove Service"
-								>✕</button
-							>
+							{#if canEdit}
+								<button
+									class="remove-btn"
+									onclick={() => removeService(index)}
+									title="Remove Service">✕</button
+								>
+							{/if}
 						</div>
 					</div>
 				{/each}
 			</div>
 
-			<div class="add-service-row">
-				<input
-					type="text"
-					class="s-input"
-					bind:value={newServiceName}
-					placeholder="New Service Name..."
-				/>
-				<input
-					type="number"
-					class="s-input"
-					bind:value={newServicePrice}
-					placeholder="Price"
-					style="width: 100px;"
-				/>
-				<button class="s-btn s-btn-outline" onclick={addService}>+ Add</button>
-			</div>
+			{#if canEdit}
+				<div class="add-service-row">
+					<input
+						type="text"
+						class="s-input"
+						bind:value={newServiceName}
+						placeholder="New Service Name..."
+					/>
+					<input
+						type="number"
+						class="s-input"
+						bind:value={newServicePrice}
+						placeholder="Price"
+						style="width: 100px;"
+					/>
+					<button class="s-btn s-btn-outline" onclick={addService}>+ Add</button>
+				</div>
+			{/if}
 		</section>
 
 		<!-- DISCOUNTS & EXTRAS -->
-		<section class="financials s-card">
+		<section class="financials s-card" class:readonly-mode={!canEdit}>
 			<div class="section-header">
 				<h3>Offers & Adjustments</h3>
 			</div>
@@ -211,17 +304,35 @@
 			<div class="fin-grid">
 				<div class="fin-item">
 					<label>Coupon Code</label>
-					<input type="text" class="s-input" bind:value={couponCode} placeholder="e.g. SAVE20" />
+					<input
+						type="text"
+						class="s-input"
+						bind:value={couponCode}
+						placeholder="e.g. SAVE20"
+						readonly={!canEdit}
+					/>
 				</div>
 
 				<div class="fin-item">
 					<label>Extra Discount (₹)</label>
-					<input type="number" class="s-input" bind:value={discountAmount} placeholder="0" />
+					<input
+						type="number"
+						class="s-input"
+						bind:value={discountAmount}
+						placeholder="0"
+						readonly={!canEdit}
+					/>
 				</div>
 
 				<div class="fin-item">
 					<label>Extra Charges (₹)</label>
-					<input type="number" class="s-input" bind:value={extraCharge} placeholder="0" />
+					<input
+						type="number"
+						class="s-input"
+						bind:value={extraCharge}
+						placeholder="0"
+						readonly={!canEdit}
+					/>
 				</div>
 			</div>
 		</section>
@@ -253,20 +364,81 @@
 
 		<!-- ACTION BUTTONS -->
 		<div class="bottom-actions">
-			<button
-				class="s-btn s-btn-lg s-btn-success generate-btn"
-				onclick={finalizeAndGenerateInvoice}
-				disabled={isGenerating || services.length === 0}
-			>
-				{#if isGenerating}
-					<span class="spinner"></span> Processing...
-				{:else if originalBooking?.status === 'completed'}
-					✓ Regenerate Invoice & Send
-				{:else}
-					✓ Complete & Send Invoice
-				{/if}
-			</button>
+			{#if !isCompleted}
+				<!-- Not yet completed — show Complete Booking button -->
+				<div class="swipe-wrapper">
+					<SwipeButton
+						onSwipe={handleCompleteBooking}
+						text="Swipe to complete ➔"
+						successText="Completing..."
+						disabled={services.length === 0}
+						isWorking={isCompleting}
+					/>
+				</div>
+			{:else if isEditing}
+				<div class="action-row">
+					<button
+						class="s-btn s-btn-lg action-btn"
+						style="width: 100%; background: var(--s-accent); color: white;"
+						onclick={handleSaveChanges}
+						disabled={isCompleting}
+					>
+						{#if isCompleting}
+							Saving...
+						{:else}
+							Save Changes
+						{/if}
+					</button>
+				</div>
+			{:else}
+				<!-- Already completed — show Start Chat + Send Invoice -->
+				<div class="action-row">
+					<button class="s-btn s-btn-lg action-btn chat-btn" onclick={handleStartChat}>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+							<path
+								d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+							/>
+						</svg>
+						Start Chat
+					</button>
+					<button
+						class="s-btn s-btn-lg action-btn invoice-btn"
+						onclick={handleSendInvoice}
+						disabled={isGenerating}
+					>
+						{#if isGenerating}
+							<span class="spinner"></span> Generating...
+						{:else}
+							<svg
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+								<polyline points="14 2 14 8 20 8" />
+								<line x1="16" y1="13" x2="8" y2="13" />
+								<line x1="16" y1="17" x2="8" y2="17" />
+							</svg>
+							Send Invoice
+						{/if}
+					</button>
+				</div>
+			{/if}
 		</div>
+
+		<!-- GENERATING OVERLAY -->
+		{#if isGenerating}
+			<div class="generating-overlay">
+				<div class="generating-card">
+					<div class="generating-spinner"></div>
+					<p class="generating-text">Generating Invoice...</p>
+					<p class="generating-hint">Please wait a moment</p>
+				</div>
+			</div>
+		{/if}
 	</div>
 {/if}
 
@@ -321,6 +493,52 @@
 
 	.spacer {
 		width: 40px;
+	}
+
+	.header-actions {
+		display: flex;
+		align-items: center;
+		min-width: 40px;
+		justify-content: flex-end;
+	}
+
+	.edit-btn,
+	.cancel-btn {
+		background: none;
+		border: none;
+		color: var(--s-text-primary);
+		padding: 8px;
+		margin-right: -8px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--s-radius-full);
+	}
+
+	.edit-btn:active,
+	.cancel-btn:active {
+		background: var(--s-bg-tertiary);
+	}
+
+	.cancel-btn {
+		color: var(--s-error);
+	}
+
+	/* Readonly states */
+	.readonly-mode .s-input {
+		background: transparent;
+		border-color: transparent;
+		color: var(--s-text-primary);
+		pointer-events: none;
+	}
+
+	.readonly-mode .s-input:focus {
+		box-shadow: none;
+	}
+
+	.readonly-mode .fin-item .s-input {
+		font-weight: 600;
 	}
 
 	.section-header h3 {
@@ -537,15 +755,60 @@
 		z-index: 100;
 	}
 
-	.generate-btn {
+	.swipe-wrapper {
 		width: 100%;
+		max-width: 400px;
+		margin: 0 auto;
+	}
+
+	.action-row {
+		display: flex;
+		gap: var(--s-space-sm);
+	}
+
+	.action-btn {
+		flex: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: var(--s-space-sm);
-		padding: 16px;
-		font-size: var(--s-text-lg);
-		box-shadow: var(--s-shadow-glow);
+		gap: 8px;
+		padding: 14px 12px;
+		font-size: var(--s-text-base);
+		font-weight: 600;
+		border-radius: var(--s-radius-lg);
+		border: none;
+		cursor: pointer;
+		transition: all var(--s-duration-fast) var(--s-ease);
+	}
+
+	.chat-btn {
+		background: #25d366;
+		color: white;
+	}
+
+	.chat-btn:active {
+		background: #1da851;
+		transform: scale(0.97);
+	}
+
+	.chat-btn:disabled {
+		background: #a0d8b4;
+		cursor: not-allowed;
+	}
+
+	.invoice-btn {
+		background: var(--s-accent, #c8956c);
+		color: white;
+	}
+
+	.invoice-btn:active {
+		filter: brightness(0.9);
+		transform: scale(0.97);
+	}
+
+	.invoice-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	.spinner {
@@ -556,5 +819,62 @@
 		border-radius: 50%;
 		border-top-color: white;
 		animation: s-spin 1s ease-in-out infinite;
+	}
+
+	/* Generating Overlay */
+	.generating-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.45);
+		backdrop-filter: blur(4px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 300;
+		animation: fadeIn 0.2s ease;
+	}
+
+	.generating-card {
+		background: var(--s-surface, white);
+		border-radius: var(--s-radius-2xl, 20px);
+		padding: 32px 40px;
+		text-align: center;
+		box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+	}
+
+	.generating-spinner {
+		width: 44px;
+		height: 44px;
+		border: 3px solid var(--s-border, #e5e7eb);
+		border-top-color: var(--s-accent, #c8956c);
+		border-radius: 50%;
+		margin: 0 auto 16px;
+		animation: s-spin 0.8s linear infinite;
+	}
+
+	.generating-text {
+		margin: 0;
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: var(--s-text-primary, #1a1a2e);
+	}
+
+	.generating-hint {
+		margin: 6px 0 0;
+		font-size: 0.85rem;
+		color: var(--s-text-tertiary, #9ca3af);
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 </style>
