@@ -2,6 +2,7 @@
     "name": "BAdmin",
     "short_name": "BAdmin",
     "start_url": "/admin",
+    "id": "/admin/",
     "scope": "/admin",
     "display": "standalone",
     "display_override": [

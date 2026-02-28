@@ -2,6 +2,7 @@
     "name": "Blancbeu",
     "short_name": "Blancbeu",
     "start_url": "/",
+    "id": "/",
     "scope": "/",
     "display": "standalone",
     "display_override": [

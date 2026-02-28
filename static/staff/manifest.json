@@ -2,6 +2,7 @@
     "name": "BStaff",
     "short_name": "BStaff",
     "start_url": "/staff",
+    "id": "/staff/",
     "scope": "/staff",
     "display": "standalone",
     "display_override": [

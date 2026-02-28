@@ -91,8 +91,12 @@
 			// Prevent the mini-infobar from appearing on mobile
 			e.preventDefault();
 			deferredPrompt = e;
+
+			// If this event fires, it GUARANTEES the specific scoped PWA we are currently on
+			// is NOT natively installed, overriding any false positives from getInstalledRelatedApps.
 			isInstalled = false;
 			isVisible = true; // Show "Install App" banner
+
 			console.log('PWA install prompt captured for ' + appType);
 		});
 	});
