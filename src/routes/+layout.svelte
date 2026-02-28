@@ -117,7 +117,8 @@
 	<meta name="msapplication-navbutton-color" content={metaThemeColor} />
 </svelte:head>
 
-{#if showSplash && (isAdminRoute || isStaffRoute)}
+{#if showSplash}
+	<!-- We keep it alive for at least the animation minimum, but let the individual layout control when to turn it off strictly -->
 	<SplashScreen appType={currentAppType} onComplete={() => (showSplash = false)} />
 {/if}
 

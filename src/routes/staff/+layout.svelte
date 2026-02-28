@@ -67,8 +67,19 @@
 
 <div class="staff-app {$resolvedTheme}">
 	{#if $staffAuthState === 'loading' || $staffAuthState === 'checking'}
-		<!-- Global SplashScreen component handles this initial load visually -->
-		<div style="display: none;"></div>
+		<!-- If Firebase Auth takes longer than the 2s global splash screen, show this localized loader -->
+		<div class="loading-screen" in:fade={{ duration: 300 }}>
+			<div class="loading-brand">
+				<div class="brand-mark">B</div>
+				<h1 class="brand-text">Blancbeu</h1>
+				<span class="brand-sub">Stylist Portal</span>
+			</div>
+			<div class="loading-dots">
+				<div class="dot"></div>
+				<div class="dot"></div>
+				<div class="dot"></div>
+			</div>
+		</div>
 	{:else if isLoginPage}
 		{@render children()}
 	{:else if $staffAuthState === 'authorized'}
