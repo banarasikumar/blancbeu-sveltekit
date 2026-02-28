@@ -1,7 +1,7 @@
 {
     "name": "BAdmin",
     "short_name": "BAdmin",
-    "start_url": "/admin",
+    "start_url": "/admin?app=admin",
     "id": "/admin/",
     "scope": "/admin",
     "display": "standalone",

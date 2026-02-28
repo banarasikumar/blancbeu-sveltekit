@@ -1,7 +1,7 @@
 {
     "name": "Blancbeu",
     "short_name": "Blancbeu",
-    "start_url": "/",
+    "start_url": "/?app=user",
     "id": "/",
     "scope": "/",
     "display": "standalone",

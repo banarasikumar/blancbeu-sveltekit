@@ -1,7 +1,7 @@
 {
     "name": "BStaff",
     "short_name": "BStaff",
-    "start_url": "/staff",
+    "start_url": "/staff?app=staff",
     "id": "/staff/",
     "scope": "/staff",
     "display": "standalone",

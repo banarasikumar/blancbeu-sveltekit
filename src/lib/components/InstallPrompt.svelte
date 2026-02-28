@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import { fade, fly, scale } from 'svelte/transition';
 	import { page } from '$app/state';
 
+	import { browser } from '$app/environment';
+
 	let deferredPrompt: any = $state(null);
 	let isVisible = $state(false);
-	let isInstalled = $state(false);
 
 	// Dynamically determine which app we are currently viewing
 	let appType = $derived(
@@ -62,7 +63,9 @@
 					}
 	);
 
-	onMount(async () => {
+	onMount(() => {
+		if (!browser) return; // Prevent SSR crash
+
 		// Check standalone mode first
 		const isStandalone =
 			!!window.matchMedia('(display-mode: standalone)').matches ||
@@ -73,50 +76,26 @@
 			return; // We are already inside the native PWA frame
 		}
 
-		// Check if PWA is installed via related apps (Android WebAPK)
-		if ('getInstalledRelatedApps' in navigator) {
-			try {
-				const relatedApps = await (navigator as any).getInstalledRelatedApps();
-				if (relatedApps.length > 0) {
-					isInstalled = true;
-					isVisible = true; // Show "Open App" banner
-				}
-			} catch (e) {
-				console.log('Error checking installed related apps', e);
-			}
-		}
-
-		// Listen for the 'beforeinstallprompt' event for uninstalled users
+		// Listen for the 'beforeinstallprompt' event.
+		// If this fires, we know definitively from the OS that the EXACT app logic path
+		// we are currently browsing is NOT installed.
 		window.addEventListener('beforeinstallprompt', (e) => {
 			// Prevent the mini-infobar from appearing on mobile
 			e.preventDefault();
 			deferredPrompt = e;
-
-			// If this event fires, it GUARANTEES the specific scoped PWA we are currently on
-			// is NOT natively installed, overriding any false positives from getInstalledRelatedApps.
-			isInstalled = false;
-			isVisible = true; // Show "Install App" banner
-
-			console.log('PWA install prompt captured for ' + appType);
+			isVisible = true; // Show our custom "Install App" banner
+			console.log(`[PWA] Strictly scoped install prompt captured for: ${appType}`);
 		});
 	});
 
 	async function handleAction() {
-		if (isInstalled) {
-			// Trigger a deep link into the app
-			// By forcing a hard top-level navigation to the current URL, Android OS
-			// intercepts the request (handle_links: preferred) and opens the PWA.
-			window.location.href = window.location.href;
-			return;
-		}
-
-		if (!deferredPrompt) return;
+		if (!deferredPrompt) return; // Unlikely, since button is tied to isVisible
 
 		// Show the native browser install prompt
 		deferredPrompt.prompt();
 
 		const { outcome } = await deferredPrompt.userChoice;
-		console.log(`User response to the install prompt: ${outcome}`);
+		console.log(`[PWA] User response to the install prompt: ${outcome}`);
 
 		deferredPrompt = null;
 		isVisible = false;
@@ -174,9 +153,7 @@
 				<!-- Text Information -->
 				<div class="app-details">
 					<div class="badge-wrapper">
-						<span class="exclusive-badge">
-							{isInstalled ? 'App Installed' : 'For Better Experience'}
-						</span>
+						<span class="exclusive-badge">For Better Experience</span>
 					</div>
 					<h3 class="app-title">{appTitle}</h3>
 
@@ -210,45 +187,25 @@
 				<!-- Action Button -->
 				<div class="action-area">
 					<button class="install-btn" onclick={handleAction}>
-						<span class="btn-text">{isInstalled ? 'Open in App' : 'Install App'}</span>
-						{#if isInstalled}
-							<svg
-								class="btn-icon"
-								width="20"
-								height="20"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2.5"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline
-									points="15 3 21 3 21 9"
-								></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
-							</svg>
-						{:else}
-							<svg
-								class="btn-icon"
-								width="20"
-								height="20"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2.5"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-								<polyline points="7 10 12 15 17 10"></polyline>
-								<line x1="12" y1="15" x2="12" y2="3"></line>
-							</svg>
-						{/if}
+						<span class="btn-text">Install App</span>
+						<svg
+							class="btn-icon"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+							<polyline points="7 10 12 15 17 10"></polyline>
+							<line x1="12" y1="15" x2="12" y2="3"></line>
+						</svg>
 						<div class="btn-shine"></div>
 					</button>
-					{#if !isInstalled}
-						<span class="secure-text">Fast & Secure Download</span>
-					{/if}
+					<span class="secure-text">Fast & Secure Download</span>
 				</div>
 			</div>
 		</div>
