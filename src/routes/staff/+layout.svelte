@@ -14,6 +14,7 @@
 	import StaffNav from '$lib/components/staff/StaffNav.svelte';
 	import StaffHeader from '$lib/components/staff/StaffHeader.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 
 	let { children } = $props();
 
@@ -97,6 +98,7 @@
 		</div>
 	{/if}
 	<Toast />
+	<InstallPrompt />
 </div>
 
 <style>

@@ -4,6 +4,11 @@
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
+    "display_override": [
+        "window-control-overlay",
+        "minimal-ui"
+    ],
+    "handle_links": "preferred",
     "background_color": "#ffffff",
     "theme_color": "#000000",
     "icons": [

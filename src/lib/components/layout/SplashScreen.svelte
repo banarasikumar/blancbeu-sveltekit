@@ -19,6 +19,12 @@
 		return 'Blancbeu'; // User app default
 	});
 
+	let appIconUrl = $derived.by(() => {
+		if (appType === 'staff') return '/staff-icon-512.png';
+		if (appType === 'admin') return '/admin-icon-512.png';
+		return '/pwa-512x512.png';
+	});
+
 	let appThemeClass = $derived(`splash-${appType}`);
 
 	onMount(() => {
@@ -36,8 +42,8 @@
 {#if show}
 	<div class="splash-container {appThemeClass}" out:fade={{ duration: 600 }}>
 		<div class="splash-content">
-			<div class="logo-box">
-				<span class="logo-letter">B</span>
+			<div class="logo-wrapper">
+				<img src={appIconUrl} alt="App Logo" class="app-splash-logo" />
 			</div>
 
 			<div class="text-container">
@@ -106,41 +112,25 @@
 		gap: 24px;
 	}
 
-	/* Animated Logo Box */
-	.logo-box {
-		width: 80px;
-		height: 80px;
-		background: var(--accent-grad);
-		border-radius: 20px;
+	/* Animated Logo Image Wrapper */
+	.logo-wrapper {
+		width: 110px;
+		height: 110px;
+		border-radius: 26px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--theme-color); /* Contrast color */
-		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+		overflow: hidden;
 
 		/* Animations */
 		animation: splash-scale-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-
-		/* Admin Theme Logo text should always be dark for gold gradient */
-		.splash-admin & {
-			color: #1c1c1e;
-		}
-		/* Staff Theme Logo text should always be light for red gradient */
-		.splash-staff & {
-			color: #ffffff;
-		}
-		/* User Theme adapt */
-		.splash-user & {
-			color: var(--theme-color);
-		}
 	}
 
-	.logo-letter {
-		font-family: 'Cinzel', serif;
-		font-size: 48px;
-		font-weight: 700;
-		line-height: 1;
-		margin-top: 4px; /* Optical optical alignment for Cinzel */
+	.app-splash-logo {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	/* Text Container Animations */

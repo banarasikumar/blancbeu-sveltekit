@@ -117,7 +117,7 @@
 	<meta name="msapplication-navbutton-color" content={metaThemeColor} />
 </svelte:head>
 
-{#if showSplash}
+{#if showSplash && (isAdminRoute || isStaffRoute)}
 	<SplashScreen appType={currentAppType} onComplete={() => (showSplash = false)} />
 {/if}
 

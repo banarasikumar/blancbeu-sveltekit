@@ -23,6 +23,7 @@
 	import AdminNav from '$lib/components/admin/AdminNav.svelte';
 	import AdminHeader from '$lib/components/admin/AdminHeader.svelte';
 	import AdminToast from '$lib/components/admin/AdminToast.svelte';
+	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 
 	import { theme } from '$lib/stores/theme';
 
@@ -153,6 +154,7 @@
 			<AdminNav />
 		</div>
 		<AdminToast />
+		<InstallPrompt />
 	{:else}
 		<!-- Fallback: redirect handled by subscription above -->
 		<div class="admin-loading">
