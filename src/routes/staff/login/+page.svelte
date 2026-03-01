@@ -69,7 +69,11 @@
 			<span>OR</span>
 		</div>
 
-			<button class="login-btn whatsapp-btn" onclick={async () => await handleWhatsAppLogin('staff')}>
+		<div class="phone-auth-container">
+			<button
+				class="login-btn whatsapp-btn"
+				onclick={async () => await handleWhatsAppLogin('staff')}
+			>
 				<MessageCircle size={20} class="whatsapp-icon" />
 				Continue with WhatsApp
 			</button>

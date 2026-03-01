@@ -384,9 +384,7 @@
 					{/if}
 					<div class="inv-payment-info">
 						<span class="inv-payment-label">PAYMENT INFO:</span>
-						<span class="inv-payment-text"
-							>Payment accepted at salon. Cash, UPI, or card.</span
-						>
+						<span class="inv-payment-text">Payment accepted at salon. Cash, UPI, or card.</span>
 					</div>
 				</div>
 				<div class="inv-totals">
@@ -609,7 +607,12 @@
 		background: #fdf2f5;
 		color: #333;
 		padding: 32px 28px;
-		font-family: 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+		font-family:
+			'Montserrat',
+			'Inter',
+			-apple-system,
+			BlinkMacSystemFont,
+			sans-serif;
 		position: relative;
 		overflow: hidden;
 		min-height: 500px;
