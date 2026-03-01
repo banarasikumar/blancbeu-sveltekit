@@ -108,7 +108,7 @@ export async function handleWhatsAppLogin(
 	if (appType !== 'user') {
 		message += `\n\nApp: ${formattedAppType}`;
 	}
-	message += `\nVerify: ${timestamp}-${shortToken}`;
+	message += `\nToken: ${timestamp}-${shortToken}`;
 	message += '\n\n_Send this message without editing_';
 
 	const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
