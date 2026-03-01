@@ -121,7 +121,13 @@ export async function handleWhatsAppLogin(
 
 	// Redirect home after delay
 	setTimeout(() => {
-		goto('/');
+		if (appType === 'staff') {
+			goto('/staff/login');
+		} else if (appType === 'admin') {
+			goto('/admin/login');
+		} else {
+			goto('/');
+		}
 	}, 2000);
 }
 
