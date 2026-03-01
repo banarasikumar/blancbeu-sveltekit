@@ -1,9 +1,17 @@
 <script lang="ts">
 	import { adminAuthState, adminSignIn } from '$lib/stores/adminAuth';
+	import { handleWhatsAppLogin, checkMagicLink } from '$lib/services/authService';
+	import { MessageCircle } from 'lucide-svelte';
+	import { onMount } from 'svelte';
 
 	let loading = $state(false);
 	let error = $state('');
 	let denied = $state(false);
+
+	onMount(async () => {
+		// Check for magic link token in URL on load
+		await checkMagicLink('admin');
+	});
 
 	// Watch for denied state
 	$effect(() => {
@@ -82,6 +90,21 @@
 			{/if}
 		</button>
 
+		<div class="admin-divider">
+			<span>OR</span>
+		</div>
+
+		<div class="phone-auth-container">
+			<button
+				class="admin-login-btn whatsapp-btn"
+				onclick={async () => await handleWhatsAppLogin('admin')}
+			>
+				<MessageCircle size={20} class="whatsapp-icon" />
+				<span>Continue with WhatsApp</span>
+			</button>
+			<p class="whatsapp-hint">We'll send you a magic login link via WhatsApp</p>
+		</div>
+
 		{#if error}
 			<div class="admin-auth-error">
 				{error}
@@ -95,3 +118,42 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.admin-divider {
+		display: flex;
+		align-items: center;
+		margin: 24px 0;
+		color: var(--color-text-secondary, #8e8e93);
+		font-size: 0.8rem;
+		width: 100%;
+	}
+	.admin-divider::before,
+	.admin-divider::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--color-border, #e5e5ea);
+	}
+	.admin-divider span {
+		padding: 0 10px;
+	}
+
+	.whatsapp-btn {
+		background: #25d366 !important;
+		color: white !important;
+		border-color: #25d366 !important;
+	}
+
+	.whatsapp-btn:hover {
+		background: #20bd5a !important;
+		border-color: #20bd5a !important;
+	}
+
+	.whatsapp-hint {
+		color: var(--color-text-secondary, #8e8e93);
+		font-size: 0.85rem;
+		margin-top: 12px;
+		text-align: center;
+	}
+</style>

@@ -49,8 +49,8 @@
 		}
 	};
 
-	const onWhatsAppLogin = () => {
-		handleWhatsAppLogin();
+	const onWhatsAppLogin = async () => {
+		await handleWhatsAppLogin();
 	};
 </script>
 

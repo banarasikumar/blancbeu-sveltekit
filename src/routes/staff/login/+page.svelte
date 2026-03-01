@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { staffSignIn, staffAuthState } from '$lib/stores/staffAuth';
+	import { handleWhatsAppLogin, checkMagicLink } from '$lib/services/authService';
+	import { MessageCircle } from 'lucide-svelte';
+	import { onMount } from 'svelte';
 
 	let isLoading = $state(false);
 	let error = $state<string | null>(null);
+
+	onMount(async () => {
+		// Check for magic link token in URL on load
+		await checkMagicLink('staff');
+	});
 
 	async function handleLogin() {
 		isLoading = true;
@@ -56,6 +64,17 @@
 				Sign in with Google
 			{/if}
 		</button>
+
+		<div class="divider">
+			<span>OR</span>
+		</div>
+
+			<button class="login-btn whatsapp-btn" onclick={async () => await handleWhatsAppLogin('staff')}>
+				<MessageCircle size={20} class="whatsapp-icon" />
+				Continue with WhatsApp
+			</button>
+			<p class="whatsapp-hint">We'll send you a magic login link via WhatsApp</p>
+		</div>
 	</div>
 </div>
 
@@ -164,5 +183,41 @@
 		to {
 			transform: rotate(360deg);
 		}
+	}
+
+	.divider {
+		display: flex;
+		align-items: center;
+		margin: 24px 0;
+		color: #8e8e93;
+		font-size: 0.8rem;
+		width: 100%;
+	}
+	.divider::before,
+	.divider::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: #e5e5ea;
+	}
+	.divider span {
+		padding: 0 10px;
+	}
+
+	.whatsapp-btn {
+		background: #25d366;
+		color: white;
+		border-color: #25d366;
+	}
+
+	.whatsapp-btn:hover {
+		background: #20bd5a;
+		border-color: #20bd5a;
+	}
+
+	.whatsapp-hint {
+		color: #8e8e93;
+		font-size: 0.85rem;
+		margin-top: 12px;
 	}
 </style>
