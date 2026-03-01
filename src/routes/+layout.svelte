@@ -100,15 +100,16 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
-
-	<!-- Dynamic Manifest -->
+	<!-- Dynamic Manifest and Favicon -->
 	{#if isAdminRoute}
+		<link rel="icon" href="/admin-favicon.png" />
 		<!-- Use admin manifest if available, or fallback/nothing for now -->
 		<!-- We will add admin manifest later -->
 	{:else if isStaffRoute}
+		<link rel="icon" href="/staff-favicon.png" />
 		<link rel="manifest" href="/staff/manifest.json" />
 	{:else}
+		<link rel="icon" href={favicon} />
 		<link rel="manifest" href="/manifest.json" />
 	{/if}
 
