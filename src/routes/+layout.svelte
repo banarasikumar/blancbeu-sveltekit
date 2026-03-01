@@ -34,8 +34,12 @@
 	let appleStatusBarStyle = $derived($theme === 'gold' ? 'black-translucent' : 'default');
 
 	onMount(async () => {
-		initAuth();
-		initAppServiceListener();
+		// Only init global user-app services if NOT on an admin or staff route.
+		// Admin and Staff layouts initialize their own dedicated Auth and Data listeners.
+		if (!isAdminRoute && !isStaffRoute) {
+			initAuth();
+			initAppServiceListener();
+		}
 
 		// Check for desktop environment to load simulator
 		const isDesktopDevice = window.matchMedia('(min-width: 768px)').matches;

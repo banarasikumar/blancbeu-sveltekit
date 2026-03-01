@@ -176,6 +176,8 @@ async function handleLoginSuccess(user: any): Promise<void> {
 	if (isNewUser || !profileComplete) {
 		// New user or incomplete profile → ask for extra info
 		showToast('Welcome! Please complete your profile ✨', 'success');
+		// Google login originates primarily from user app, but check local storage app if any?
+		// Setting this to basic for now as phone/whatsapp handles staff.
 		goto('/complete-profile');
 	} else {
 		// Existing user with complete profile → go straight to account (or originally requested page)
@@ -253,7 +255,13 @@ export async function checkMagicLink(
 		if (isNewUser || !profileComplete) {
 			// New user or incomplete profile - redirect to profile completion
 			showToast('Welcome! Please complete your profile ✨', 'success');
-			goto('/complete-profile');
+			if (appType === 'staff') {
+				goto('/staff/complete-profile');
+			} else if (appType === 'admin') {
+				goto('/admin/complete-profile');
+			} else {
+				goto('/complete-profile');
+			}
 		} else {
 			// Existing user with complete profile
 			// Route to the correct dashboard based on the appType
