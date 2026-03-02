@@ -1,0 +1,54 @@
+The problem is when there is no pwa app installed in the smartphone and I open the link "https://blancbeu.in" it displays App install Prompt/UI
+
+And similarly if there is no pwa app installed in the smartphone and I open the link "https://blancbeu.in/staff" it displays App install Prompt/UI
+
+and 
+
+When there is no pwa app installed in the smartphone and I open the link "https://blancbeu.in/admin" it displays App install Prompt/UI
+
+But.
+
+When there is no pwa app installed in the smartphone and I open the link "https://blancbeu.in" it displays App install Prompt/UI
+
+And if I install the main User app, and then, open the link in browser "https://blancbeu.in/staff"
+or "https://blancbeu.in/admin"
+
+It does not display the install app prompt/UI for either of apps.
+
+And when there is no pwa app installed in the smartphone and I open the link "https://blancbeu.in/staff" it displays App install Prompt/UI for Staff app installation
+
+And if I install the staff app, and when only staff app has been installed in the smartphone and then I open this link in browser
+
+"https://blancbeu.in/admin" it displays the app install Prompt/UI for the admin app installation.
+
+
+And if there is only staff app has been installed in the smartphone and then I open this link in browser
+
+"https://blancbeu.in" it displays the app install Prompt/UI for the main user app installation.
+
+So find out the problem, why when I install the user app only then it doesn't displays app install Prompt/UI for other apps, but when I install wether admin app or staff app it's displays app installation prompt/UI for other app.
+
+And there is another but.
+
+When I install all 3 apps by installing first staff app, admin app, and then main user app
+
+And then if all 3 apps have installed in phone and I visit the link "https://blancbeu.in/admin"
+It open the main user app
+
+When I visit 
+
+"https://blancbeu.in/staff"
+
+Then also it open the main user app
+
+And
+
+When I visit 
+
+"https://blancbeu.in"
+
+Then also obviously it open the main user app.
+
+Do you see the problem now?
+
+Please fix it. No hallucinations.
