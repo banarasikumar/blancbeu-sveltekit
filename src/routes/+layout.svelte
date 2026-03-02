@@ -102,8 +102,7 @@
 	<!-- Dynamic Manifest and Favicon -->
 	{#if isAdminRoute}
 		<link rel="icon" href="/admin-favicon.png" />
-		<!-- Use admin manifest if available, or fallback/nothing for now -->
-		<!-- We will add admin manifest later -->
+		<link rel="manifest" href="/admin/manifest.json" />
 	{:else if isStaffRoute}
 		<link rel="icon" href="/staff-favicon.png" />
 		<link rel="manifest" href="/staff/manifest.json" />

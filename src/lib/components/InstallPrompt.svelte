@@ -66,19 +66,11 @@
 	onMount(() => {
 		if (!browser) return; // Prevent SSR crash
 
-		// Check standalone mode first
-		const isStandalone =
-			!!window.matchMedia('(display-mode: standalone)').matches ||
-			(window.navigator as any).standalone === true;
-
-		if (isStandalone) {
-			isVisible = false;
-			return; // We are already inside the native PWA frame
-		}
-
 		// Listen for the 'beforeinstallprompt' event.
 		// If this fires, we know definitively from the OS that the EXACT app logic path
 		// we are currently browsing is NOT installed.
+		// We do NOT check for standalone mode here to allow installing Admin/Staff PWAs
+		// even when opened inside the standalone User PWA shell.
 		window.addEventListener('beforeinstallprompt', (e) => {
 			// Prevent the mini-infobar from appearing on mobile
 			e.preventDefault();
