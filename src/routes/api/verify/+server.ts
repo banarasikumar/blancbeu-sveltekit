@@ -94,10 +94,20 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		// 6. Return magic login link
-		// Point to the /api/consume endpoint on the same domain
-		// Since the bot processes this, we need the absolute domain.
-		// We can use a base URL (env var) or hardcode the production URL for safety during bot redirects.
-		const baseUrl = process.env.PUBLIC_BASE_URL || 'https://www.blancbeu.in';
+		// We use strict absolute Subdomains here to prevent the User WebAPK
+		// from intercepting Staff/Admin logins from WhatsApp.
+		const isLocalhost = request.url.includes('localhost') || request.url.includes('127.0.0.1');
+
+		let baseUrl = isLocalhost ? 'http://localhost:5173' : 'https://www.blancbeu.in';
+
+		if (!isLocalhost) {
+			if (app_type === 'staff') {
+				baseUrl = 'https://staff.blancbeu.in';
+			} else if (app_type === 'admin') {
+				baseUrl = 'https://admin.blancbeu.in';
+			}
+		}
+
 		const magicLink = `${baseUrl}/api/consume?token=${token}`;
 
 		return json({ link: magicLink }, { status: 200 });
