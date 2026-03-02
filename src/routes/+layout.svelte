@@ -1,5 +1,4 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
 	import '$lib/styles/app.css';
 	import Header from '$lib/components/layout/Header.svelte';
 	import MobileNav from '$lib/components/layout/MobileNav.svelte';
@@ -109,7 +108,7 @@
 		<link rel="icon" href="/staff-favicon.png" />
 		<link rel="manifest" href="/staff/manifest.json" />
 	{:else}
-		<link rel="icon" href={favicon} />
+		<link rel="icon" href="/favicon.png" />
 		<link rel="manifest" href="/manifest.json" />
 	{/if}
 
