@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.blancbeu.in"
+        }
+      ],
+      "destination": "/admin/$1"
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "staff.blancbeu.in"
+        }
+      ],
+      "destination": "/staff/$1"
+    }
+  ]
+}
