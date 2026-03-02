@@ -2,7 +2,25 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { adminAuth, adminDb } from '$lib/server/firebaseAdmin';
 import admin from 'firebase-admin';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, request }) => {
+	const userAgent = request.headers.get('user-agent') || '';
+	const isAndroid = /android/i.test(userAgent);
+	const forceBrowser = url.searchParams.get('browser') === 'true';
+
+	// Auto WebAPK Bouncer: If the user clicked the magic link on Android, their OS likely
+	// hijacked it into the User PWA. We instantly reject the connection and force Android
+	// to re-open the link in native Chrome to isolate the session.
+	if (isAndroid && !forceBrowser) {
+		const redirectUrl = new URL(url.href);
+		redirectUrl.searchParams.set('browser', 'true');
+		const intentUrl = `intent://${redirectUrl.host}${redirectUrl.pathname}${redirectUrl.search}#Intent;scheme=https;package=com.android.chrome;end;`;
+
+		return new Response(null, {
+			status: 302,
+			headers: { Location: intentUrl }
+		});
+	}
+
 	return handleConsume(url.searchParams.get('token'));
 };
 

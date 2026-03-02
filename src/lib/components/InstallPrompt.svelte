@@ -110,7 +110,15 @@
 			if (currentUrl.searchParams.get('app') !== appType) {
 				if (!sessionStorage.getItem('dismissed_breakout')) {
 					trappedInWebApk = true;
-					isVisible = true;
+
+					// Auto-Breakout: Instantly escape the hijacked WebAPK shell into Native Chrome
+					sessionStorage.setItem('dismissed_breakout', 'true');
+					const redirectUrl = new URL(`https://blancbeu.in${currentUrl.pathname}`);
+					currentUrl.searchParams.forEach((value, key) => redirectUrl.searchParams.set(key, value));
+					redirectUrl.searchParams.set('app_intent', 'true');
+
+					// Fire the Android OS Intent protocol
+					window.location.href = `intent://${redirectUrl.host}${redirectUrl.pathname}${redirectUrl.search}#Intent;scheme=https;package=com.android.chrome;end;`;
 				}
 			} else {
 				// We actually ARE correctly inside the Admin/Staff WebAPK!
