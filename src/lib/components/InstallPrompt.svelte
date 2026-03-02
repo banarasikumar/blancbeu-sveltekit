@@ -7,6 +7,7 @@
 
 	let deferredPrompt: any = $state(null);
 	let isVisible = $state(false);
+	let trappedInWebApk = $state(false);
 
 	// Dynamically determine which app we are currently viewing
 	let appType = $derived(
@@ -22,12 +23,16 @@
 	);
 
 	let appDesc = $derived(
-		appType === 'admin'
-			? 'Manage the salon anywhere.'
-			: appType === 'staff'
-				? 'Manage your schedule on the go.'
-				: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
+		trappedInWebApk
+			? `Viewing inside User App. <br/><strong>Open in Chrome to Install.</strong>`
+			: appType === 'admin'
+				? 'Manage the salon anywhere.'
+				: appType === 'staff'
+					? 'Manage your schedule on the go.'
+					: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
 	);
+
+	let btnText = $derived(trappedInWebApk ? 'Open Chrome' : 'Install App');
 
 	let appIconUrl = $derived(
 		appType === 'admin'
@@ -66,11 +71,30 @@
 	onMount(() => {
 		if (!browser) return; // Prevent SSR crash
 
+		// Check if we are currently inside A standalone WebAPK
+		const isStandalone =
+			!!window.matchMedia('(display-mode: standalone)').matches ||
+			(window.navigator as any).standalone === true;
+
+		const isAndroid = /android/i.test(navigator.userAgent);
+
+		if (isStandalone) {
+			// If we are in standalone mode, Chrome suppresses beforeinstallprompt.
+			// But if we are viewing the Admin or Staff portals on Android, we might be TRAPPED
+			// inside the overarching User App WebAPK because it hijacked the link.
+			// We give the user an escape hatch strictly on the login screens to break out to Chrome!
+			if (appType !== 'user' && isAndroid && page.url.pathname.includes('login')) {
+				if (!sessionStorage.getItem('dismissed_breakout')) {
+					trappedInWebApk = true;
+					isVisible = true;
+				}
+			}
+			return; // Important: return because native prompt is suppressed in standalone
+		}
+
 		// Listen for the 'beforeinstallprompt' event.
 		// If this fires, we know definitively from the OS that the EXACT app logic path
 		// we are currently browsing is NOT installed.
-		// We do NOT check for standalone mode here to allow installing Admin/Staff PWAs
-		// even when opened inside the standalone User PWA shell.
 		window.addEventListener('beforeinstallprompt', (e) => {
 			// Prevent the mini-infobar from appearing on mobile
 			e.preventDefault();
@@ -81,6 +105,16 @@
 	});
 
 	async function handleAction() {
+		if (trappedInWebApk) {
+			// Escape hatch! Open the exact same route inside Native Google Chrome.
+			// This breaks us out of the User app WebAPK, dropping us in the browser
+			// where standard beforeinstallprompt can fire cleanly.
+			sessionStorage.setItem('dismissed_breakout', 'true');
+			window.location.href = `intent://blancbeu.in${page.url.pathname}#Intent;scheme=https;package=com.android.chrome;end;`;
+			isVisible = false;
+			return;
+		}
+
 		if (!deferredPrompt) return; // Unlikely, since button is tied to isVisible
 
 		// Show the native browser install prompt
@@ -94,6 +128,9 @@
 	}
 
 	function closePrompt() {
+		if (trappedInWebApk) {
+			sessionStorage.setItem('dismissed_breakout', 'true');
+		}
 		isVisible = false;
 	}
 </script>
@@ -179,7 +216,7 @@
 				<!-- Action Button -->
 				<div class="action-area">
 					<button class="install-btn" onclick={handleAction}>
-						<span class="btn-text">Install App</span>
+						<span class="btn-text">{btnText}</span>
 						<svg
 							class="btn-icon"
 							width="20"
