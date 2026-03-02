@@ -108,7 +108,7 @@ export async function handleWhatsAppLogin(
 	if (appType !== 'user') {
 		message += `\n\nApp: ${formattedAppType}`;
 	} else {
-		message += '\n';
+		message += `\n`;
 	}
 	message += `\nToken: ${timestamp}-${shortToken}`;
 	message += '\n\n_Send this message without editing_';

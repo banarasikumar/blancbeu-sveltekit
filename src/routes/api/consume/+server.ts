@@ -69,8 +69,11 @@ async function handleConsume(url: URL, token: string | null | undefined) {
 		// 6. Redirect to App with Token and new user flag
 		let targetPath = '/login';
 
-		// With subdomain routing, we no longer append `/staff/` or `/admin/` to the path,
-		// as the magic link is already routed to the correct subdomain (e.g., staff.blancbeu.in/login)
+		if (docData.appType === 'staff') {
+			targetPath = '/staff/login';
+		} else if (docData.appType === 'admin') {
+			targetPath = '/admin/login';
+		}
 
 		let redirectUrl = `${targetPath}?token=${customToken}`;
 		if (isNewUser) {
