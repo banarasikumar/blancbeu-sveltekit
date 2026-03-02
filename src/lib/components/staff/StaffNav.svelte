@@ -7,8 +7,8 @@
 
 	const routes = [
 		{ path: '/staff/dashboard', label: 'Home', icon: 'home' },
-		{ path: '/staff/schedule', label: 'Schedule', icon: 'calendar' },
 		{ path: '/staff/bookings', label: 'Bookings', icon: 'list', showBadge: true },
+		{ path: '/staff/schedule', label: 'Schedule', icon: 'calendar' },
 		{ path: '/staff/profile', label: 'Profile', icon: 'user' }
 	];
 
