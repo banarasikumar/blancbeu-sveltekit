@@ -19,7 +19,8 @@ export default defineConfig({
 		})
 	],
 	server: {
-		host: true
+		host: true,
+		allowedHosts: ['staff.blancbeu.in', 'admin.blancbeu.in', 'www.blancbeu.in', 'blancbeu.in']
 	},
 	build: {
 		target: 'esnext',

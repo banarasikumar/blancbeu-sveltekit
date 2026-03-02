@@ -67,15 +67,19 @@ async function handleConsume(url: URL, token: string | null | undefined) {
 		const customToken = await adminAuth.createCustomToken(docData.uid);
 
 		// 6. Redirect to App with Token and new user flag
-		let targetPath = '/login';
+		let redirectUrl = '';
+		const host = url.host;
+		const isLocalHost = host.includes('localhost') || host.includes('127.0.0.1');
 
 		if (docData.appType === 'staff') {
-			targetPath = '/staff/login';
+			redirectUrl = isLocalHost ? '/staff/login' : 'https://staff.blancbeu.in/login';
 		} else if (docData.appType === 'admin') {
-			targetPath = '/admin/login';
+			redirectUrl = isLocalHost ? '/admin/login' : 'https://admin.blancbeu.in/login';
+		} else {
+			redirectUrl = isLocalHost ? '/login' : 'https://www.blancbeu.in/login';
 		}
 
-		let redirectUrl = `${targetPath}?token=${customToken}`;
+		redirectUrl = `${redirectUrl}?token=${customToken}`;
 		if (isNewUser) {
 			redirectUrl += '&isNewUser=true';
 		}
