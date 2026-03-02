@@ -7,7 +7,6 @@
 
 	let deferredPrompt: any = $state(null);
 	let isVisible = $state(false);
-	let trappedInWebApk = $state(false);
 
 	// Dynamically determine which app we are currently viewing
 	let appType = $derived(
@@ -23,16 +22,14 @@
 	);
 
 	let appDesc = $derived(
-		trappedInWebApk
-			? `Viewing inside User App. <br/><strong>Open in Chrome to Install.</strong>`
-			: appType === 'admin'
-				? 'Manage the salon anywhere.'
-				: appType === 'staff'
-					? 'Manage your schedule on the go.'
-					: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
+		appType === 'admin'
+			? 'Manage the salon anywhere.'
+			: appType === 'staff'
+				? 'Manage your schedule on the go.'
+				: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
 	);
 
-	let btnText = $derived(trappedInWebApk ? 'Open Chrome' : 'Install App');
+	let btnText = 'Install App';
 
 	let appIconUrl = $derived(
 		appType === 'admin'
@@ -75,61 +72,11 @@
 		const handleBeforeInstallPrompt = (e: any) => {
 			e.preventDefault();
 			deferredPrompt = e;
-			// Only show native prompt if we aren't displaying the breakout hatch
-			if (!trappedInWebApk) {
-				isVisible = true;
-			}
+			isVisible = true;
 			console.log(`[PWA] Strictly scoped install prompt captured for: ${appType}`);
 		};
 
 		window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-		// 2. Continuous Intent Bouncer Logic
-		// This runs reactively anytime the SPA URL changes (e.g. from /staff to /staff/login)
-		const isStandalone =
-			!!window.matchMedia('(display-mode: standalone)').matches ||
-			(window.navigator as any).standalone === true;
-
-		const isAndroid = /android/i.test(navigator.userAgent);
-		const currentUrl = page.url;
-
-		// Clean up successful breakouts: If Chrome successfully opened the Native Admin WebAPK,
-		// we arrive here with ?app_intent=true. We silently strip it to normalize the URL.
-		if (currentUrl.searchParams.get('app_intent') === 'true') {
-			const cleanUrl = new URL(currentUrl.href);
-			cleanUrl.searchParams.delete('app_intent');
-			goto(cleanUrl.pathname + cleanUrl.search, { replaceState: true });
-			return;
-		}
-
-		// WebAPK Hijacking Detection
-		if (isStandalone && isAndroid && appType !== 'user') {
-			// If we are standalone, but the URL DOES NOT have our authorized ?app=staff/admin parameter,
-			// it means Android OS aggressively routed an organic deep link (e.g. blancbeu.in/admin)
-			// into the overarching User Application WebAPK because of its aggressive `scope: "/"` rule.
-			if (currentUrl.searchParams.get('app') !== appType) {
-				if (!sessionStorage.getItem('dismissed_breakout')) {
-					trappedInWebApk = true;
-
-					// Auto-Breakout: Instantly escape the hijacked WebAPK shell into Native Chrome
-					sessionStorage.setItem('dismissed_breakout', 'true');
-					const redirectUrl = new URL(`https://blancbeu.in${currentUrl.pathname}`);
-					currentUrl.searchParams.forEach((value, key) => redirectUrl.searchParams.set(key, value));
-					redirectUrl.searchParams.set('app_intent', 'true');
-
-					// Fire the Android OS Intent protocol
-					window.location.href = `intent://${redirectUrl.host}${redirectUrl.pathname}${redirectUrl.search}#Intent;scheme=https;package=com.android.chrome;end;`;
-				}
-			} else {
-				// We actually ARE correctly inside the Admin/Staff WebAPK!
-				trappedInWebApk = false;
-				if (!deferredPrompt) {
-					isVisible = false;
-				}
-			}
-		} else {
-			trappedInWebApk = false;
-		}
 
 		return () => {
 			window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -137,24 +84,6 @@
 	});
 
 	async function handleAction() {
-		if (trappedInWebApk) {
-			// Escape hatch! Open the exact same route inside Native Google Chrome.
-			// This breaks us out of the User app WebAPK, dropping us in the browser
-			// where standard beforeinstallprompt can fire cleanly.
-			sessionStorage.setItem('dismissed_breakout', 'true');
-
-			// Build the breakout intent URL. We inject ?app_intent=true so SvelteKit
-			// knows on the other side that the breakout array was successful.
-			const redirectUrl = new URL(`https://blancbeu.in${page.url.pathname}`);
-			// preserve existing params
-			page.url.searchParams.forEach((value, key) => redirectUrl.searchParams.set(key, value));
-			redirectUrl.searchParams.set('app_intent', 'true');
-
-			window.location.href = `intent://${redirectUrl.host}${redirectUrl.pathname}${redirectUrl.search}#Intent;scheme=https;package=com.android.chrome;end;`;
-			isVisible = false;
-			return;
-		}
-
 		if (!deferredPrompt) return; // Unlikely, since button is tied to isVisible
 
 		// Show the native browser install prompt
@@ -168,9 +97,6 @@
 	}
 
 	function closePrompt() {
-		if (trappedInWebApk) {
-			sessionStorage.setItem('dismissed_breakout', 'true');
-		}
 		isVisible = false;
 	}
 </script>
