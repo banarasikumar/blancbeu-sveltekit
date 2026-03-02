@@ -586,16 +586,19 @@
 										stroke-width="2"
 										stroke-linecap="round"
 										stroke-linejoin="round"
-										><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg
+										><line x1="12" y1="5" x2="12" y2="19"></line><line
+											x1="5"
+											y1="12"
+											x2="19"
+											y2="12"
+										></line></svg
 									>
 								</span>
 							</button>
 						</div>
-
-							{#if tempServiceId}
-								<button class="confirm-add-btn" onclick={addService}>Add</button>
-							{/if}
-						</div>
+						{#if tempServiceId}
+							<button class="confirm-add-btn" onclick={addService}>Add</button>
+						{/if}
 						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
 					</section>
 
@@ -759,7 +762,7 @@
 						</button>
 					</div>
 				</div>
-				
+
 				<div class="catalog-body">
 					<div class="dropdown-list">
 						{#if sortBy === 'category'}
@@ -772,7 +775,9 @@
 											toggleCategory(cat);
 										}}
 									>
-										<span class="cat-name">{cat} <span class="cat-count">({services.length})</span></span>
+										<span class="cat-name"
+											>{cat} <span class="cat-count">({services.length})</span></span
+										>
 										<span class="cat-arrow" class:expanded={expandedCategories[cat]}>
 											<svg
 												width="20"
@@ -782,8 +787,7 @@
 												stroke="currentColor"
 												stroke-width="2"
 												stroke-linecap="round"
-												stroke-linejoin="round"
-												><polyline points="6 9 12 15 18 9"></polyline></svg
+												stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg
 											>
 										</span>
 									</button>
@@ -827,7 +831,10 @@
 										<span class="svc-name">
 											{service.name}
 										</span>
-										<span class="svc-cat-tag">{service.category || 'Other'} {#if service.duration}&bull; {service.duration} mins{/if}</span>
+										<span class="svc-cat-tag"
+											>{service.category || 'Other'}
+											{#if service.duration}&bull; {service.duration} mins{/if}</span
+										>
 									</div>
 									<span class="svc-price">₹{service.price}</span>
 								</button>
@@ -1545,7 +1552,8 @@
 		text-align: left;
 		transition: all 0.2s ease;
 	}
-	.dropdown-trigger:focus, .dropdown-trigger:active {
+	.dropdown-trigger:focus,
+	.dropdown-trigger:active {
 		border-color: var(--s-accent, #c9a24f);
 		background: var(--s-accent-bg, rgba(201, 162, 79, 0.05));
 		outline: none;
@@ -1565,7 +1573,7 @@
 		border-radius: 50%;
 		width: 28px;
 		height: 28px;
-		box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 	}
 
 	.catalog-modal-content {
@@ -1597,7 +1605,7 @@
 		gap: 10px;
 		flex-shrink: 0;
 	}
-	
+
 	.catalog-body {
 		flex: 1;
 		overflow-y: auto;
@@ -1712,8 +1720,10 @@
 		border-radius: var(--s-radius-lg, 12px);
 		background: var(--s-surface, white);
 		cursor: pointer;
-		transition: transform 0.1s ease, box-shadow 0.1s ease;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+		transition:
+			transform 0.1s ease,
+			box-shadow 0.1s ease;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 	}
 	.service-option:active {
 		transform: scale(0.98);
@@ -1730,14 +1740,14 @@
 	.service-option.flat:last-child {
 		border-bottom: none;
 	}
-	
+
 	.svc-details {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 4px;
 	}
-	
+
 	.svc-name {
 		font-size: 1rem;
 		font-weight: 600;
@@ -1767,21 +1777,65 @@
 		border-radius: 8px;
 	}
 
-	:global(.staff-app.dark) .catalog-modal-content { background: var(--s-bg, #121212); }
-	:global(.staff-app.dark) .catalog-sort-header { background: #1a1a1e; border-color: #333; }
-	:global(.staff-app.dark) .sort-btn { background: #222; border-color: #333; color: #aaa; }
-	:global(.staff-app.dark) .category-header { background: var(--s-bg, #121212); color: #fff; border-color: #333; }
-	:global(.staff-app.dark) .category-group { border-color: #333; background: var(--s-bg, #121212); }
-	:global(.staff-app.dark) .service-option.flat { border-color: #333; }
-	:global(.staff-app.dark) .category-items { background: #1a1a1e; border-color: #333; }
-	:global(.staff-app.dark) .service-option { background: #222; border-color: #333; }
-	:global(.staff-app.dark) .svc-price { background: #333; color: #fff; }
-	:global(.staff-app.dark) .svc-name { color: #fff; }
-	:global(.staff-app.dark) .sort-btn.active { background: var(--s-accent, #c9a24f); color: #000; border-color: var(--s-accent, #c9a24f); }
-	:global(.staff-app.dark) .dropdown-trigger { background: var(--s-bg, #121212); border-color: #444; color: #fff; }
-	:global(.staff-app.dark) .dropdown-arrow { background: #333; }
-	:global(.staff-app.dark) .cat-arrow { background: #333; }
-	:global(.staff-app.dark) .cat-arrow.expanded { background: var(--s-accent, #c9a24f); color: #000; }
+	:global(.staff-app.dark) .catalog-modal-content {
+		background: var(--s-bg, #121212);
+	}
+	:global(.staff-app.dark) .catalog-sort-header {
+		background: #1a1a1e;
+		border-color: #333;
+	}
+	:global(.staff-app.dark) .sort-btn {
+		background: #222;
+		border-color: #333;
+		color: #aaa;
+	}
+	:global(.staff-app.dark) .category-header {
+		background: var(--s-bg, #121212);
+		color: #fff;
+		border-color: #333;
+	}
+	:global(.staff-app.dark) .category-group {
+		border-color: #333;
+		background: var(--s-bg, #121212);
+	}
+	:global(.staff-app.dark) .service-option.flat {
+		border-color: #333;
+	}
+	:global(.staff-app.dark) .category-items {
+		background: #1a1a1e;
+		border-color: #333;
+	}
+	:global(.staff-app.dark) .service-option {
+		background: #222;
+		border-color: #333;
+	}
+	:global(.staff-app.dark) .svc-price {
+		background: #333;
+		color: #fff;
+	}
+	:global(.staff-app.dark) .svc-name {
+		color: #fff;
+	}
+	:global(.staff-app.dark) .sort-btn.active {
+		background: var(--s-accent, #c9a24f);
+		color: #000;
+		border-color: var(--s-accent, #c9a24f);
+	}
+	:global(.staff-app.dark) .dropdown-trigger {
+		background: var(--s-bg, #121212);
+		border-color: #444;
+		color: #fff;
+	}
+	:global(.staff-app.dark) .dropdown-arrow {
+		background: #333;
+	}
+	:global(.staff-app.dark) .cat-arrow {
+		background: #333;
+	}
+	:global(.staff-app.dark) .cat-arrow.expanded {
+		background: var(--s-accent, #c9a24f);
+		color: #000;
+	}
 
 	.confirm-add-btn {
 		background: var(--s-brand, #1a1a2e);

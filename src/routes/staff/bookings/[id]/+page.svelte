@@ -54,6 +54,11 @@
 	let isCompleted = $derived(originalBooking?.status === 'completed');
 	let canEdit = $derived(!isCompleted || isEditing);
 
+	// QR Code state
+	let showQrModal = $state(false);
+	let qrCodeDataUrl = $state('');
+	let isGeneratingQr = $state(false);
+
 	function addService() {
 		if (!newServiceName) return;
 		services = [
@@ -156,6 +161,47 @@
 			showToast('Error generating invoice.', 'error');
 		} finally {
 			isGenerating = false;
+		}
+	}
+
+	async function handleShowQR() {
+		try {
+			isGeneratingQr = true;
+			showQrModal = true;
+
+			const QRCode = (await import('qrcode')).default;
+			const invoiceNum = `INV-${String(bookingId).slice(0, 8).toUpperCase()}`;
+			const upiUri = `upi://pay?pa=Q714475106@ybl&pn=BlancBeu Beauty Salon&mc=0000&mode=02&purpose=00&am=${totalAmount}&cu=INR&tn=${invoiceNum}`;
+
+			qrCodeDataUrl = await QRCode.toDataURL(upiUri, {
+				width: 300,
+				margin: 1,
+				color: { dark: '#1a1a2e', light: '#FFFFFF' }
+			});
+		} catch (error) {
+			console.error('Error generating QR:', error);
+			showToast('Error generating QR code.', 'error');
+			showQrModal = false;
+		} finally {
+			isGeneratingQr = false;
+		}
+	}
+
+	async function handleMarkAsPaid() {
+		if (!originalBooking) return;
+		try {
+			await updateBookingDetails(originalBooking.id, {
+				payment: {
+					type: 'manual',
+					method: 'upi_or_cash',
+					amount: totalAmount,
+					status: 'paid'
+				}
+			});
+			showToast('Marked as paid!', 'success');
+		} catch (error) {
+			console.error('Error marking as paid:', error);
+			showToast('Failed to update payment status.', 'error');
 		}
 	}
 </script>
@@ -391,40 +437,77 @@
 					</button>
 				</div>
 			{:else}
-				<!-- Already completed — show Start Chat + Send Invoice -->
-				<div class="action-row">
-					<button class="s-btn s-btn-lg action-btn chat-btn" onclick={handleStartChat}>
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-							<path
-								d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
-							/>
-						</svg>
-						Start Chat
-					</button>
-					<button
-						class="s-btn s-btn-lg action-btn invoice-btn"
-						onclick={handleSendInvoice}
-						disabled={isGenerating}
-					>
-						{#if isGenerating}
-							<span class="spinner"></span> Generating...
-						{:else}
+				<!-- Already completed — show Payment Actions + Chat/Invoice -->
+				<div class="action-column">
+					<div class="action-row">
+						<button class="s-btn s-btn-lg action-btn qr-btn" onclick={handleShowQR}>
 							<svg
-								width="18"
-								height="18"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
 							>
-								<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-								<polyline points="14 2 14 8 20 8" />
-								<line x1="16" y1="13" x2="8" y2="13" />
-								<line x1="16" y1="17" x2="8" y2="17" />
+								<rect x="3" y="3" width="7" height="7"></rect>
+								<rect x="14" y="3" width="7" height="7"></rect>
+								<rect x="14" y="14" width="7" height="7"></rect>
+								<rect x="3" y="14" width="7" height="7"></rect>
 							</svg>
-							Send Invoice
-						{/if}
-					</button>
+							Show QR
+						</button>
+						<button class="s-btn s-btn-lg action-btn pay-btn" onclick={handleMarkAsPaid}>
+							<svg
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+							</svg>
+							Mark as Paid
+						</button>
+					</div>
+					<div class="action-row mt-2">
+						<button class="s-btn s-btn-lg action-btn chat-btn" onclick={handleStartChat}>
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+								<path
+									d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+								/>
+							</svg>
+							Start Chat
+						</button>
+						<button
+							class="s-btn s-btn-lg action-btn invoice-btn"
+							onclick={handleSendInvoice}
+							disabled={isGenerating}
+						>
+							{#if isGenerating}
+								<span class="spinner"></span> Generating...
+							{:else}
+								<svg
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+									<polyline points="14 2 14 8 20 8" />
+									<line x1="16" y1="13" x2="8" y2="13" />
+									<line x1="16" y1="17" x2="8" y2="17" />
+								</svg>
+								Send Invoice
+							{/if}
+						</button>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -436,6 +519,65 @@
 					<div class="generating-spinner"></div>
 					<p class="generating-text">Generating Invoice...</p>
 					<p class="generating-hint">Please wait a moment</p>
+				</div>
+			</div>
+		{/if}
+
+		<!-- QR CODE MODAL -->
+		{#if showQrModal}
+			<div class="qr-modal-overlay" onclick={() => (showQrModal = false)}>
+				<div class="qr-modal-content" onclick={(e) => e.stopPropagation()}>
+					<div class="qr-modal-header">
+						<h2>Scan to Pay</h2>
+						<button class="qr-close-btn" onclick={() => (showQrModal = false)}>
+							<svg
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<line x1="18" y1="6" x2="6" y2="18"></line>
+								<line x1="6" y1="6" x2="18" y2="18"></line>
+							</svg>
+						</button>
+					</div>
+
+					<div class="qr-modal-body">
+						{#if isGeneratingQr}
+							<div class="qr-loading">
+								<div class="spinner"></div>
+								<p>Generating QR Code...</p>
+							</div>
+						{:else if qrCodeDataUrl}
+							<div class="qr-image-container">
+								<img src={qrCodeDataUrl} alt="Payment QR Code" class="qr-image" />
+							</div>
+
+							<div class="qr-amount-container">
+								<span class="qr-currency">₹</span>
+								<span class="qr-amount">{totalAmount}</span>
+							</div>
+
+							<div class="qr-upi-info">
+								<p class="qr-upi-label">UPI ID:</p>
+								<p class="qr-upi-id">Q714475106@ybl</p>
+							</div>
+
+							<div class="qr-instructions">
+								<p>Scan with any UPI app to pay</p>
+								<div class="qr-apps">
+									<span>GPay</span> • <span>PhonePe</span> • <span>Paytm</span>
+								</div>
+							</div>
+						{:else}
+							<div class="qr-error">
+								<p>Failed to generate QR code.</p>
+								<button class="s-btn s-btn-outline" onclick={handleShowQR}>Try Again</button>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -761,6 +903,12 @@
 		margin: 0 auto;
 	}
 
+	.action-column {
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-space-md); /* Increased gap for better spacing between rows */
+	}
+
 	.action-row {
 		display: flex;
 		gap: var(--s-space-sm);
@@ -779,6 +927,26 @@
 		border: none;
 		cursor: pointer;
 		transition: all var(--s-duration-fast) var(--s-ease);
+	}
+
+	.qr-btn {
+		background: #6366f1; /* Indigo color */
+		color: white;
+	}
+
+	.qr-btn:active {
+		background: #4f46e5;
+		transform: scale(0.97);
+	}
+
+	.pay-btn {
+		background: #f43f5e; /* Rose/Red color */
+		color: white;
+	}
+
+	.pay-btn:active {
+		background: #e11d48;
+		transform: scale(0.97);
 	}
 
 	.chat-btn {
@@ -875,6 +1043,201 @@
 		}
 		to {
 			opacity: 1;
+		}
+	}
+
+	/* QR Modal Styles */
+	.qr-modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 2000;
+		padding: var(--s-space-lg, 24px);
+		backdrop-filter: blur(4px);
+		animation: fadeIn 0.2s ease-out;
+	}
+
+	.qr-modal-content {
+		background: var(--s-surface, white);
+		border-radius: var(--s-radius-2xl, 24px);
+		width: 100%;
+		max-width: 360px;
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+		overflow: hidden;
+		animation: slideUpScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.qr-modal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 20px 24px 16px;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+	}
+
+	.qr-modal-header h2 {
+		margin: 0;
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: var(--s-text-primary, #1a1a2e);
+	}
+
+	.qr-close-btn {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border: none;
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--s-text-secondary, #6b7280);
+		cursor: pointer;
+		transition: transform 0.15s ease;
+	}
+
+	.qr-close-btn:active {
+		transform: scale(0.9);
+		background: var(--s-border, #e5e7eb);
+	}
+
+	.qr-modal-body {
+		padding: 30px 24px 40px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+	}
+
+	.qr-image-container {
+		background: white;
+		padding: 16px;
+		border-radius: var(--s-radius-lg, 16px);
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+		border: 1px solid var(--s-border, #e5e7eb);
+		margin-bottom: 24px;
+	}
+
+	.qr-image {
+		display: block;
+		border-radius: 8px;
+		width: 220px;
+		height: 220px;
+		object-fit: contain;
+	}
+
+	.qr-amount-container {
+		display: flex;
+		align-items: baseline;
+		justify-content: center;
+		gap: 4px;
+		margin-bottom: 16px;
+	}
+
+	.qr-currency {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: var(--s-text-secondary, #6b7280);
+	}
+
+	.qr-amount {
+		font-size: 2.5rem;
+		font-weight: 800;
+		color: var(--s-text-primary, #1a1a2e);
+		letter-spacing: -0.02em;
+		line-height: 1;
+	}
+
+	.qr-upi-info {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		padding: 10px 20px;
+		border-radius: var(--s-radius-full, 30px);
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 24px;
+	}
+
+	.qr-upi-label {
+		margin: 0;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--s-text-tertiary, #9ca3af);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.qr-upi-id {
+		margin: 0;
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: var(--s-text-primary, #1a1a2e);
+		font-family: monospace;
+	}
+
+	.qr-instructions {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.qr-instructions p {
+		margin: 0;
+		font-size: 0.9rem;
+		color: var(--s-text-secondary, #6b7280);
+		font-weight: 500;
+	}
+
+	.qr-apps {
+		font-size: 0.8rem;
+		color: var(--s-text-tertiary, #9ca3af);
+		font-weight: 600;
+	}
+
+	.qr-loading {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 40px 0;
+		gap: 16px;
+	}
+
+	.qr-loading p {
+		margin: 0;
+		color: var(--s-text-secondary, #6b7280);
+		font-weight: 500;
+	}
+
+	.qr-error {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+		padding: 20px 0;
+	}
+
+	.qr-error p {
+		margin: 0;
+		color: var(--s-error, #ef4444);
+		font-weight: 600;
+	}
+
+	@keyframes slideUpScale {
+		from {
+			opacity: 0;
+			transform: scale(0.9) translateY(20px);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1) translateY(0);
 		}
 	}
 </style>
