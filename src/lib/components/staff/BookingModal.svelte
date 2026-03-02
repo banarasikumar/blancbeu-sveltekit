@@ -1,7 +1,12 @@
 <script lang="ts">
-	import { staffServices, createBooking, updateBookingDetails } from '$lib/stores/staffData';
+	import {
+		staffServices,
+		createBooking,
+		updateBookingDetails,
+		searchUsersByPhone
+	} from '$lib/stores/staffData';
 	import { showToast } from '$lib/stores/toast';
-	import type { Booking } from '$lib/stores/adminData';
+	import type { Booking, AppUser } from '$lib/stores/adminData';
 	import { goto } from '$app/navigation';
 	import { startServiceTimer } from '$lib/stores/serviceTimer';
 
@@ -18,6 +23,12 @@
 	let time = $state('');
 	let notes = $state('');
 
+	// User search state
+	let userSearchResults = $state<AppUser[]>([]);
+	let showUserDropdown = $state(false);
+	let isSearchingUser = $state(false);
+	let searchTimeout: ReturnType<typeof setTimeout>;
+
 	// Multi-service management
 	type OrderItem = {
 		id: string; // 'custom' or serviceId
@@ -31,6 +42,41 @@
 
 	// Temp inputs for adding a service
 	let tempServiceId = $state('');
+
+	// Dropdown states
+	let isCatalogOpen = $state(false);
+	let sortBy = $state('category'); // 'category', 'name', 'price'
+	let expandedCategories = $state<Record<string, boolean>>({});
+
+	let sortedServices = $derived.by(() => {
+		let s = [...$staffServices];
+		if (sortBy === 'name') return s.sort((a, b) => a.name.localeCompare(b.name));
+		if (sortBy === 'price') return s.sort((a, b) => (a.price || 0) - (b.price || 0));
+		return s;
+	});
+
+	let groupedServices = $derived.by(() => {
+		const groups: Record<string, any[]> = {};
+		for (const service of $staffServices) {
+			const cat = service.category || 'Other';
+			if (!groups[cat]) groups[cat] = [];
+			groups[cat].push(service);
+		}
+		// Sort categories alphabetically
+		return Object.keys(groups)
+			.sort()
+			.reduce(
+				(acc, key) => {
+					acc[key] = groups[key];
+					return acc;
+				},
+				{} as Record<string, any[]>
+			);
+	});
+
+	function toggleCategory(cat: string) {
+		expandedCategories[cat] = !expandedCategories[cat];
+	}
 
 	// Derived total
 	let totalAmount = $derived(
@@ -138,6 +184,45 @@
 				price: 0
 			}
 		];
+	}
+
+	async function handlePhoneInput(e: Event) {
+		const val = (e.target as HTMLInputElement).value;
+		phone = val;
+
+		clearTimeout(searchTimeout);
+
+		if (!val || val.length < 3) {
+			userSearchResults = [];
+			showUserDropdown = false;
+			return;
+		}
+
+		isSearchingUser = true;
+
+		searchTimeout = setTimeout(async () => {
+			try {
+				const results = await searchUsersByPhone(val);
+				userSearchResults = results;
+				showUserDropdown = results.length > 0;
+
+				// Exact match autofill
+				if (results.length === 1 && results[0].phone === val) {
+					selectUser(results[0]);
+				}
+			} catch (err) {
+				console.error('Error searching users:', err);
+			} finally {
+				isSearchingUser = false;
+			}
+		}, 300); // 300ms debounce
+	}
+
+	function selectUser(user: AppUser) {
+		name = user.name || user.displayName || user.fullName || '';
+		phone = user.phone || user.phoneNumber || user.mobile || '';
+		showUserDropdown = false;
+		userSearchResults = [];
 	}
 
 	async function handleSubmit() {
@@ -386,6 +471,41 @@
 					<!-- EDIT/CREATE FORM -->
 					<section class="form-section">
 						<h3>Client Details</h3>
+						<div class="form-group phone-search-group">
+							<input
+								type="tel"
+								id="phone"
+								value={phone}
+								oninput={handlePhoneInput}
+								onfocus={() => {
+									if (userSearchResults.length > 0) showUserDropdown = true;
+								}}
+								onblur={() => {
+									// Delay hiding dropdown so clicks can register
+									setTimeout(() => (showUserDropdown = false), 200);
+								}}
+								placeholder="Phone Number (Optional)"
+								class="input-lg"
+							/>
+							{#if isSearchingUser}
+								<div class="search-loader">
+									<div class="spinner"></div>
+								</div>
+							{/if}
+							{#if showUserDropdown}
+								<ul class="autocomplete-dropdown">
+									{#each userSearchResults as user}
+										<li class="autocomplete-item" onmousedown={() => selectUser(user)}>
+											<div class="ac-avatar">{user.name?.[0] || user.displayName?.[0] || 'U'}</div>
+											<div class="ac-info">
+												<span class="ac-name">{user.name || user.displayName || 'Unknown'}</span>
+												<span class="ac-phone">{user.phone || user.phoneNumber || ''}</span>
+											</div>
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</div>
 						<div class="form-group">
 							<input
 								type="text"
@@ -393,14 +513,6 @@
 								bind:value={name}
 								placeholder="Client Name *"
 								class="input-lg"
-							/>
-						</div>
-						<div class="form-group">
-							<input
-								type="tel"
-								id="phone"
-								bind:value={phone}
-								placeholder="Phone Number (Optional)"
 							/>
 						</div>
 					</section>
@@ -449,12 +561,37 @@
 						</div>
 
 						<div class="add-service-row">
-							<select id="service" bind:value={tempServiceId} class="service-select">
-								<option value="" disabled selected>Select from catalog +</option>
-								{#each $staffServices as service}
-									<option value={service.id}>{service.name} - ₹{service.price}</option>
-								{/each}
-							</select>
+							<button
+								class="dropdown-trigger"
+								onclick={(e) => {
+									e.preventDefault();
+									isCatalogOpen = true;
+								}}
+							>
+								<span class="trigger-text">
+									{#if tempServiceId}
+										{@const selected = $staffServices.find((s) => s.id === tempServiceId)}
+										{selected ? `${selected.name} - ₹${selected.price}` : 'Select from catalog +'}
+									{:else}
+										Select from catalog +
+									{/if}
+								</span>
+								<span class="dropdown-arrow">
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg
+									>
+								</span>
+							</button>
+						</div>
+
 							{#if tempServiceId}
 								<button class="confirm-add-btn" onclick={addService}>Add</button>
 							{/if}
@@ -489,7 +626,13 @@
 								Cancel
 							</button>
 						{:else if existingBooking.status === 'in-progress'}
-							<button class="action-btn complete" onclick={() => handleStatusChange('completed')}>
+							<button
+								class="action-btn complete"
+								onclick={() => {
+									isOpen = false;
+									goto(`/staff/bookings/${existingBooking.id}`);
+								}}
+							>
 								Complete Service
 							</button>
 						{:else}
@@ -563,6 +706,138 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Full-Screen Catalog Modal -->
+	{#if isCatalogOpen}
+		<div
+			class="modal-backdrop catalog-backdrop"
+			style="z-index: 300;"
+			onclick={() => (isCatalogOpen = false)}
+		>
+			<div class="catalog-modal-content" onclick={(e) => e.stopPropagation()}>
+				<div class="modal-header">
+					<h2>Select Service</h2>
+					<button class="close-btn" onclick={() => (isCatalogOpen = false)} aria-label="Close">
+						<svg
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<line x1="18" y1="6" x2="6" y2="18" />
+							<line x1="6" y1="6" x2="18" y2="18" />
+						</svg>
+					</button>
+				</div>
+				<div class="catalog-sort-header">
+					<span class="sort-label">Sort by:</span>
+					<div class="sort-buttons">
+						<button
+							class="sort-btn"
+							class:active={sortBy === 'category'}
+							onclick={() => (sortBy = 'category')}
+						>
+							Category
+						</button>
+						<button
+							class="sort-btn"
+							class:active={sortBy === 'name'}
+							onclick={() => (sortBy = 'name')}
+						>
+							Name
+						</button>
+						<button
+							class="sort-btn"
+							class:active={sortBy === 'price'}
+							onclick={() => (sortBy = 'price')}
+						>
+							Price
+						</button>
+					</div>
+				</div>
+				
+				<div class="catalog-body">
+					<div class="dropdown-list">
+						{#if sortBy === 'category'}
+							{#each Object.entries(groupedServices) as [cat, services]}
+								<div class="category-group">
+									<button
+										class="category-header"
+										onclick={(e) => {
+											e.preventDefault();
+											toggleCategory(cat);
+										}}
+									>
+										<span class="cat-name">{cat} <span class="cat-count">({services.length})</span></span>
+										<span class="cat-arrow" class:expanded={expandedCategories[cat]}>
+											<svg
+												width="20"
+												height="20"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												><polyline points="6 9 12 15 18 9"></polyline></svg
+											>
+										</span>
+									</button>
+									{#if expandedCategories[cat]}
+										<div class="category-items">
+											{#each services as service}
+												<button
+													class="service-option"
+													onclick={(e) => {
+														e.preventDefault();
+														tempServiceId = service.id;
+														addService();
+														isCatalogOpen = false;
+													}}
+												>
+													<div class="svc-details">
+														<span class="svc-name">{service.name}</span>
+														{#if service.duration}
+															<span class="svc-duration">{service.duration} mins</span>
+														{/if}
+													</div>
+													<span class="svc-price">₹{service.price}</span>
+												</button>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						{:else}
+							{#each sortedServices as service}
+								<button
+									class="service-option flat"
+									onclick={(e) => {
+										e.preventDefault();
+										tempServiceId = service.id;
+										addService();
+										isCatalogOpen = false;
+									}}
+								>
+									<div class="svc-details">
+										<span class="svc-name">
+											{service.name}
+										</span>
+										<span class="svc-cat-tag">{service.category || 'Other'} {#if service.duration}&bull; {service.duration} mins{/if}</span>
+									</div>
+									<span class="svc-price">₹{service.price}</span>
+								</button>
+							{/each}
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 {/if}
 
 <style>
@@ -1043,6 +1318,106 @@
 		min-height: 80px;
 	}
 
+	/* Phone Search Styles */
+	.phone-search-group {
+		position: relative;
+	}
+
+	.search-loader {
+		position: absolute;
+		right: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid var(--s-border, #e5e7eb);
+		border-top-color: var(--s-accent, #c9a24f);
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.autocomplete-dropdown {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		right: 0;
+		background: var(--s-surface, white);
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-md, 10px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		list-style: none;
+		margin: 0;
+		padding: 4px;
+		max-height: 200px;
+		overflow-y: auto;
+		z-index: 10;
+		animation: s-fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	:global(.staff-app.dark) .autocomplete-dropdown {
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+	}
+
+	.autocomplete-item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 10px 12px;
+		border-radius: var(--s-radius-sm, 6px);
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+	}
+
+	.autocomplete-item:hover {
+		background: var(--s-bg-tertiary, #f3f4f6);
+	}
+
+	.ac-avatar {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: linear-gradient(135deg, var(--s-accent, #c9a24f), var(--s-brand, #1a1a2e));
+		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
+		font-size: 0.9rem;
+		flex-shrink: 0;
+	}
+
+	.ac-info {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.ac-name {
+		font-weight: 600;
+		color: var(--s-text-primary, #1a1a2e);
+		font-size: 0.95rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.ac-phone {
+		font-size: 0.8rem;
+		color: var(--s-text-secondary, #6b7280);
+	}
+
 	.row {
 		display: flex;
 		gap: 12px;
@@ -1151,6 +1526,262 @@
 	.service-select {
 		flex: 1;
 	}
+
+	/* Custom Dropdown Styles updated for Modal */
+	.dropdown-trigger {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 14px 16px;
+		background: var(--s-bg, #f8f9fa);
+		border: 1px dashed var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-md, 10px);
+		font-size: 1.05rem;
+		font-weight: 600;
+		color: var(--s-text-primary, #1a1a2e);
+		font-family: inherit;
+		cursor: pointer;
+		text-align: left;
+		transition: all 0.2s ease;
+	}
+	.dropdown-trigger:focus, .dropdown-trigger:active {
+		border-color: var(--s-accent, #c9a24f);
+		background: var(--s-accent-bg, rgba(201, 162, 79, 0.05));
+		outline: none;
+	}
+	.trigger-text {
+		flex: 1;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.dropdown-arrow {
+		display: flex;
+		color: var(--s-text-tertiary, #9ca3af);
+		align-items: center;
+		justify-content: center;
+		background: var(--s-surface, white);
+		border-radius: 50%;
+		width: 28px;
+		height: 28px;
+		box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+	}
+
+	.catalog-modal-content {
+		background: var(--s-surface, white);
+		width: 100%;
+		height: 100vh;
+		height: 100dvh;
+		display: flex;
+		flex-direction: column;
+		animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+		overflow: hidden;
+	}
+
+	@media (min-width: 768px) {
+		.catalog-modal-content {
+			max-width: 500px;
+			height: 85vh;
+			border-radius: var(--s-radius-2xl, 20px);
+			animation: fadeIn 0.3s ease-out;
+		}
+	}
+
+	.catalog-sort-header {
+		padding: 12px 20px;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		background: var(--s-bg-tertiary, #f3f4f6);
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		flex-shrink: 0;
+	}
+	
+	.catalog-body {
+		flex: 1;
+		overflow-y: auto;
+		-ms-overflow-style: none;
+		scrollbar-width: thin;
+		background: var(--s-bg, #f8f9fa);
+	}
+
+	.sort-label {
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		font-weight: 800;
+		color: var(--s-text-tertiary, #9ca3af);
+		letter-spacing: 0.06em;
+	}
+	.sort-buttons {
+		display: flex;
+		gap: 8px;
+	}
+	.sort-btn {
+		flex: 1;
+		padding: 10px 8px;
+		font-size: 0.9rem;
+		font-weight: 600;
+		border-radius: var(--s-radius-md, 8px);
+		border: 1px solid var(--s-border, #e5e7eb);
+		background: var(--s-surface, white);
+		color: var(--s-text-secondary, #6b7280);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+	.sort-btn.active {
+		background: var(--s-brand, #1a1a2e);
+		color: white;
+		border-color: var(--s-brand, #1a1a2e);
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+	}
+
+	.dropdown-list {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.category-group {
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		background: var(--s-surface, white);
+	}
+	.category-group:last-child {
+		border-bottom: none;
+	}
+	.category-header {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 18px 20px;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+	.category-header:active {
+		background: var(--s-bg, #f8f9fa);
+	}
+	.cat-name {
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-weight: 700;
+		font-size: 1.15rem;
+		color: var(--s-text-primary, #1a1a2e);
+		text-align: left;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.cat-count {
+		font-size: 0.9rem;
+		color: var(--s-text-tertiary, #9ca3af);
+		font-weight: 500;
+	}
+	.cat-arrow {
+		color: var(--s-text-tertiary, #9ca3af);
+		transition: transform 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--s-bg, #f8f9fa);
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+	}
+	.cat-arrow.expanded {
+		transform: rotate(180deg);
+		background: var(--s-brand, #1a1a2e);
+		color: white;
+	}
+
+	.category-items {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		padding: 8px 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.service-option {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 16px;
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-lg, 12px);
+		background: var(--s-surface, white);
+		cursor: pointer;
+		transition: transform 0.1s ease, box-shadow 0.1s ease;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+	}
+	.service-option:active {
+		transform: scale(0.98);
+		background: var(--s-bg, #f8f9fa);
+	}
+	.service-option.flat {
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		border-top: none;
+		box-shadow: none;
+		padding: 18px 20px;
+	}
+	.service-option.flat:last-child {
+		border-bottom: none;
+	}
+	
+	.svc-details {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+	}
+	
+	.svc-name {
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--s-text-primary, #1a1a2e);
+		text-align: left;
+	}
+	.svc-duration {
+		font-size: 0.8rem;
+		color: var(--s-text-secondary, #6b7280);
+		background: var(--s-bg, #f8f9fa);
+		padding: 2px 8px;
+		border-radius: 12px;
+		border: 1px solid var(--s-border, #e5e7eb);
+	}
+	.svc-cat-tag {
+		font-size: 0.8rem;
+		color: var(--s-text-tertiary, #9ca3af);
+		font-weight: 500;
+	}
+	.svc-price {
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: var(--s-brand, #1a1a2e);
+		background: var(--s-bg-tertiary, #f3f4f6);
+		padding: 6px 12px;
+		border-radius: 8px;
+	}
+
+	:global(.staff-app.dark) .catalog-modal-content { background: var(--s-bg, #121212); }
+	:global(.staff-app.dark) .catalog-sort-header { background: #1a1a1e; border-color: #333; }
+	:global(.staff-app.dark) .sort-btn { background: #222; border-color: #333; color: #aaa; }
+	:global(.staff-app.dark) .category-header { background: var(--s-bg, #121212); color: #fff; border-color: #333; }
+	:global(.staff-app.dark) .category-group { border-color: #333; background: var(--s-bg, #121212); }
+	:global(.staff-app.dark) .service-option.flat { border-color: #333; }
+	:global(.staff-app.dark) .category-items { background: #1a1a1e; border-color: #333; }
+	:global(.staff-app.dark) .service-option { background: #222; border-color: #333; }
+	:global(.staff-app.dark) .svc-price { background: #333; color: #fff; }
+	:global(.staff-app.dark) .svc-name { color: #fff; }
+	:global(.staff-app.dark) .sort-btn.active { background: var(--s-accent, #c9a24f); color: #000; border-color: var(--s-accent, #c9a24f); }
+	:global(.staff-app.dark) .dropdown-trigger { background: var(--s-bg, #121212); border-color: #444; color: #fff; }
+	:global(.staff-app.dark) .dropdown-arrow { background: #333; }
+	:global(.staff-app.dark) .cat-arrow { background: #333; }
+	:global(.staff-app.dark) .cat-arrow.expanded { background: var(--s-accent, #c9a24f); color: #000; }
 
 	.confirm-add-btn {
 		background: var(--s-brand, #1a1a2e);

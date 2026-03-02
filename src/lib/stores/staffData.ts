@@ -9,10 +9,11 @@ import {
 	doc,
 	Timestamp,
 	where,
-	getDocs
+	getDocs,
+	limit
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
-import type { Booking, Service } from './adminData'; // Reuse types
+import type { Booking, Service, AppUser } from './adminData'; // Reuse types
 
 // --- Stores ---
 export const staffBookings = writable<Booking[]>([]);
@@ -165,6 +166,25 @@ export async function getBookingHistory(userId: string): Promise<Booking[]> {
 		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Booking);
 	} catch (e) {
 		console.error('Error fetching history:', e);
+		return [];
+	}
+}
+
+export async function searchUsersByPhone(phoneQuery: string): Promise<AppUser[]> {
+	try {
+		if (!phoneQuery || phoneQuery.trim().length < 3) return []; // Require at least 3 chars
+
+		// Note: Firestore doesn't do substring search well, but prefix search works.
+		const q = query(
+			collection(db, 'users'),
+			where('phone', '>=', phoneQuery),
+			where('phone', '<=', phoneQuery + '\uf8ff'),
+			limit(5)
+		);
+		const snapshot = await getDocs(q);
+		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as AppUser);
+	} catch (e) {
+		console.error('Error searching users by phone:', e);
 		return [];
 	}
 }
