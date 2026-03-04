@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '$lib/styles/staffTheme.css';
 	import { onMount, onDestroy } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { showToast } from '$lib/stores/toast';
@@ -36,6 +37,13 @@
 							: 'Blancbeu Stylist'
 	);
 
+	let isNavVisible = $derived(
+		!page.url.pathname.includes('/staff/bookings/') || page.url.pathname.endsWith('/bookings')
+	);
+
+	// Derived theme color for mobile status bar & address bar
+	let metaThemeColor = $derived($resolvedTheme === 'dark' ? '#16161d' : '#ffffff');
+
 	let unsub: (() => void) | null = null;
 
 	onMount(() => {
@@ -65,6 +73,13 @@
 	});
 </script>
 
+<svelte:head>
+	<meta name="theme-color" content={metaThemeColor} />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+	<meta name="msapplication-navbutton-color" content={metaThemeColor} />
+</svelte:head>
+
 <div class="staff-app {$resolvedTheme}">
 	{#if $staffAuthState === 'loading' || $staffAuthState === 'checking'}
 		<!-- If Firebase Auth takes longer than the 2s global splash screen, show this localized loader -->
@@ -88,12 +103,14 @@
 				<StaffHeader title={currentTitle} notificationCount={pendingCount} />
 			</div>
 
-			<main class="staff-main">
+			<main class="staff-main {!isNavVisible ? 'no-nav' : ''}">
 				{@render children()}
 			</main>
 
 			<div class="staff-nav-container">
-				<StaffNav />
+				{#if isNavVisible}
+					<StaffNav />
+				{/if}
 			</div>
 		</div>
 	{:else}
@@ -139,6 +156,15 @@
 		padding: var(--s-space-lg) var(--s-space-lg);
 		padding-bottom: calc(var(--s-nav-height) + 24px);
 		overflow-x: hidden;
+		transition: padding-bottom 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	:global(body:has(.modal-backdrop)) .staff-main {
+		padding-bottom: 24px !important;
+	}
+
+	.staff-main.no-nav {
+		padding-bottom: 24px;
 	}
 
 	.staff-nav-container {

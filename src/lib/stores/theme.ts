@@ -11,9 +11,13 @@ export const THEME_COLORS: Record<Theme, string> = {
 
 const getInitialTheme = (): Theme => {
 	if (browser) {
-		const stored = localStorage.getItem('theme') as Theme;
-		if (stored) return stored;
-		return 'gold'; // Default
+		const hour = new Date().getHours();
+		// Daytime: 6 AM to 6 PM -> light theme
+		if (hour >= 6 && hour < 18) {
+			return 'clean';
+		}
+		// Evening or Nighttime -> dark theme
+		return 'gold';
 	}
 	return 'gold';
 };

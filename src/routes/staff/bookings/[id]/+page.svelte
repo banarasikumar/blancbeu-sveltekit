@@ -37,6 +37,16 @@
 				];
 			}
 		}
+
+		// Initialize QR fields from DB if they exist and local states are currently null
+		if (originalBooking) {
+			if (qrAdjustedAmount === null && originalBooking.qrAdjustedAmount !== undefined)
+				qrAdjustedAmount = originalBooking.qrAdjustedAmount;
+			if (qrOnlineAmount === null && originalBooking.qrOnlineAmount !== undefined)
+				qrOnlineAmount = originalBooking.qrOnlineAmount;
+			if (qrCashAmount === null && originalBooking.qrCashAmount !== undefined)
+				qrCashAmount = originalBooking.qrCashAmount;
+		}
 	});
 
 	// Totals calculation
@@ -58,6 +68,252 @@
 	let showQrModal = $state(false);
 	let qrCodeDataUrl = $state('');
 	let isGeneratingQr = $state(false);
+	let qrAdjustedAmount = $state<number | null>(null);
+	let qrOnlineAmount = $state<number | null>(null);
+	let qrCashAmount = $state<number | null>(null);
+	let isPaymentConfirmed = $state(false); // Checkbox state
+	let payBtnShaking = $state(false); // Shake animation for checkbox row
+	let qrDisplayAmount = $derived(qrAdjustedAmount !== null ? qrAdjustedAmount : totalAmount);
+
+	// Edit modal state
+	let showEditModal = $state(false);
+	let editOnlineAmount = $state<number | null>(null);
+	let editCashAmount = $state<number | null>(null);
+	let editAdjustedAmount = $state<number | null>(null);
+	let editAdjustedBill = $state<number | null>(null);
+	// Track which field was last edited (to protect it from auto-fill)
+	let lastEditedSplit = $state<'online' | 'cash' | null>(null);
+	let lastEditedAdj = $state<'amount' | 'bill' | null>(null);
+
+	// Mark-as-Paid modal state
+	let showPayModal = $state(false);
+	let payConfirmed = $state(false);
+	let payModalShaking = $state(false);
+
+	let initialPayState = $state({
+		online: 0 as number | null,
+		cash: 0 as number | null,
+		adjAmt: 0 as number | null,
+		adjBill: 0 as number | null
+	});
+
+	let actionInitialized = $state(false);
+	$effect(() => {
+		const action = page.url.searchParams.get('action');
+		if (action && !actionInitialized && originalBooking) {
+			actionInitialized = true;
+			// Replace state to remove the query param so it doesn't re-trigger on refresh
+			const url = new URL(page.url);
+			url.searchParams.delete('action');
+			goto(url, { replaceState: true, keepFocus: true });
+
+			if (action === 'qr') {
+				handleShowQR();
+			} else if (action === 'pay') {
+				openPayModal();
+			}
+		}
+	});
+
+	let isPaymentEdited = $derived(
+		showPayModal &&
+			(editOnlineAmount !== initialPayState.online ||
+				editCashAmount !== initialPayState.cash ||
+				editAdjustedBill !== initialPayState.adjBill ||
+				editAdjustedAmount !== initialPayState.adjAmt)
+	);
+
+	function openEditModal() {
+		editAdjustedBill = qrAdjustedAmount !== null ? qrAdjustedAmount : totalAmount;
+		editAdjustedAmount = Math.max(0, totalAmount - editAdjustedBill);
+
+		editOnlineAmount = qrOnlineAmount !== null ? qrOnlineAmount : editAdjustedBill;
+		editCashAmount = qrCashAmount !== null ? qrCashAmount : 0;
+
+		lastEditedSplit = null;
+		lastEditedAdj = null;
+		showEditModal = true;
+	}
+
+	function openPayModal() {
+		editAdjustedBill = qrAdjustedAmount !== null ? qrAdjustedAmount : totalAmount;
+		editAdjustedAmount =
+			qrAdjustedAmount !== null ? Math.max(0, totalAmount - qrAdjustedAmount) : 0;
+		editOnlineAmount = qrOnlineAmount !== null ? qrOnlineAmount : editAdjustedBill;
+		editCashAmount = qrCashAmount !== null ? qrCashAmount : 0;
+
+		initialPayState = {
+			online: editOnlineAmount,
+			cash: editCashAmount,
+			adjAmt: editAdjustedAmount,
+			adjBill: editAdjustedBill
+		};
+
+		lastEditedSplit = null;
+		lastEditedAdj = null;
+		payConfirmed = false;
+		showPayModal = true;
+	}
+
+	function handleUpdatePayment() {
+		syncPaymentSplitToDB();
+		// Update initial state to match current, so buttons flip back
+		initialPayState = {
+			online: editOnlineAmount,
+			cash: editCashAmount,
+			adjAmt: editAdjustedAmount,
+			adjBill: editAdjustedBill
+		};
+		showToast('Payment updated!', 'success');
+	}
+
+	function handleCancelPayment() {
+		// Revert to initial values
+		editOnlineAmount = initialPayState.online;
+		editCashAmount = initialPayState.cash;
+		editAdjustedBill = initialPayState.adjBill;
+		editAdjustedAmount = initialPayState.adjAmt;
+		syncPaymentSplitToDB();
+	}
+
+	/** Persist current split/adjustment values to the DB (fire-and-forget). */
+	function syncPaymentSplitToDB() {
+		if (!originalBooking) return;
+		const totalBillAfterAdj = editAdjustedBill ?? totalAmount;
+		const adjAmount = totalBillAfterAdj !== totalAmount ? totalBillAfterAdj : null;
+		// Update local reactive state so the booking summary behind reflects changes
+		qrAdjustedAmount = adjAmount;
+		qrOnlineAmount = editOnlineAmount;
+		qrCashAmount = editCashAmount;
+		updateBookingDetails(originalBooking.id, {
+			qrAdjustedAmount: adjAmount,
+			qrOnlineAmount: editOnlineAmount,
+			qrCashAmount: editCashAmount
+		}).catch(console.error);
+	}
+
+	async function applyPayModal() {
+		if (!payConfirmed) {
+			payModalShaking = true;
+			setTimeout(() => (payModalShaking = false), 500);
+			return;
+		}
+		const totalBillAfterAdj = editAdjustedBill ?? totalAmount;
+		qrAdjustedAmount = totalBillAfterAdj !== totalAmount ? totalBillAfterAdj : null;
+		qrOnlineAmount = editOnlineAmount;
+		qrCashAmount = editCashAmount;
+		showPayModal = false;
+		const paidAmount = qrAdjustedAmount ?? totalAmount;
+		if (originalBooking) {
+			try {
+				await updateBookingDetails(originalBooking.id, {
+					qrAdjustedAmount,
+					qrOnlineAmount,
+					qrCashAmount,
+					payment: {
+						type: 'manual',
+						method: 'upi_or_cash',
+						amount: paidAmount,
+						status: 'paid'
+					}
+				});
+				showToast('Marked as paid!', 'success');
+			} catch (error) {
+				console.error('Error marking as paid:', error);
+				showToast('Failed to update payment status.', 'error');
+			}
+		}
+	}
+
+	function handlePayClick() {
+		if (!isPaymentConfirmed) {
+			payBtnShaking = true;
+			setTimeout(() => (payBtnShaking = false), 500);
+			return;
+		}
+		handleMarkAsPaid(qrDisplayAmount);
+	}
+
+	function onOnlineInput(e: Event) {
+		const val = Number((e.target as HTMLInputElement).value);
+		editOnlineAmount = isNaN(val) ? null : val;
+		lastEditedSplit = 'online';
+		// Only auto-fill cash if cash was not the last edited field
+		if (lastEditedSplit !== 'cash' && editOnlineAmount !== null) {
+			editCashAmount = Math.max(0, totalAmount - editOnlineAmount);
+		}
+	}
+
+	function onCashInput(e: Event) {
+		const val = Number((e.target as HTMLInputElement).value);
+		editCashAmount = isNaN(val) ? null : val;
+		lastEditedSplit = 'cash';
+		// Only auto-fill online if online was not the last edited field
+		if (lastEditedSplit !== 'online' && editCashAmount !== null) {
+			editOnlineAmount = Math.max(0, totalAmount - editCashAmount);
+		}
+	}
+
+	function onAdjustedAmountInput(e: Event) {
+		const val = Number((e.target as HTMLInputElement).value);
+		editAdjustedAmount = isNaN(val) ? null : val;
+		lastEditedAdj = 'amount';
+		if (editAdjustedAmount !== null) {
+			editAdjustedBill = Math.max(0, totalAmount - editAdjustedAmount);
+			updateSplitFromAdj(editAdjustedBill);
+		}
+	}
+
+	function onAdjustedBillInput(e: Event) {
+		const val = Number((e.target as HTMLInputElement).value);
+		editAdjustedBill = isNaN(val) ? null : val;
+		lastEditedAdj = 'bill';
+		if (editAdjustedBill !== null) {
+			editAdjustedAmount = Math.max(0, totalAmount - editAdjustedBill);
+			updateSplitFromAdj(editAdjustedBill);
+		}
+	}
+
+	function updateSplitFromAdj(newBill: number) {
+		if (lastEditedSplit === 'online' && editOnlineAmount !== null) {
+			editCashAmount = Math.max(0, newBill - editOnlineAmount);
+		} else if (lastEditedSplit === 'cash' && editCashAmount !== null) {
+			editOnlineAmount = Math.max(0, newBill - editCashAmount);
+		} else {
+			// If nothing locked, initialize: online = newBill, cash = 0
+			editOnlineAmount = newBill;
+			editCashAmount = 0;
+		}
+	}
+
+	async function applyEditModal() {
+		const totalBillAfterAdj = editAdjustedBill ?? totalAmount;
+		const qrGenerationAmount = editOnlineAmount !== null ? editOnlineAmount : totalBillAfterAdj;
+
+		qrAdjustedAmount = totalBillAfterAdj !== totalAmount ? totalBillAfterAdj : null;
+		qrOnlineAmount = editOnlineAmount;
+		qrCashAmount = editCashAmount;
+		showEditModal = false;
+
+		// Sync to DB immediately
+		if (originalBooking) {
+			updateBookingDetails(originalBooking.id, {
+				qrAdjustedAmount,
+				qrOnlineAmount,
+				qrCashAmount
+			}).catch(console.error);
+		}
+
+		try {
+			isGeneratingQr = true;
+			await generateQrForAmount(qrGenerationAmount);
+		} catch (error) {
+			console.error('Error regenerating QR:', error);
+			showToast('Error updating QR code.', 'error');
+		} finally {
+			isGeneratingQr = false;
+		}
+	}
 
 	function addService() {
 		if (!newServiceName) return;
@@ -152,7 +408,8 @@
 				totalAmount,
 				discountAmount,
 				extraCharge,
-				couponCode
+				couponCode,
+				paymentStatus: originalBooking.payment?.status === 'paid' ? 'paid' : 'unpaid'
 			});
 
 			showToast('Invoice generated!', 'success');
@@ -164,20 +421,28 @@
 		}
 	}
 
+	async function generateQrForAmount(amount: number) {
+		const QRCode = (await import('qrcode')).default;
+		const invoiceNum = `INV-${String(bookingId).slice(0, 8).toUpperCase()}`;
+		const upiUri = `upi://pay?pa=Q714475106@ybl&pn=BlancBeu Beauty Salon&mc=0000&mode=02&purpose=00&am=${amount}&cu=INR&tn=${invoiceNum}`;
+
+		qrCodeDataUrl = await QRCode.toDataURL(upiUri, {
+			width: 300,
+			margin: 1,
+			color: { dark: '#1a1a2e', light: '#FFFFFF' }
+		});
+	}
+
 	async function handleShowQR() {
 		try {
 			isGeneratingQr = true;
 			showQrModal = true;
+			qrAdjustedAmount = null;
+			qrOnlineAmount = null;
+			qrCashAmount = null;
+			isPaymentConfirmed = false;
 
-			const QRCode = (await import('qrcode')).default;
-			const invoiceNum = `INV-${String(bookingId).slice(0, 8).toUpperCase()}`;
-			const upiUri = `upi://pay?pa=Q714475106@ybl&pn=BlancBeu Beauty Salon&mc=0000&mode=02&purpose=00&am=${totalAmount}&cu=INR&tn=${invoiceNum}`;
-
-			qrCodeDataUrl = await QRCode.toDataURL(upiUri, {
-				width: 300,
-				margin: 1,
-				color: { dark: '#1a1a2e', light: '#FFFFFF' }
-			});
+			await generateQrForAmount(totalAmount);
 		} catch (error) {
 			console.error('Error generating QR:', error);
 			showToast('Error generating QR code.', 'error');
@@ -187,22 +452,30 @@
 		}
 	}
 
-	async function handleMarkAsPaid() {
+	async function handleMarkAsPaid(amount?: number) {
 		if (!originalBooking) return;
+		const paidAmount = amount ?? totalAmount;
 		try {
 			await updateBookingDetails(originalBooking.id, {
 				payment: {
 					type: 'manual',
 					method: 'upi_or_cash',
-					amount: totalAmount,
+					amount: paidAmount,
 					status: 'paid'
 				}
 			});
 			showToast('Marked as paid!', 'success');
+			showQrModal = false;
 		} catch (error) {
 			console.error('Error marking as paid:', error);
 			showToast('Failed to update payment status.', 'error');
 		}
+	}
+
+	function handleShowQRFromPayModal() {
+		syncPaymentSplitToDB();
+		showPayModal = false;
+		handleShowQR();
 	}
 </script>
 
@@ -229,7 +502,16 @@
 					<path d="M19 12H5M12 19l-7-7 7-7" />
 				</svg>
 			</button>
-			<h1 class="page-title">Booking & Services Summary</h1>
+			<div class="title-row">
+				<h1 class="page-title">Booking & Services Summary</h1>
+				{#if isCompleted}
+					{#if originalBooking.payment?.status === 'paid'}
+						<span class="pay-status-badge paid">✓ Paid</span>
+					{:else}
+						<span class="pay-status-badge unpaid">Unpaid</span>
+					{/if}
+				{/if}
+			</div>
 			<div class="header-actions">
 				{#if isCompleted && !isEditing}
 					<button class="edit-btn" onclick={() => (isEditing = true)} title="Edit Booking">
@@ -401,11 +683,38 @@
 					<span>- ₹{discountAmount}</span>
 				</div>
 			{/if}
+
+			{#if qrAdjustedAmount !== null && qrAdjustedAmount !== totalAmount}
+				<div class="ts-row ts-sub">
+					<span>QR Adjustment</span>
+					<span
+						>{qrAdjustedAmount < totalAmount ? '-' : '+'} ₹{Math.abs(
+							totalAmount - qrAdjustedAmount
+						)}</span
+					>
+				</div>
+			{/if}
+
+			{#if qrOnlineAmount !== null && qrCashAmount !== null && (qrOnlineAmount > 0 || qrCashAmount > 0)}
+				<div class="ts-row ts-split-bg">
+					<span>Payment Split</span>
+					<span class="split-bg">Online ₹{qrOnlineAmount} &bull; Cash ₹{qrCashAmount}</span>
+				</div>
+			{/if}
+
 			<div class="ts-divider"></div>
-			<div class="ts-row ts-grand">
-				<span>Grand Total</span>
-				<span>₹{totalAmount}</span>
-			</div>
+
+			{#if qrAdjustedAmount !== null && qrAdjustedAmount !== totalAmount}
+				<div class="ts-row ts-grand">
+					<span>Final Payable</span>
+					<span>₹{qrAdjustedAmount}</span>
+				</div>
+			{:else}
+				<div class="ts-row ts-grand">
+					<span>Grand Total</span>
+					<span>₹{totalAmount}</span>
+				</div>
+			{/if}
 		</section>
 
 		<!-- ACTION BUTTONS -->
@@ -437,7 +746,7 @@
 					</button>
 				</div>
 			{:else}
-				<!-- Already completed — show Payment Actions + Chat/Invoice -->
+				<!-- Already completed — show Payment Actions only (Hiding Chat/Invoice as requested) -->
 				<div class="action-column">
 					<div class="action-row">
 						<button class="s-btn s-btn-lg action-btn qr-btn" onclick={handleShowQR}>
@@ -458,7 +767,7 @@
 							</svg>
 							Show QR
 						</button>
-						<button class="s-btn s-btn-lg action-btn pay-btn" onclick={handleMarkAsPaid}>
+						<button class="s-btn s-btn-lg action-btn pay-btn" onclick={openPayModal}>
 							<svg
 								width="20"
 								height="20"
@@ -523,64 +832,489 @@
 			</div>
 		{/if}
 
-		<!-- QR CODE MODAL -->
+		<!-- FULLSCREEN QR PAYMENT -->
 		{#if showQrModal}
-			<div class="qr-modal-overlay" onclick={() => (showQrModal = false)}>
-				<div class="qr-modal-content" onclick={(e) => e.stopPropagation()}>
-					<div class="qr-modal-header">
-						<h2>Scan to Pay</h2>
-						<button class="qr-close-btn" onclick={() => (showQrModal = false)}>
+			<div class="qr-fullscreen">
+				<!-- Top bar -->
+				<div class="qr-fs-topbar">
+					<button class="qr-fs-back" onclick={() => (showQrModal = false)}>
+						<svg
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<line x1="18" y1="6" x2="6" y2="18"></line>
+							<line x1="6" y1="6" x2="18" y2="18"></line>
+						</svg>
+					</button>
+					<h2 class="qr-fs-title">Scan to Pay</h2>
+					<div class="qr-fs-spacer"></div>
+				</div>
+
+				<!-- Body -->
+				<div class="qr-fs-body">
+					{#if isGeneratingQr}
+						<div class="qr-loading">
+							<div class="spinner"></div>
+							<p>Generating QR Code...</p>
+						</div>
+					{:else if qrCodeDataUrl}
+						<!-- Amount Section Moved Above QR Image -->
+						<div class="qr-fs-amount-section">
+							<div class="qr-fs-amount-display">
+								<div class="qr-fs-amount-row">
+									<span class="qr-fs-currency">₹</span>
+									{#if qrOnlineAmount !== null}
+										<span class="qr-fs-amount">{qrOnlineAmount}</span>
+									{:else}
+										<span class="qr-fs-amount">{qrDisplayAmount}</span>
+									{/if}
+								</div>
+							</div>
+						</div>
+
+						<!-- QR Image -->
+						<div class="qr-fs-image-wrap">
+							<img src={qrCodeDataUrl} alt="Payment QR Code" class="qr-fs-image" />
+						</div>
+
+						<!-- UPI Info -->
+						<div class="qr-fs-upi-container">
+							<div class="qr-fs-upi">
+								<span class="qr-fs-upi-label">UPI ID:</span>
+								<span class="qr-fs-upi-id">Q714475106@ybl</span>
+							</div>
+							<div class="qr-fs-receiver-name">Rina Kumari</div>
+						</div>
+
+						<div class="qr-fs-hint">
+							<p>Scan with any UPI app to pay</p>
+							<div class="qr-fs-apps">
+								<span>GPay</span> • <span>PhonePe</span> • <span>Paytm</span>
+							</div>
+						</div>
+
+						<div class="qr-fs-details">
+							{#if qrOnlineAmount !== null && qrCashAmount !== null && (qrOnlineAmount > 0 || qrCashAmount > 0)}
+								<div class="qr-fs-detail-pill split">
+									<span>Split:</span>
+									{#if qrOnlineAmount > 0}
+										<span class="split-pill online">Online ₹{qrOnlineAmount}</span>
+									{/if}
+									{#if qrCashAmount > 0}
+										<span class="split-pill cash">Cash ₹{qrCashAmount}</span>
+									{/if}
+								</div>
+							{/if}
+							{#if qrAdjustedAmount !== null && qrAdjustedAmount !== totalAmount}
+								<div class="qr-fs-detail-pill adjustment">
+									<span>Adjustment:</span>
+									<span>
+										{#if qrAdjustedAmount < totalAmount}
+											- ₹{totalAmount - qrAdjustedAmount}
+										{:else}
+											+ ₹{qrAdjustedAmount - totalAmount}
+										{/if}
+									</span>
+								</div>
+							{/if}
+							{#if discountAmount > 0}
+								<div class="qr-fs-detail-pill discount">
+									<span>Discount:</span>
+									<span class="discount-val">- ₹{discountAmount}</span>
+								</div>
+							{/if}
+							<div class="qr-fs-detail-pill total">
+								<span>Total Payable:</span>
+								<div class="payable-wrapper">
+									{#if subtotal !== (qrAdjustedAmount ?? totalAmount)}
+										<span class="qr-fs-original-amount-bottom">₹{subtotal}</span>
+									{/if}
+									<span class="payable-amount">₹{qrAdjustedAmount ?? totalAmount}</span>
+								</div>
+							</div>
+						</div>
+					{:else}
+						<div class="qr-error">
+							<p>Failed to generate QR code.</p>
+							<button class="s-btn s-btn-outline" onclick={handleShowQR}>Try Again</button>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Bottom action -->
+				{#if qrCodeDataUrl && !isGeneratingQr}
+					<label class="qr-fs-checkbox-row" class:shake={payBtnShaking}>
+						<input type="checkbox" bind:checked={isPaymentConfirmed} />
+						<span class="checkbox-text">I confirm that payment has been received.</span>
+					</label>
+					<div class="qr-fs-footer">
+						<button
+							class="qr-fs-btn qr-fs-back-btn"
+							onclick={() => (showQrModal = false)}
+							aria-label="Back"
+						>
 							<svg
-								width="24"
-								height="24"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
 							>
-								<line x1="18" y1="6" x2="6" y2="18"></line>
-								<line x1="6" y1="6" x2="18" y2="18"></line>
+								<path d="M19 12H5M12 19l-7-7 7-7"></path>
 							</svg>
 						</button>
+						<button
+							class="qr-fs-btn qr-fs-options-btn"
+							onclick={openEditModal}
+							aria-label="Options"
+						>
+							<svg
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<circle cx="12" cy="5" r="1"></circle>
+								<circle cx="12" cy="12" r="1"></circle>
+								<circle cx="12" cy="19" r="1"></circle>
+							</svg>
+						</button>
+						<button class="qr-fs-btn qr-fs-pay-btn" onclick={handlePayClick}>
+							<svg
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+								<polyline points="22 4 12 14.01 9 11.01"></polyline>
+							</svg>
+							Mark as Paid
+						</button>
 					</div>
+				{/if}
 
-					<div class="qr-modal-body">
-						{#if isGeneratingQr}
-							<div class="qr-loading">
-								<div class="spinner"></div>
-								<p>Generating QR Code...</p>
-							</div>
-						{:else if qrCodeDataUrl}
-							<div class="qr-image-container">
-								<img src={qrCodeDataUrl} alt="Payment QR Code" class="qr-image" />
+				<!-- EDIT MODAL (slide-up) -->
+				{#if showEditModal}
+					<div class="em-overlay" onclick={() => (showEditModal = false)}>
+						<div class="em-sheet" onclick={(e) => e.stopPropagation()}>
+							<div class="em-handle"></div>
+							<div class="em-header">
+								<h3 class="em-title">Edit Payment</h3>
+								<button class="em-close" onclick={() => (showEditModal = false)} aria-label="Close">
+									<svg
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2.5"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									>
+										<line x1="18" y1="6" x2="6" y2="18"></line>
+										<line x1="6" y1="6" x2="18" y2="18"></line>
+									</svg>
+								</button>
 							</div>
 
-							<div class="qr-amount-container">
-								<span class="qr-currency">₹</span>
-								<span class="qr-amount">{totalAmount}</span>
-							</div>
-
-							<div class="qr-upi-info">
-								<p class="qr-upi-label">UPI ID:</p>
-								<p class="qr-upi-id">Q714475106@ybl</p>
-							</div>
-
-							<div class="qr-instructions">
-								<p>Scan with any UPI app to pay</p>
-								<div class="qr-apps">
-									<span>GPay</span> • <span>PhonePe</span> • <span>Paytm</span>
+							<!-- SECTION 1: Payment Split -->
+							<div class="em-section">
+								<div class="em-section-header">
+									<span class="em-section-title">Payment Split</span>
+								</div>
+								<div class="em-info-row">
+									<span class="em-label">Total Bill</span>
+									<span class="em-static-value">₹{totalAmount}</span>
+								</div>
+								<div class="em-field-row" class:em-locked={lastEditedSplit === 'online'}>
+									<label class="em-label" for="em-online">Online</label>
+									<div class="em-input-wrap">
+										<span class="em-currency">₹</span>
+										<input
+											id="em-online"
+											type="number"
+											class="em-input"
+											value={editOnlineAmount ?? ''}
+											oninput={onOnlineInput}
+											placeholder="0"
+										/>
+									</div>
+								</div>
+								<div class="em-field-row" class:em-locked={lastEditedSplit === 'cash'}>
+									<label class="em-label" for="em-cash">Cash</label>
+									<div class="em-input-wrap">
+										<span class="em-currency">₹</span>
+										<input
+											id="em-cash"
+											type="number"
+											class="em-input"
+											value={editCashAmount ?? ''}
+											oninput={onCashInput}
+											placeholder="0"
+										/>
+									</div>
 								</div>
 							</div>
-						{:else}
-							<div class="qr-error">
-								<p>Failed to generate QR code.</p>
-								<button class="s-btn s-btn-outline" onclick={handleShowQR}>Try Again</button>
+
+							<div class="em-divider"></div>
+
+							<!-- SECTION 2: Adjustment -->
+							<div class="em-section">
+								<div class="em-section-header">
+									<span class="em-section-title">Adjustment</span>
+								</div>
+								<div class="em-field-row" class:em-locked={lastEditedAdj === 'amount'}>
+									<label class="em-label" for="em-adj-amount">Adjusted Amount</label>
+									<div class="em-input-wrap">
+										<span class="em-currency">₹</span>
+										<input
+											id="em-adj-amount"
+											type="number"
+											class="em-input"
+											value={editAdjustedAmount ?? ''}
+											oninput={onAdjustedAmountInput}
+											placeholder="0"
+										/>
+									</div>
+								</div>
+								<div class="em-field-row" class:em-locked={lastEditedAdj === 'bill'}>
+									<label class="em-label" for="em-adj-bill">Bill After Adjustment</label>
+									<div class="em-input-wrap">
+										<span class="em-currency">₹</span>
+										<input
+											id="em-adj-bill"
+											type="number"
+											class="em-input"
+											value={editAdjustedBill ?? ''}
+											oninput={onAdjustedBillInput}
+											placeholder={totalAmount}
+										/>
+									</div>
+								</div>
 							</div>
-						{/if}
+
+							<!-- Modal Footer -->
+							<div class="em-footer">
+								<button class="em-btn em-cancel" onclick={() => (showEditModal = false)}
+									>Cancel</button
+								>
+								<button class="em-btn em-apply" onclick={applyEditModal}>Apply & Update QR</button>
+							</div>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
+{/if}
+
+<!-- MARK AS PAID MODAL (fullscreen, on summary page) -->
+{#if showPayModal}
+	<div class="pay-fullscreen">
+		<!-- Top bar -->
+		<div class="pay-fs-topbar">
+			<button class="pay-fs-close" onclick={() => (showPayModal = false)}>
+				<svg
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<line x1="18" y1="6" x2="6" y2="18"></line>
+					<line x1="6" y1="6" x2="18" y2="18"></line>
+				</svg>
+			</button>
+			<h2 class="pay-fs-title">Payment Details</h2>
+			<div class="pay-fs-spacer"></div>
+		</div>
+
+		<!-- Body -->
+		<div class="pay-fs-body">
+			<!-- SECTION 1: Payment Split -->
+			<div class="em-section">
+				<div class="em-section-header">
+					<span class="em-section-title">Payment Split</span>
+				</div>
+				<div class="em-info-row">
+					<span class="em-label">Total Bill</span>
+					<span class="em-static-value">₹{totalAmount}</span>
+				</div>
+				<div class="em-field-row" class:em-locked={lastEditedSplit === 'online'}>
+					<label class="em-label" for="pay-online">Online</label>
+					<div class="em-input-wrap">
+						<span class="em-currency">₹</span>
+						<input
+							id="pay-online"
+							type="number"
+							class="em-input"
+							value={editOnlineAmount ?? ''}
+							oninput={onOnlineInput}
+							onblur={syncPaymentSplitToDB}
+							placeholder="0"
+						/>
+					</div>
+				</div>
+				<div class="em-field-row" class:em-locked={lastEditedSplit === 'cash'}>
+					<label class="em-label" for="pay-cash">Cash</label>
+					<div class="em-input-wrap">
+						<span class="em-currency">₹</span>
+						<input
+							id="pay-cash"
+							type="number"
+							class="em-input"
+							value={editCashAmount ?? ''}
+							oninput={onCashInput}
+							onblur={syncPaymentSplitToDB}
+							placeholder="0"
+						/>
 					</div>
 				</div>
 			</div>
-		{/if}
+
+			<div class="em-divider"></div>
+
+			<!-- SECTION 2: Adjustment -->
+			<div class="em-section">
+				<div class="em-section-header">
+					<span class="em-section-title">Adjustment</span>
+				</div>
+				<div class="em-field-row" class:em-locked={lastEditedAdj === 'amount'}>
+					<label class="em-label" for="pay-adj-amount">Adjusted Amount</label>
+					<div class="em-input-wrap">
+						<span class="em-currency">₹</span>
+						<input
+							id="pay-adj-amount"
+							type="number"
+							class="em-input"
+							value={editAdjustedAmount ?? ''}
+							oninput={onAdjustedAmountInput}
+							onblur={syncPaymentSplitToDB}
+							placeholder="0"
+						/>
+					</div>
+				</div>
+				<div class="em-field-row" class:em-locked={lastEditedAdj === 'bill'}>
+					<label class="em-label" for="pay-adj-bill">Bill After Adjustment</label>
+					<div class="em-input-wrap">
+						<span class="em-currency">₹</span>
+						<input
+							id="pay-adj-bill"
+							type="number"
+							class="em-input"
+							value={editAdjustedBill ?? ''}
+							oninput={onAdjustedBillInput}
+							onblur={syncPaymentSplitToDB}
+							placeholder={totalAmount}
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Checkbox + Footer -->
+		<label class="qr-fs-checkbox-row" class:shake={payModalShaking}>
+			<input type="checkbox" bind:checked={payConfirmed} />
+			<span class="checkbox-text">I confirm that payment has been received.</span>
+		</label>
+		<div class="pay-fs-footer">
+			{#if isPaymentEdited}
+				<button
+					class="pay-fs-btn pay-fs-cancel-btn"
+					onclick={handleCancelPayment}
+					style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; flex: 1;"
+				>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M19 12H5M12 19l-7-7 7-7" />
+					</svg>
+					Cancel
+				</button>
+				<button
+					class="pay-fs-btn pay-fs-update-btn"
+					onclick={handleUpdatePayment}
+					style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; flex: 2; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);"
+				>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<polyline points="20 6 9 17 4 12" />
+					</svg>
+					Update
+				</button>
+			{:else}
+				<button class="pay-fs-btn pay-fs-qr-btn" onclick={handleShowQRFromPayModal}>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<rect x="3" y="3" width="7" height="7"></rect>
+						<rect x="14" y="3" width="7" height="7"></rect>
+						<rect x="14" y="14" width="7" height="7"></rect>
+						<rect x="3" y="14" width="7" height="7"></rect>
+					</svg>
+					Show QR
+				</button>
+				<button class="pay-fs-btn pay-fs-mark-btn" onclick={applyPayModal}>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+						<polyline points="22 4 12 14.01 9 11.01"></polyline>
+					</svg>
+					Mark as Paid
+				</button>
+			{/if}
+		</div>
 	</div>
 {/if}
 
@@ -599,7 +1333,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-space-md);
-		padding-bottom: calc(var(--s-nav-height, 68px) + 100px); /* Space for bottom action + nav */
+		padding-bottom: 120px; /* Space for fixed bottom actions */
 	}
 
 	.summary-header {
@@ -844,9 +1578,33 @@
 	.fin-item label {
 		display: block;
 		font-size: var(--s-text-xs);
-		font-weight: 600;
+		font-weight: 700;
 		color: var(--s-text-secondary);
-		margin-bottom: 6px;
+		margin-bottom: 8px;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+	}
+
+	.financials .s-input {
+		background: #f8fafc;
+		border: 1px solid #e2e8f0;
+		font-weight: 600;
+		color: #0f172a;
+	}
+
+	.financials .s-input:focus {
+		background: #ffffff;
+		border-color: var(--s-accent);
+		box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.1);
+	}
+
+	.readonly-mode .financials .s-input {
+		background: transparent !important;
+		border-color: transparent !important;
+		padding-left: 0;
+		padding-right: 0;
+		font-weight: 700;
+		color: #1e293b;
 	}
 
 	/* Total Section */
@@ -887,10 +1645,11 @@
 
 	.bottom-actions {
 		position: fixed;
-		bottom: var(--s-nav-height, 68px);
+		bottom: 0;
 		left: 0;
 		right: 0;
-		padding: var(--s-space-md);
+		padding: 16px 20px;
+		padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 		background: var(--s-surface);
 		border-top: 1px solid var(--s-border);
 		box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
@@ -1046,50 +1805,313 @@
 		}
 	}
 
-	/* QR Modal Styles */
-	.qr-modal-overlay {
+	/* ===== FULLSCREEN QR PAYMENT ===== */
+	.qr-fullscreen {
 		position: fixed;
 		top: 0;
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: rgba(0, 0, 0, 0.6);
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		background: var(--s-surface, #ffffff);
 		z-index: 2000;
-		padding: var(--s-space-lg, 24px);
-		backdrop-filter: blur(4px);
-		animation: fadeIn 0.2s ease-out;
-	}
-
-	.qr-modal-content {
-		background: var(--s-surface, white);
-		border-radius: var(--s-radius-2xl, 24px);
-		width: 100%;
-		max-width: 360px;
-		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-		overflow: hidden;
-		animation: slideUpScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-	}
-
-	.qr-modal-header {
 		display: flex;
-		justify-content: space-between;
+		flex-direction: column;
+		animation: qrSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	@keyframes qrSlideUp {
+		from {
+			opacity: 0;
+			transform: translateY(40px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.qr-fs-topbar {
+		display: flex;
 		align-items: center;
-		padding: 20px 24px 16px;
+		justify-content: space-between;
+		padding: 16px 20px;
 		border-bottom: 1px solid var(--s-border, #e5e7eb);
 	}
 
-	.qr-modal-header h2 {
+	.qr-fs-back {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border: none;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--s-text-secondary, #6b7280);
+		cursor: pointer;
+		transition: transform 0.15s ease;
+	}
+
+	.qr-fs-back:active {
+		transform: scale(0.9);
+	}
+
+	.qr-fs-title {
 		margin: 0;
 		font-family: var(--s-font-display, 'Outfit', sans-serif);
-		font-size: 1.25rem;
+		font-size: 1.2rem;
 		font-weight: 700;
 		color: var(--s-text-primary, #1a1a2e);
 	}
 
-	.qr-close-btn {
+	.qr-fs-spacer {
+		width: 40px;
+	}
+
+	.qr-fs-body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 24px 20px;
+		overflow-y: auto;
+		text-align: center;
+		gap: 20px;
+	}
+
+	.qr-fs-image-wrap {
+		background: white;
+		padding: 20px;
+		border-radius: var(--s-radius-xl, 20px);
+		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+		border: 1px solid var(--s-border, #e5e7eb);
+	}
+
+	.qr-fs-image {
+		display: block;
+		border-radius: 10px;
+		width: 240px;
+		height: 240px;
+		object-fit: contain;
+	}
+
+	/* Amount Section (Now Top) */
+	.qr-fs-amount-section {
+		width: 100%;
+		max-width: 340px;
+		margin-bottom: 8px;
+	}
+
+	.qr-fs-amount-display {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0px;
+	}
+
+	.qr-fs-original-amount {
+		font-size: 1.1rem;
+		color: var(--s-text-tertiary, #9ca3af);
+		text-decoration: line-through;
+		font-weight: 600;
+	}
+
+	.qr-fs-amount-row {
+		display: flex;
+		align-items: baseline;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.qr-fs-currency {
+		font-size: 1.8rem;
+		font-weight: 600;
+		color: var(--s-text-secondary, #6b7280);
+	}
+
+	.qr-fs-amount {
+		font-size: 3.2rem;
+		font-weight: 800;
+		color: var(--s-text-primary, #1a1a2e);
+		letter-spacing: -0.03em;
+		line-height: 1;
+	}
+
+	/* ===== FULLSCREEN PAY MODAL ===== */
+	.pay-fullscreen {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		background: var(--s-surface, #ffffff);
+		display: flex;
+		flex-direction: column;
+		animation: fadeIn 0.25s ease;
+	}
+
+	.pay-fs-topbar {
+		padding: 16px 20px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		background: var(--s-surface, #ffffff);
+		flex-shrink: 0;
+	}
+
+	.pay-fs-close {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border: none;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--s-text-secondary, #6b7280);
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.pay-fs-close:hover {
+		background: #fee2e2;
+		color: #ef4444;
+	}
+
+	.pay-fs-close:active {
+		transform: scale(0.92);
+	}
+
+	.pay-fs-title {
+		margin: 0;
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-size: 1.2rem;
+		font-weight: 800;
+		color: var(--s-text-primary, #0f172a);
+	}
+
+	.pay-fs-spacer {
+		width: 40px;
+	}
+
+	.pay-fs-body {
+		flex: 1;
+		overflow-y: auto;
+		padding-bottom: 16px;
+	}
+
+	.pay-fs-footer {
+		padding: 16px 20px;
+		padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+		border-top: 1px solid var(--s-border, #e5e7eb);
+		background: var(--s-surface, white);
+		display: flex;
+		gap: 12px;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	.pay-fs-btn {
+		padding: 14px 12px;
+		border-radius: var(--s-radius-lg, 16px);
+		border: none;
+		font-size: 0.95rem;
+		font-weight: 700;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		transition: all 0.15s ease;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	}
+
+	.pay-fs-btn:active {
+		transform: scale(0.97);
+	}
+
+	.pay-fs-qr-btn {
+		flex: 1;
+		background: linear-gradient(135deg, #6366f1, #4f46e5);
+		color: white;
+		box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+		border: 1px solid rgba(79, 70, 229, 0.5);
+	}
+
+	.pay-fs-qr-btn:hover {
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	}
+
+	.pay-fs-mark-btn {
+		flex: 1;
+		background: linear-gradient(135deg, #22c55e, #16a34a);
+		color: white;
+		box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+		border: 1px solid rgba(22, 163, 74, 0.5);
+	}
+
+	.pay-fs-mark-btn:hover {
+		box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+	}
+
+	/* ===== EDIT MODAL (slide-up bottom sheet) ===== */
+	.em-overlay {
+		position: absolute;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.45);
+		backdrop-filter: blur(4px);
+		z-index: 10;
+		display: flex;
+		align-items: flex-end;
+		animation: fadeIn 0.2s ease;
+	}
+
+	.em-sheet {
+		width: 100%;
+		background: var(--s-surface, #ffffff);
+		border-radius: 32px 32px 0 0;
+		padding: 8px 0 0;
+		animation: emSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+		max-height: 92vh;
+		overflow-y: auto;
+	}
+
+	@keyframes emSlideUp {
+		from {
+			transform: translateY(100%);
+			opacity: 0.5;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+
+	.em-handle {
+		width: 40px;
+		height: 5px;
+		background: #d1d5db;
+		border-radius: 99px;
+		margin: 8px auto 16px;
+	}
+
+	.em-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 20px 16px;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+	}
+
+	.em-title {
+		margin: 0;
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-size: 1.25rem;
+		font-weight: 800;
+		color: #0f172a;
+	}
+
+	.em-close {
 		background: var(--s-bg-tertiary, #f3f4f6);
 		border: none;
 		width: 36px;
@@ -1100,73 +2122,163 @@
 		justify-content: center;
 		color: var(--s-text-secondary, #6b7280);
 		cursor: pointer;
-		transition: transform 0.15s ease;
+		transition: all 0.2s ease;
 	}
 
-	.qr-close-btn:active {
-		transform: scale(0.9);
-		background: var(--s-border, #e5e7eb);
+	.em-close:hover {
+		background: #fee2e2;
+		color: #ef4444;
 	}
 
-	.qr-modal-body {
-		padding: 30px 24px 40px;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		text-align: center;
+	.em-close:active {
+		transform: scale(0.92);
 	}
 
-	.qr-image-container {
-		background: white;
-		padding: 16px;
-		border-radius: var(--s-radius-lg, 16px);
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-		border: 1px solid var(--s-border, #e5e7eb);
-		margin-bottom: 24px;
+	.em-section {
+		padding: 16px 20px 4px;
 	}
 
-	.qr-image {
-		display: block;
-		border-radius: 8px;
-		width: 220px;
-		height: 220px;
-		object-fit: contain;
+	.em-section-header {
+		margin-bottom: 12px;
 	}
 
-	.qr-amount-container {
-		display: flex;
-		align-items: baseline;
-		justify-content: center;
-		gap: 4px;
-		margin-bottom: 16px;
-	}
-
-	.qr-currency {
-		font-size: 1.5rem;
-		font-weight: 600;
-		color: var(--s-text-secondary, #6b7280);
-	}
-
-	.qr-amount {
-		font-size: 2.5rem;
+	.em-section-title {
+		font-size: 0.75rem;
 		font-weight: 800;
-		color: var(--s-text-primary, #1a1a2e);
-		letter-spacing: -0.02em;
-		line-height: 1;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: #6366f1;
 	}
 
-	.qr-upi-info {
+	.em-info-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 14px 16px;
+		background: linear-gradient(135deg, #eff6ff, #dbeafe);
+		border-radius: 12px;
+		margin-bottom: 16px;
+		border: 1px solid #bfdbfe;
+	}
+
+	.em-static-value {
+		font-size: 1.15rem;
+		font-weight: 800;
+		color: #1e3a8a;
+	}
+
+	.em-field-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 14px 16px;
+		border-radius: 12px;
+		margin-bottom: 12px;
+		border: 1px solid #e2e8f0;
+		background: #f8fafc;
+		transition:
+			border-color 0.2s ease,
+			background 0.2s ease,
+			box-shadow 0.2s ease;
+	}
+
+	.em-field-row.em-locked {
+		border-color: #8b5cf6;
+		background: rgba(139, 92, 246, 0.04);
+		box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+	}
+
+	.em-label {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #475569;
+		pointer-events: none;
+	}
+
+	.em-input-wrap {
+		display: flex;
+		align-items: center;
+		width: 130px;
+	}
+
+	.em-currency {
+		font-size: 1.15rem;
+		font-weight: 600;
+		color: #64748b;
+	}
+
+	.em-input {
+		flex: 1;
+		border: none;
+		background: transparent;
+		outline: none;
+		text-align: right;
+		font-size: 1.15rem;
+		font-weight: 800;
+		color: #0f172a;
+		width: 100%;
+		padding: 0;
+	}
+
+	.em-divider {
+		height: 1px;
+		background: var(--s-border, #e5e7eb);
+		margin: 8px 20px;
+	}
+
+	.em-footer {
+		display: flex;
+		gap: 10px;
+		padding: 16px 20px;
+		padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+		border-top: 1px solid var(--s-border, #e5e7eb);
+		margin-top: 8px;
+	}
+
+	.em-btn {
+		padding: 14px;
+		border-radius: 14px;
+		font-size: 0.95rem;
+		font-weight: 700;
+		cursor: pointer;
+		border: none;
+		transition: all 0.15s ease;
+	}
+
+	.em-btn:active {
+		transform: scale(0.97);
+	}
+
+	.em-cancel {
+		flex: 1;
+		background: #f1f5f9;
+		color: #475569;
+		font-weight: 800;
+		border: none;
+	}
+
+	.em-apply {
+		flex: 2;
+		background: linear-gradient(135deg, #d4a373, #b07d4b);
+		color: white;
+		box-shadow: 0 4px 16px rgba(176, 125, 75, 0.35);
+	}
+
+	.em-apply:hover {
+		box-shadow: 0 6px 20px rgba(176, 125, 75, 0.45);
+	}
+
+	/* UPI & Hint */
+	.qr-fs-upi {
 		background: var(--s-bg-tertiary, #f3f4f6);
 		padding: 10px 20px;
 		border-radius: var(--s-radius-full, 30px);
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		margin-bottom: 24px;
 	}
 
-	.qr-upi-label {
-		margin: 0;
+	.qr-fs-upi-label {
 		font-size: 0.8rem;
 		font-weight: 600;
 		color: var(--s-text-tertiary, #9ca3af);
@@ -1174,33 +2286,101 @@
 		letter-spacing: 0.05em;
 	}
 
-	.qr-upi-id {
-		margin: 0;
+	.qr-fs-upi-id {
 		font-size: 0.95rem;
 		font-weight: 700;
 		color: var(--s-text-primary, #1a1a2e);
 		font-family: monospace;
 	}
 
-	.qr-instructions {
+	.qr-fs-upi-container {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		align-items: center;
+		gap: 6px;
 	}
 
-	.qr-instructions p {
+	.qr-fs-receiver-name {
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: var(--s-text-primary, #1e293b);
+		letter-spacing: 0.02em;
+	}
+
+	.qr-fs-hint {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.qr-fs-hint p {
 		margin: 0;
 		font-size: 0.9rem;
 		color: var(--s-text-secondary, #6b7280);
 		font-weight: 500;
 	}
 
-	.qr-apps {
+	.qr-fs-apps {
 		font-size: 0.8rem;
 		color: var(--s-text-tertiary, #9ca3af);
 		font-weight: 600;
 	}
 
+	/* Footer */
+	.qr-fs-footer {
+		padding: 16px 20px;
+		padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+		border-top: 1px solid var(--s-border, #e5e7eb);
+		background: var(--s-surface, white);
+		display: flex;
+		gap: 12px;
+		align-items: center;
+	}
+
+	.qr-fs-btn {
+		padding: 14px 12px;
+		border-radius: var(--s-radius-lg, 16px);
+		border: none;
+		font-size: 0.95rem;
+		font-weight: 700;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		transition: all 0.15s ease;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	}
+
+	.qr-fs-btn:active {
+		transform: scale(0.97);
+	}
+
+	.qr-fs-btn:hover {
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+	}
+
+	.qr-fs-back-btn,
+	.qr-fs-options-btn {
+		flex: 0 0 calc(25% - 8px);
+		background: var(--s-bg-tertiary, #f3f4f6);
+		color: var(--s-text-secondary, #6b7280);
+		border: 1px solid var(--s-border, #e5e7eb);
+	}
+
+	.qr-fs-pay-btn {
+		flex: 1;
+		background: linear-gradient(135deg, #22c55e, #16a34a);
+		color: white;
+		box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+		border: 1px solid rgba(22, 163, 74, 0.5);
+	}
+
+	.qr-fs-pay-btn:hover {
+		box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+	}
+
+	/* Loading & Error (reused) */
 	.qr-loading {
 		display: flex;
 		flex-direction: column;
@@ -1230,14 +2410,205 @@
 		font-weight: 600;
 	}
 
-	@keyframes slideUpScale {
-		from {
-			opacity: 0;
-			transform: scale(0.9) translateY(20px);
+	/* QR Details added dynamically */
+	.qr-fs-details {
+		margin-top: 14px;
+		background: transparent;
+		border-radius: 12px;
+		padding: 12px;
+		border: 1px dashed #cbd5e1;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.qr-fs-detail-pill {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: #334155;
+	}
+
+	.qr-fs-detail-pill.split {
+		justify-content: flex-start;
+		gap: 8px;
+	}
+
+	.qr-fs-detail-pill.split span:first-child {
+		margin-right: 4px;
+	}
+
+	.discount-val {
+		color: var(--s-success, #10b981);
+		font-weight: 500;
+	}
+
+	.qr-fs-detail-pill.total {
+		border-top: 1px dashed #cbd5e1;
+		padding-top: 10px;
+		margin-top: 2px;
+		color: #1a1a2e;
+		font-weight: 800;
+		font-size: 1rem;
+	}
+
+	.payable-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.qr-fs-original-amount-bottom {
+		font-size: 0.95rem;
+		color: #9ca3af;
+		text-decoration: line-through;
+		font-weight: 600;
+	}
+
+	.payable-amount {
+		color: #1a1a2e;
+		font-size: 1.1rem;
+	}
+
+	.split-pill {
+		padding: 4px 12px;
+		border-radius: 99px;
+		font-size: 0.8rem;
+		font-weight: 700;
+		border: 1px solid #e2e8f0;
+	}
+
+	.split-pill.online {
+		color: #6366f1;
+		border-color: #c7d2fe;
+		background: #eef2ff;
+	}
+
+	.split-pill.cash {
+		color: #10b981;
+		border-color: #a7f3d0;
+		background: #ecfdf5;
+	}
+
+	/* Checkbox Confirmation */
+	.qr-fs-checkbox-row {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		padding: 16px 20px 8px;
+		margin-top: auto;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.qr-fs-checkbox-row input[type='checkbox'] {
+		appearance: none;
+		-webkit-appearance: none;
+		width: 22px;
+		height: 22px;
+		border: 2px solid #cbd5e1;
+		border-radius: 6px;
+		outline: none;
+		cursor: pointer;
+		position: relative;
+		transition: all 0.2s;
+		background: white;
+	}
+
+	.qr-fs-checkbox-row input[type='checkbox']:checked {
+		background: #22c55e;
+		border-color: #22c55e;
+	}
+
+	.qr-fs-checkbox-row input[type='checkbox']:checked::after {
+		content: '';
+		position: absolute;
+		left: 6px;
+		top: 2px;
+		width: 5px;
+		height: 10px;
+		border: solid white;
+		border-width: 0 2px 2px 0;
+		transform: rotate(45deg);
+	}
+
+	.checkbox-text {
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	@keyframes shake {
+		0%,
+		100% {
+			transform: translateX(0);
 		}
-		to {
-			opacity: 1;
-			transform: scale(1) translateY(0);
+		15% {
+			transform: translateX(-6px);
 		}
+		30% {
+			transform: translateX(5px);
+		}
+		45% {
+			transform: translateX(-4px);
+		}
+		60% {
+			transform: translateX(3px);
+		}
+		75% {
+			transform: translateX(-2px);
+		}
+		90% {
+			transform: translateX(1px);
+		}
+	}
+
+	.qr-fs-checkbox-row.shake {
+		animation: shake 0.5s ease;
+	}
+
+	.ts-row.ts-split-bg {
+		margin-top: 4px;
+	}
+
+	.split-bg {
+		font-size: 0.85rem;
+		color: var(--s-text-secondary, #64748b);
+		font-weight: 500;
+	}
+
+	.title-row {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.pay-status-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 0.7rem;
+		font-weight: 700;
+		padding: 3px 10px;
+		border-radius: 99px;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		width: fit-content;
+	}
+
+	.pay-status-badge.paid {
+		background: #dcfce7;
+		color: #15803d;
+		border: 1px solid #bbf7d0;
+	}
+
+	.pay-status-badge.unpaid {
+		background: #fef2f2;
+		color: #dc2626;
+		border: 1px solid #fecaca;
 	}
 </style>

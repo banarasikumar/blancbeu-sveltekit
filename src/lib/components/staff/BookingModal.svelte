@@ -3,7 +3,9 @@
 		staffServices,
 		createBooking,
 		updateBookingDetails,
-		searchUsersByPhone
+		searchUsersByPhone,
+		searchUsersByName,
+		upcomingBookings
 	} from '$lib/stores/staffData';
 	import { showToast } from '$lib/stores/toast';
 	import type { Booking, AppUser } from '$lib/stores/adminData';
@@ -23,11 +25,15 @@
 	let time = $state('');
 	let notes = $state('');
 
-	// User search state
-	let userSearchResults = $state<AppUser[]>([]);
+	// Search states
+	let userSearchResults: AppUser[] = $state([]);
+	let userNameSearchResults: AppUser[] = $state([]);
 	let showUserDropdown = $state(false);
+	let showUserNameDropdown = $state(false);
 	let isSearchingUser = $state(false);
+	let isSearchingName = $state(false);
 	let searchTimeout: ReturnType<typeof setTimeout>;
+	let nameSearchTimeout: ReturnType<typeof setTimeout>;
 
 	// Multi-service management
 	type OrderItem = {
@@ -39,9 +45,6 @@
 
 	let selectedServices = $state<OrderItem[]>([]);
 	let isSubmitting = $state(false);
-
-	// Temp inputs for adding a service
-	let tempServiceId = $state('');
 
 	// Dropdown states
 	let isCatalogOpen = $state(false);
@@ -129,11 +132,11 @@
 				// Reset for create
 				name = '';
 				phone = '';
-				date = new Date().toISOString().split('T')[0];
-				time = '10:00';
+				const nextSlot = getNextAvailableSlot();
+				date = nextSlot.date;
+				time = nextSlot.time;
 				notes = '';
 				selectedServices = [];
-				tempServiceId = '';
 			}
 		}
 	});
@@ -150,21 +153,17 @@
 		}
 	}
 
-	function addService() {
-		if (!tempServiceId) return;
-		const s = $staffServices.find((x) => x.id === tempServiceId);
-		if (s) {
-			selectedServices = [
-				...selectedServices,
-				{
-					id: s.id,
-					name: s.name,
-					price: s.price,
-					duration: s.duration
-				}
-			];
-			tempServiceId = ''; // Reset selection
-		}
+	function selectServiceFromCatalog(service: any) {
+		selectedServices = [
+			...selectedServices,
+			{
+				id: service.id,
+				name: service.name,
+				price: service.price,
+				duration: service.duration
+			}
+		];
+		isCatalogOpen = false;
 	}
 
 	function removeService(index: number) {
@@ -186,15 +185,92 @@
 		];
 	}
 
+	function getNextAvailableSlot(): { date: string; time: string } {
+		const now = new Date();
+
+		// Format date using local timezone (avoids UTC date shift from toISOString)
+		const toLocalDateStr = (d: Date) => {
+			const y = d.getFullYear();
+			const m = (d.getMonth() + 1).toString().padStart(2, '0');
+			const day = d.getDate().toString().padStart(2, '0');
+			return `${y}-${m}-${day}`;
+		};
+
+		// Business hours: 10:00 AM (600 min) to 8:00 PM (1200 min)
+		const OPEN = 600;
+		const CLOSE = 1200;
+
+		const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+		// If current time is past business hours, jump to next day at opening
+		if (currentMinutes >= CLOSE) {
+			const tomorrow = new Date(now);
+			tomorrow.setDate(tomorrow.getDate() + 1);
+			return {
+				date: toLocalDateStr(tomorrow),
+				time: '10:00'
+			};
+		}
+
+		const todayStr = toLocalDateStr(now);
+
+		// Round up to next 30-minute slot, but not before opening
+		let slotMinutes = Math.max(OPEN, Math.ceil(currentMinutes / 30) * 30);
+
+		// Collect booked time slots for today (in minutes from midnight)
+		const bookedSlots = new Set<number>();
+		for (const b of $upcomingBookings) {
+			const bDate = (b.date || '').split('T')[0];
+			if (bDate !== todayStr || !b.time) continue;
+			const cleaned = b.time.replace(/\s*(AM|PM)\s*/i, '').trim();
+			const [h, m] = cleaned.split(':').map(Number);
+			const isPM = /PM/i.test(b.time) && h !== 12;
+			const isAM12 = /AM/i.test(b.time) && h === 12;
+			const hours24 = isPM ? h + 12 : isAM12 ? 0 : h;
+			bookedSlots.add((hours24 || 0) * 60 + (m || 0));
+		}
+
+		// Find the first available 30-minute slot within business hours
+		while (slotMinutes <= CLOSE && bookedSlots.has(slotMinutes)) {
+			slotMinutes += 30;
+		}
+
+		// If all today's slots are taken, move to next day at opening
+		if (slotMinutes > CLOSE) {
+			const tomorrow = new Date(now);
+			tomorrow.setDate(tomorrow.getDate() + 1);
+			return {
+				date: toLocalDateStr(tomorrow),
+				time: '10:00'
+			};
+		}
+
+		const hh = Math.floor(slotMinutes / 60)
+			.toString()
+			.padStart(2, '0');
+		const mm = (slotMinutes % 60).toString().padStart(2, '0');
+		return { date: todayStr, time: `${hh}:${mm}` };
+	}
+
 	async function handlePhoneInput(e: Event) {
-		const val = (e.target as HTMLInputElement).value;
-		phone = val;
+		let inputStr = (e.target as HTMLInputElement).value;
+
+		// Immediately strip everything to get raw numbers for the input itself
+		let rawDigits = inputStr.replace(/\D/g, '');
+
+		// Cap max digits allowed in the input field
+		if (rawDigits.length > 10) rawDigits = rawDigits.slice(-10);
+
+		// Synchronize display and state variables to just max 10
+		(e.target as HTMLInputElement).value = rawDigits;
+		phone = rawDigits;
 
 		clearTimeout(searchTimeout);
 
-		if (!val || val.length < 3) {
+		if (!rawDigits || rawDigits.length < 3) {
 			userSearchResults = [];
 			showUserDropdown = false;
+			isSearchingUser = false;
 			return;
 		}
 
@@ -202,13 +278,23 @@
 
 		searchTimeout = setTimeout(async () => {
 			try {
-				const results = await searchUsersByPhone(val);
+				// Search the backend explicitly using the clean 10-digit number
+				const results = await searchUsersByPhone(rawDigits);
 				userSearchResults = results;
 				showUserDropdown = results.length > 0;
 
-				// Exact match autofill
-				if (results.length === 1 && results[0].phone === val) {
-					selectUser(results[0]);
+				// Exact match autofill (only trigger on full 10 digit number)
+				if (rawDigits.length === 10) {
+					const exactMatch = results.find((r) => {
+						// Clean the result phone number to just digits before comparing
+						const cleanResultPhone = (r.phone || r.phoneNumber || r.mobile || '')
+							.replace(/\D/g, '')
+							.slice(-10);
+						return cleanResultPhone === rawDigits;
+					});
+					if (exactMatch) {
+						selectUser(exactMatch);
+					}
 				}
 			} catch (err) {
 				console.error('Error searching users:', err);
@@ -218,17 +304,73 @@
 		}, 300); // 300ms debounce
 	}
 
+	async function handleNameInput(e: Event) {
+		const val = (e.target as HTMLInputElement).value;
+		name = val;
+
+		clearTimeout(nameSearchTimeout);
+
+		if (!val || val.trim().length < 3) {
+			userNameSearchResults = [];
+			showUserNameDropdown = false;
+			isSearchingName = false;
+			return;
+		}
+
+		isSearchingName = true;
+
+		nameSearchTimeout = setTimeout(async () => {
+			try {
+				const results = await searchUsersByName(val.trim());
+				userNameSearchResults = results;
+				showUserNameDropdown = results.length > 0;
+			} catch (err) {
+				console.error('Error searching names:', err);
+			} finally {
+				isSearchingName = false;
+			}
+		}, 300);
+	}
+
 	function selectUser(user: AppUser) {
 		name = user.name || user.displayName || user.fullName || '';
-		phone = user.phone || user.phoneNumber || user.mobile || '';
+
+		// Clean the incoming phone number so it only has 10 digits
+		let cleanPhone = user.phone || user.phoneNumber || user.mobile || '';
+		cleanPhone = cleanPhone.replace(/\D/g, '');
+		if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
+
+		phone = cleanPhone;
+
 		showUserDropdown = false;
+		showUserNameDropdown = false;
 		userSearchResults = [];
+		userNameSearchResults = [];
 	}
 
 	async function handleSubmit() {
 		if (!name || !date || !time) {
 			showToast('Please fill in client name, date and time', 'error');
 			return;
+		}
+
+		if (!phone || phone.length < 10) {
+			showToast('Please enter a valid 10-digit phone number', 'error');
+			return;
+		}
+
+		// Prevent booking in the past
+		if (internalMode === 'create') {
+			const bookingDateTime = new Date(`${date}T${time}`);
+			const now = new Date();
+
+			// Allow a 5-minute grace period for "Now" bookings
+			now.setMinutes(now.getMinutes() - 5);
+
+			if (bookingDateTime < now) {
+				showToast('Cannot create bookings in the past', 'error');
+				return;
+			}
 		}
 
 		if (selectedServices.some((s) => !s.name.trim())) {
@@ -360,12 +502,21 @@
 									{existingBooking.userName?.[0] || 'G'}
 								</div>
 								<div class="ov-client-info">
+									<div class="ov-badges-inline">
+										<span class={`status-badge-lg ${existingBooking.status}`}>
+											{existingBooking.status}
+										</span>
+										{#if existingBooking.status === 'completed'}
+											{#if existingBooking.payment?.status === 'paid'}
+												<span class="pay-status-badge paid">✓ Paid</span>
+											{:else}
+												<span class="pay-status-badge unpaid">Unpaid</span>
+											{/if}
+										{/if}
+									</div>
 									<h3>{existingBooking.userName || 'Guest'}</h3>
 									<p>{existingBooking.userPhone || 'No phone provided'}</p>
 								</div>
-								<span class={`status-badge-lg ${existingBooking.status}`}
-									>{existingBooking.status}</span
-								>
 							</div>
 
 							<div class="ov-time-row">
@@ -471,7 +622,8 @@
 					<!-- EDIT/CREATE FORM -->
 					<section class="form-section">
 						<h3>Client Details</h3>
-						<div class="form-group phone-search-group">
+						<div class="form-group phone-search-group phone-input-wrapper">
+							<span class="country-code">+91</span>
 							<input
 								type="tel"
 								id="phone"
@@ -484,8 +636,8 @@
 									// Delay hiding dropdown so clicks can register
 									setTimeout(() => (showUserDropdown = false), 200);
 								}}
-								placeholder="Phone Number (Optional)"
-								class="input-lg"
+								placeholder="Enter 10-digit phone number *"
+								class="input-lg phone-input"
 							/>
 							{#if isSearchingUser}
 								<div class="search-loader">
@@ -506,19 +658,46 @@
 								</ul>
 							{/if}
 						</div>
-						<div class="form-group">
+						<div class="form-group name-search-group phone-search-group">
 							<input
 								type="text"
 								id="name"
 								bind:value={name}
+								oninput={handleNameInput}
+								onfocus={() => {
+									if (userNameSearchResults.length > 0) showUserNameDropdown = true;
+								}}
+								onblur={() => {
+									setTimeout(() => (showUserNameDropdown = false), 200);
+								}}
 								placeholder="Client Name *"
 								class="input-lg"
 							/>
+							{#if isSearchingName}
+								<div class="search-loader">
+									<div class="spinner"></div>
+								</div>
+							{/if}
+							{#if showUserNameDropdown}
+								<ul class="autocomplete-dropdown">
+									{#each userNameSearchResults as user}
+										<li class="autocomplete-item" onmousedown={() => selectUser(user)}>
+											<div class="ac-avatar">{user.name?.[0] || user.displayName?.[0] || 'U'}</div>
+											<div class="ac-info">
+												<span class="ac-name">{user.name || user.displayName || 'Unknown'}</span>
+												<span class="ac-phone">{user.phone || user.phoneNumber || ''}</span>
+											</div>
+										</li>
+									{/each}
+								</ul>
+							{/if}
 						</div>
 					</section>
 
 					<section class="form-section">
-						<h3>Time & Date</h3>
+						<div class="section-top" style="margin-bottom: 12px; align-items: center;">
+							<h3>Time & Date</h3>
+						</div>
 						<div class="row">
 							<div class="form-group">
 								<input type="date" id="date" bind:value={date} />
@@ -560,45 +739,16 @@
 							{/each}
 						</div>
 
-						<div class="add-service-row">
-							<button
-								class="dropdown-trigger"
-								onclick={(e) => {
-									e.preventDefault();
-									isCatalogOpen = true;
-								}}
-							>
-								<span class="trigger-text">
-									{#if tempServiceId}
-										{@const selected = $staffServices.find((s) => s.id === tempServiceId)}
-										{selected ? `${selected.name} - ₹${selected.price}` : 'Select from catalog +'}
-									{:else}
-										Select from catalog +
-									{/if}
-								</span>
-								<span class="dropdown-arrow">
-									<svg
-										width="16"
-										height="16"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										><line x1="12" y1="5" x2="12" y2="19"></line><line
-											x1="5"
-											y1="12"
-											x2="19"
-											y2="12"
-										></line></svg
-									>
-								</span>
-							</button>
-						</div>
-						{#if tempServiceId}
-							<button class="confirm-add-btn" onclick={addService}>Add</button>
-						{/if}
+						<button
+							class="open-catalog-btn"
+							onclick={(e) => {
+								e.preventDefault();
+								isCatalogOpen = true;
+							}}
+						>
+							<span class="catalog-plus">+</span>
+							<span>Select Service from Catalog</span>
+						</button>
 						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
 					</section>
 
@@ -638,53 +788,121 @@
 							>
 								Complete Service
 							</button>
-						{:else}
-							<!-- Completed or Cancelled -->
-							{#if existingBooking.status === 'completed'}
-								<button
-									class="action-btn"
-									style="background: #25D366; color: white;"
-									onclick={async () => {
-										const { startWhatsAppChat } = await import('$lib/utils/invoice');
-										startWhatsAppChat({
-											booking: existingBooking,
-											services: existingBooking.servicesList || [
-												{
-													name: existingBooking.serviceName || 'Service',
-													price: existingBooking.totalAmount || 0
-												}
-											],
-											totalAmount: existingBooking.totalAmount || existingBooking.price || 0,
-											discountAmount: existingBooking.discountAmount || 0,
-											extraCharge: existingBooking.extraCharge || 0
-										});
-									}}
-								>
-									Start Chat
-								</button>
-								<button
-									class="action-btn"
-									style="background: var(--s-accent, #c8956c); color: white;"
-									onclick={async () => {
-										const { generateAndShareInvoice } = await import('$lib/utils/invoice');
-										await generateAndShareInvoice({
-											booking: existingBooking,
-											services: existingBooking.servicesList || [
-												{
-													name: existingBooking.serviceName || 'Service',
-													price: existingBooking.totalAmount || 0
-												}
-											],
-											totalAmount: existingBooking.totalAmount || existingBooking.price || 0,
-											discountAmount: existingBooking.discountAmount || 0,
-											extraCharge: existingBooking.extraCharge || 0,
-											couponCode: existingBooking.couponCode || null
-										});
-									}}
-								>
-									Send Invoice
-								</button>
-							{/if}
+						{:else if existingBooking.status === 'completed'}
+							<div class="action-column">
+								{#if existingBooking.payment?.status !== 'paid'}
+									<div class="action-row">
+										<button
+											class="s-btn s-btn-lg action-btn qr-btn"
+											onclick={() => {
+												isOpen = false;
+												goto(`/staff/bookings/${existingBooking.id}?action=qr`);
+											}}
+										>
+											<svg
+												width="20"
+												height="20"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											>
+												<rect x="3" y="3" width="7" height="7"></rect>
+												<rect x="14" y="3" width="7" height="7"></rect>
+												<rect x="14" y="14" width="7" height="7"></rect>
+												<rect x="3" y="14" width="7" height="7"></rect>
+											</svg>
+											Show QR
+										</button>
+										<button
+											class="s-btn s-btn-lg action-btn pay-btn"
+											onclick={() => {
+												isOpen = false;
+												goto(`/staff/bookings/${existingBooking.id}?action=pay`);
+											}}
+										>
+											<svg
+												width="20"
+												height="20"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											>
+												<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+											</svg>
+											Mark as Paid
+										</button>
+									</div>
+								{/if}
+								<div class="action-row mt-2">
+									<button
+										class="s-btn s-btn-lg action-btn chat-btn"
+										onclick={async () => {
+											const { startWhatsAppChat } = await import('$lib/utils/invoice');
+											startWhatsAppChat({
+												booking: existingBooking,
+												services: existingBooking.servicesList || [
+													{
+														name: existingBooking.serviceName || 'Service',
+														price: existingBooking.totalAmount || 0
+													}
+												],
+												totalAmount: existingBooking.totalAmount || existingBooking.price || 0,
+												discountAmount: existingBooking.discountAmount || 0,
+												extraCharge: existingBooking.extraCharge || 0
+											});
+										}}
+									>
+										<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+											<path
+												d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+											/>
+										</svg>
+										Start Chat
+									</button>
+									<button
+										class="s-btn s-btn-lg action-btn invoice-btn"
+										onclick={async () => {
+											const { generateAndShareInvoice } = await import('$lib/utils/invoice');
+											await generateAndShareInvoice({
+												booking: existingBooking,
+												services: existingBooking.servicesList || [
+													{
+														name: existingBooking.serviceName || 'Service',
+														price: existingBooking.totalAmount || 0
+													}
+												],
+												totalAmount: existingBooking.totalAmount || existingBooking.price || 0,
+												discountAmount: existingBooking.discountAmount || 0,
+												extraCharge: existingBooking.extraCharge || 0,
+												couponCode: existingBooking.couponCode || null,
+												paymentStatus:
+													existingBooking.payment?.status === 'paid' ? 'paid' : 'unpaid'
+											});
+										}}
+									>
+										<svg
+											width="18"
+											height="18"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+											<polyline points="14 2 14 8 20 8" />
+											<line x1="16" y1="13" x2="8" y2="13" />
+											<line x1="16" y1="17" x2="8" y2="17" />
+										</svg>
+										Send Invoice
+									</button>
+								</div>
+							</div>
 						{/if}
 					</div>
 				{:else}
@@ -708,66 +926,69 @@
 				{/if}
 			</div>
 		</div>
-	</div>
 
-	<!-- Full-Screen Catalog Modal -->
-	{#if isCatalogOpen}
-		<div
-			class="modal-backdrop catalog-backdrop"
-			style="z-index: 300;"
-			onclick={() => (isCatalogOpen = false)}
-		>
-			<div class="catalog-modal-content" onclick={(e) => e.stopPropagation()}>
-				<div class="modal-header">
-					<h2>Select Service</h2>
-					<button class="close-btn" onclick={() => (isCatalogOpen = false)} aria-label="Close">
-						<svg
-							width="18"
-							height="18"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2.5"
-							stroke-linecap="round"
-							stroke-linejoin="round"
+		{#if isCatalogOpen}
+			<!-- FULL SCREEN CATALOG MODAL -->
+			<div class="catalog-fullscreen-overlay" onclick={(e) => e.stopPropagation()}>
+				<div class="catalog-fs-header">
+					<div class="catalog-fs-title">
+						<button
+							class="icon-btn catalog-back-btn"
+							aria-label="Back"
+							onclick={() => (isCatalogOpen = false)}
 						>
-							<line x1="18" y1="6" x2="6" y2="18" />
-							<line x1="6" y1="6" x2="18" y2="18" />
-						</svg>
-					</button>
+							<svg
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"
+								></polyline></svg
+							>
+						</button>
+						<h2>Select Service</h2>
+					</div>
 				</div>
-				<div class="catalog-sort-header">
+
+				<div class="catalog-fs-sort">
 					<span class="sort-label">Sort by:</span>
 					<div class="sort-buttons">
 						<button
 							class="sort-btn"
 							class:active={sortBy === 'category'}
-							onclick={() => (sortBy = 'category')}
+							onclick={(e) => {
+								e.preventDefault();
+								sortBy = 'category';
+							}}>Category</button
 						>
-							Category
-						</button>
 						<button
 							class="sort-btn"
 							class:active={sortBy === 'name'}
-							onclick={() => (sortBy = 'name')}
+							onclick={(e) => {
+								e.preventDefault();
+								sortBy = 'name';
+							}}>Name</button
 						>
-							Name
-						</button>
 						<button
 							class="sort-btn"
 							class:active={sortBy === 'price'}
-							onclick={() => (sortBy = 'price')}
+							onclick={(e) => {
+								e.preventDefault();
+								sortBy = 'price';
+							}}>Price</button
 						>
-							Price
-						</button>
 					</div>
 				</div>
 
-				<div class="catalog-body">
-					<div class="dropdown-list">
+				<div class="catalog-fs-body">
+					<div class="dropdown-list fs-list">
 						{#if sortBy === 'category'}
 							{#each Object.entries(groupedServices) as [cat, services]}
-								<div class="category-group">
+								<div class="category-group" class:expanded={expandedCategories[cat]}>
 									<button
 										class="category-header"
 										onclick={(e) => {
@@ -775,9 +996,7 @@
 											toggleCategory(cat);
 										}}
 									>
-										<span class="cat-name"
-											>{cat} <span class="cat-count">({services.length})</span></span
-										>
+										<span class="cat-name">{cat} ({services.length})</span>
 										<span class="cat-arrow" class:expanded={expandedCategories[cat]}>
 											<svg
 												width="20"
@@ -798,17 +1017,10 @@
 													class="service-option"
 													onclick={(e) => {
 														e.preventDefault();
-														tempServiceId = service.id;
-														addService();
-														isCatalogOpen = false;
+														selectServiceFromCatalog(service);
 													}}
 												>
-													<div class="svc-details">
-														<span class="svc-name">{service.name}</span>
-														{#if service.duration}
-															<span class="svc-duration">{service.duration} mins</span>
-														{/if}
-													</div>
+													<div class="svc-name">{service.name}</div>
 													<span class="svc-price">₹{service.price}</span>
 												</button>
 											{/each}
@@ -817,38 +1029,40 @@
 								</div>
 							{/each}
 						{:else}
-							{#each sortedServices as service}
-								<button
-									class="service-option flat"
-									onclick={(e) => {
-										e.preventDefault();
-										tempServiceId = service.id;
-										addService();
-										isCatalogOpen = false;
-									}}
-								>
-									<div class="svc-details">
-										<span class="svc-name">
-											{service.name}
-										</span>
-										<span class="svc-cat-tag"
-											>{service.category || 'Other'}
-											{#if service.duration}&bull; {service.duration} mins{/if}</span
+							<div class="category-group expanded">
+								<div class="category-items">
+									{#each sortedServices as service}
+										<button
+											class="service-option flat"
+											onclick={(e) => {
+												e.preventDefault();
+												selectServiceFromCatalog(service);
+											}}
 										>
-									</div>
-									<span class="svc-price">₹{service.price}</span>
-								</button>
-							{/each}
+											<div class="svc-name">
+												{service.name}
+												<span class="svc-cat">{service.category || 'Other'}</span>
+											</div>
+											<span class="svc-price">₹{service.price}</span>
+										</button>
+									{/each}
+								</div>
+							</div>
 						{/if}
 					</div>
 				</div>
 			</div>
-		</div>
-	{/if}
+		{/if}
+	</div>
 {/if}
 
 <style>
 	/* Backdrop */
+	/* Hide bottom nav when modal is open */
+	:global(body:has(.modal-backdrop)) .staff-nav-container {
+		display: none !important;
+	}
+
 	.modal-backdrop {
 		position: fixed;
 		top: 0;
@@ -859,7 +1073,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: flex-end;
-		z-index: 200;
+		z-index: 9999;
 		backdrop-filter: blur(6px);
 	}
 
@@ -997,6 +1211,15 @@
 		padding: 20px;
 		border: 1px solid var(--s-border, #e5e7eb);
 		box-shadow: var(--s-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+		position: relative;
+	}
+
+	.ov-badges-inline {
+		display: flex;
+		justify-content: flex-end;
+		gap: 6px;
+		flex-wrap: wrap;
+		margin-bottom: 4px;
 	}
 
 	.ov-header {
@@ -1044,14 +1267,15 @@
 	.status-badge-lg {
 		display: inline-flex;
 		align-items: center;
-		margin-left: auto;
-		padding: 5px 12px;
+		padding: 4px 10px;
 		border-radius: var(--s-radius-full, 20px);
 		text-transform: uppercase;
-		font-size: 0.7rem;
+		font-size: 0.65rem;
 		font-weight: 800;
 		letter-spacing: 0.04em;
 		flex-shrink: 0;
+		line-height: 1;
+		height: 22px;
 	}
 	.status-badge-lg.pending {
 		background: var(--s-pending-bg, #fff7ed);
@@ -1266,27 +1490,66 @@
 		color: var(--s-error, #ef4444);
 	}
 
-	/* ===== EDIT / CREATE FORM ===== */
 	.form-section {
 		margin-bottom: 20px;
 		background: var(--s-surface, white);
-		padding: 16px;
-		border-radius: var(--s-radius-lg, 12px);
+		padding: 20px 16px;
+		border-radius: var(--s-radius-xl, 16px);
 		border: 1px solid var(--s-border, #e5e7eb);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 	}
 
 	h3 {
-		margin: 0 0 12px 0;
+		margin: 0 0 16px 0;
 		font-size: 0.75rem;
 		text-transform: uppercase;
 		color: var(--s-text-tertiary, #9ca3af);
 		font-weight: 700;
-		letter-spacing: 0.06em;
+		letter-spacing: 0.08em;
 	}
 
 	.input-lg {
 		font-size: 1.15rem;
 		font-weight: 600;
+	}
+
+	/* Payment status badges (from [id]/+page.svelte for consistency) */
+	.pay-status-badge {
+		padding: 4px 10px;
+		border-radius: var(--s-radius-full, 20px);
+		text-transform: uppercase;
+		font-size: 0.65rem;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		flex-shrink: 0;
+		line-height: 1;
+		height: 22px;
+		display: inline-flex;
+		align-items: center;
+	}
+
+	.pay-status-badge.paid {
+		background: #e6f4ea;
+		color: #1e7e34;
+		border: 1px solid rgba(30, 126, 52, 0.2);
+	}
+
+	.pay-status-badge.unpaid {
+		background: #fdf2f2;
+		color: #d32f2f;
+		border: 1px solid rgba(211, 47, 47, 0.2);
+	}
+
+	@media (max-width: 480px) {
+		.ov-header {
+			flex-wrap: wrap;
+			gap: 12px;
+		}
+		.status-badge-lg,
+		.pay-status-badge {
+			font-size: 0.7rem;
+			padding: 4px 8px;
+		}
 	}
 
 	.form-group {
@@ -1318,16 +1581,42 @@
 		outline: none;
 		border-color: var(--s-accent, #c9a24f);
 		box-shadow: 0 0 0 3px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
+		background: var(--s-surface, white);
 	}
 
 	textarea {
 		resize: vertical;
-		min-height: 80px;
+		min-height: 100px;
+		line-height: 1.4;
 	}
 
 	/* Phone Search Styles */
 	.phone-search-group {
 		position: relative;
+	}
+
+	.phone-input-wrapper {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap; /* Allows the dropdown structure to break to standard positioning logic */
+	}
+
+	.country-code {
+		position: absolute;
+		left: 16px;
+		font-size: 1.15rem;
+		font-weight: 600;
+		color: var(--s-text-primary, #1a1a2e);
+		z-index: 1;
+		pointer-events: none;
+	}
+
+	.phone-input {
+		padding-left: 60px !important;
+	}
+
+	:global(.staff-app.dark) .country-code {
+		color: #fff;
 	}
 
 	.search-loader {
@@ -1360,6 +1649,7 @@
 		top: calc(100% + 4px);
 		left: 0;
 		right: 0;
+		width: 100%; /* Explicit width to match parent */
 		background: var(--s-surface, white);
 		border: 1px solid var(--s-border, #e5e7eb);
 		border-radius: var(--s-radius-md, 10px);
@@ -1369,7 +1659,7 @@
 		padding: 4px;
 		max-height: 200px;
 		overflow-y: auto;
-		z-index: 10;
+		z-index: 50; /* Bring it above sibling inputs */
 		animation: s-fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
@@ -1453,18 +1743,31 @@
 	.service-list {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		margin-bottom: 12px;
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border-radius: var(--s-radius-lg, 12px);
+		margin-bottom: 16px;
+		overflow: hidden;
+	}
+
+	:global(.staff-app.dark) .service-list {
+		background: rgba(0, 0, 0, 0.2);
 	}
 
 	.service-item {
-		background: var(--s-bg, #f8f9fa);
-		padding: 12px;
-		border-radius: var(--s-radius-md, 10px);
+		padding: 14px 16px;
 		display: flex;
 		justify-content: space-between;
-		align-items: flex-start;
-		border: 1px solid var(--s-border, #e5e7eb);
+		align-items: center;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		background: transparent;
+	}
+
+	.service-item:last-child {
+		border-bottom: none;
+	}
+
+	:global(.staff-app.dark) .service-item {
+		border-color: rgba(255, 255, 255, 0.05);
 	}
 
 	.s-info {
@@ -1478,9 +1781,9 @@
 		box-shadow: none;
 		background: transparent;
 		border: none;
-		border-bottom: 1px solid transparent;
+		border-bottom: 1px dashed var(--s-border, #e5e7eb);
 		width: 100%;
-		margin-bottom: 4px;
+		margin-bottom: 6px;
 	}
 	.name-input:focus {
 		border-bottom: 1px solid var(--s-accent, #c9a24f);
@@ -1534,18 +1837,26 @@
 		flex: 1;
 	}
 
-	/* Custom Dropdown Styles updated for Modal */
+	/* Custom Dropdown Styles */
+	.custom-dropdown-wrapper {
+		position: relative;
+	}
+
+	.custom-dropdown-container {
+		position: relative;
+		flex: 1;
+	}
+
 	.dropdown-trigger {
 		width: 100%;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 14px 16px;
+		padding: 12px 14px;
 		background: var(--s-bg, #f8f9fa);
-		border: 1px dashed var(--s-border, #e5e7eb);
+		border: 1px solid var(--s-border, #e5e7eb);
 		border-radius: var(--s-radius-md, 10px);
-		font-size: 1.05rem;
-		font-weight: 600;
+		font-size: 0.95rem;
 		color: var(--s-text-primary, #1a1a2e);
 		font-family: inherit;
 		cursor: pointer;
@@ -1553,9 +1864,9 @@
 		transition: all 0.2s ease;
 	}
 	.dropdown-trigger:focus,
-	.dropdown-trigger:active {
+	.custom-dropdown-container.active .dropdown-trigger {
 		border-color: var(--s-accent, #c9a24f);
-		background: var(--s-accent-bg, rgba(201, 162, 79, 0.05));
+		box-shadow: 0 0 0 3px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
 		outline: none;
 	}
 	.trigger-text {
@@ -1567,70 +1878,64 @@
 	.dropdown-arrow {
 		display: flex;
 		color: var(--s-text-tertiary, #9ca3af);
-		align-items: center;
-		justify-content: center;
-		background: var(--s-surface, white);
-		border-radius: 50%;
-		width: 28px;
-		height: 28px;
-		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+		transition: transform 0.2s ease;
+	}
+	.dropdown-arrow.open {
+		transform: rotate(180deg);
 	}
 
-	.catalog-modal-content {
-		background: var(--s-surface, white);
+	.dropdown-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 90;
+	}
+
+	.dropdown-menu {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
 		width: 100%;
-		height: 100vh;
-		height: 100dvh;
+		background: var(--s-surface, white);
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-md, 10px);
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+		z-index: 100;
 		display: flex;
 		flex-direction: column;
-		animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+		max-height: 350px;
 		overflow: hidden;
+		animation: fadeIn 0.15s ease-out;
 	}
 
-	@media (min-width: 768px) {
-		.catalog-modal-content {
-			max-width: 500px;
-			height: 85vh;
-			border-radius: var(--s-radius-2xl, 20px);
-			animation: fadeIn 0.3s ease-out;
-		}
-	}
-
-	.catalog-sort-header {
-		padding: 12px 20px;
+	.dropdown-header {
+		padding: 10px 12px;
 		border-bottom: 1px solid var(--s-border, #e5e7eb);
 		background: var(--s-bg-tertiary, #f3f4f6);
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		flex-shrink: 0;
+		gap: 8px;
 	}
-
-	.catalog-body {
-		flex: 1;
-		overflow-y: auto;
-		-ms-overflow-style: none;
-		scrollbar-width: thin;
-		background: var(--s-bg, #f8f9fa);
-	}
-
 	.sort-label {
-		font-size: 0.8rem;
+		font-size: 0.75rem;
 		text-transform: uppercase;
-		font-weight: 800;
+		font-weight: 700;
 		color: var(--s-text-tertiary, #9ca3af);
-		letter-spacing: 0.06em;
+		letter-spacing: 0.05em;
 	}
 	.sort-buttons {
 		display: flex;
-		gap: 8px;
+		gap: 6px;
+		flex: 1;
 	}
 	.sort-btn {
 		flex: 1;
-		padding: 10px 8px;
-		font-size: 0.9rem;
-		font-weight: 600;
-		border-radius: var(--s-radius-md, 8px);
+		padding: 6px 8px; /* Slightly smaller tap target to save space */
+		font-size: 0.8rem;
+		font-weight: 700; /* Bolder text for readabilty */
+		border-radius: var(--s-radius-sm, 6px);
 		border: 1px solid var(--s-border, #e5e7eb);
 		background: var(--s-surface, white);
 		color: var(--s-text-secondary, #6b7280);
@@ -1641,21 +1946,26 @@
 		background: var(--s-brand, #1a1a2e);
 		color: white;
 		border-color: var(--s-brand, #1a1a2e);
-		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 	}
 
 	.dropdown-list {
-		display: flex;
-		flex-direction: column;
+		flex: 1;
+		overflow-y: auto;
+		-ms-overflow-style: none;
+		scrollbar-width: thin;
 	}
 
 	.category-group {
-		border-bottom: 1px solid var(--s-border, #e5e7eb);
 		background: var(--s-surface, white);
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-xl, 16px);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+		transition: all 0.2s ease;
 	}
-	.category-group:last-child {
-		border-bottom: none;
-	}
+
 	.category-header {
 		width: 100%;
 		display: flex;
@@ -1665,49 +1975,36 @@
 		background: transparent;
 		border: none;
 		cursor: pointer;
+		font-weight: 700;
+		font-size: 1.1rem;
+		color: var(--s-text-primary, #1a1a2e);
 		transition: background 0.15s ease;
 	}
-	.category-header:active {
-		background: var(--s-bg, #f8f9fa);
+	.category-header:hover {
+		background: var(--s-bg-tertiary, #f3f4f6);
 	}
+
+	.category-group.expanded .category-header {
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+	}
+
 	.cat-name {
-		font-family: var(--s-font-display, 'Outfit', sans-serif);
-		font-weight: 700;
-		font-size: 1.15rem;
-		color: var(--s-text-primary, #1a1a2e);
+		flex: 1;
 		text-align: left;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-	.cat-count {
-		font-size: 0.9rem;
-		color: var(--s-text-tertiary, #9ca3af);
-		font-weight: 500;
 	}
 	.cat-arrow {
 		color: var(--s-text-tertiary, #9ca3af);
 		transition: transform 0.2s ease;
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--s-bg, #f8f9fa);
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
 	}
 	.cat-arrow.expanded {
 		transform: rotate(180deg);
-		background: var(--s-brand, #1a1a2e);
-		color: white;
 	}
 
 	.category-items {
-		background: var(--s-bg-tertiary, #f3f4f6);
-		padding: 8px 12px;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		background: transparent;
 	}
 
 	.service-option {
@@ -1715,103 +2012,81 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 16px;
-		border: 1px solid var(--s-border, #e5e7eb);
-		border-radius: var(--s-radius-lg, 12px);
-		background: var(--s-surface, white);
+		padding: 16px 20px;
+		border: none;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		background: transparent;
 		cursor: pointer;
-		transition:
-			transform 0.1s ease,
-			box-shadow 0.1s ease;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+		transition: background 0.2s ease;
 	}
-	.service-option:active {
-		transform: scale(0.98);
-		background: var(--s-bg, #f8f9fa);
-	}
-	.service-option.flat {
-		border-radius: 0;
-		border-left: none;
-		border-right: none;
-		border-top: none;
-		box-shadow: none;
-		padding: 18px 20px;
-	}
-	.service-option.flat:last-child {
+	.service-option:last-child {
 		border-bottom: none;
 	}
-
-	.svc-details {
+	.service-option:hover {
+		background: var(--s-bg-tertiary, #f3f4f6);
+	}
+	.service-option.flat {
+		padding-left: 20px;
+	}
+	.svc-name {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 4px;
-	}
-
-	.svc-name {
+		gap: 2px;
 		font-size: 1rem;
 		font-weight: 600;
 		color: var(--s-text-primary, #1a1a2e);
 		text-align: left;
 	}
-	.svc-duration {
-		font-size: 0.8rem;
-		color: var(--s-text-secondary, #6b7280);
-		background: var(--s-bg, #f8f9fa);
-		padding: 2px 8px;
-		border-radius: 12px;
-		border: 1px solid var(--s-border, #e5e7eb);
-	}
-	.svc-cat-tag {
-		font-size: 0.8rem;
+	.svc-cat {
+		font-size: 0.75rem;
 		color: var(--s-text-tertiary, #9ca3af);
+		margin-left: 0;
 		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
 	}
 	.svc-price {
-		font-family: var(--s-font-display, 'Outfit', sans-serif);
-		font-size: 1.1rem;
+		font-size: 1.05rem;
 		font-weight: 700;
-		color: var(--s-brand, #1a1a2e);
-		background: var(--s-bg-tertiary, #f3f4f6);
-		padding: 6px 12px;
-		border-radius: 8px;
+		color: var(--s-text-secondary, #6b7280);
 	}
 
-	:global(.staff-app.dark) .catalog-modal-content {
-		background: var(--s-bg, #121212);
+	:global(.staff-app.dark) .dropdown-menu {
+		background: var(--s-surface, #1e1e1e);
+		border-color: #333;
 	}
-	:global(.staff-app.dark) .catalog-sort-header {
-		background: #1a1a1e;
+	:global(.staff-app.dark) .dropdown-header {
+		background: #2a2a2a;
 		border-color: #333;
 	}
 	:global(.staff-app.dark) .sort-btn {
-		background: #222;
+		background: #1e1e1e;
 		border-color: #333;
 		color: #aaa;
 	}
 	:global(.staff-app.dark) .category-header {
-		background: var(--s-bg, #121212);
+		background: var(--s-surface, #1e1e1e);
 		color: #fff;
 		border-color: #333;
 	}
 	:global(.staff-app.dark) .category-group {
+		background: var(--s-surface, #1e1e1e);
 		border-color: #333;
-		background: var(--s-bg, #121212);
 	}
-	:global(.staff-app.dark) .service-option.flat {
+	:global(.staff-app.dark) .category-group.expanded .category-header {
 		border-color: #333;
 	}
 	:global(.staff-app.dark) .category-items {
-		background: #1a1a1e;
-		border-color: #333;
+		background: transparent;
 	}
 	:global(.staff-app.dark) .service-option {
-		background: #222;
+		background: transparent;
 		border-color: #333;
 	}
-	:global(.staff-app.dark) .svc-price {
-		background: #333;
-		color: #fff;
+	:global(.staff-app.dark) .category-header:hover,
+	:global(.staff-app.dark) .service-option:hover {
+		background: #2a2a2a;
 	}
 	:global(.staff-app.dark) .svc-name {
 		color: #fff;
@@ -1823,18 +2098,50 @@
 	}
 	:global(.staff-app.dark) .dropdown-trigger {
 		background: var(--s-bg, #121212);
-		border-color: #444;
+		border-color: #333;
 		color: #fff;
 	}
-	:global(.staff-app.dark) .dropdown-arrow {
-		background: #333;
+
+	.open-catalog-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 14px;
+		background: var(--s-surface, white);
+		border: 1px dashed var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-md, 10px);
+		color: var(--s-text-primary, #1a1a2e);
+		font-weight: 600;
+		font-size: 0.95rem;
+		cursor: pointer;
+		margin-bottom: 12px;
+		transition: all 0.2s ease;
 	}
-	:global(.staff-app.dark) .cat-arrow {
-		background: #333;
+	.open-catalog-btn:hover {
+		border-color: var(--s-accent, #c9a24f);
+		color: var(--s-accent, #c9a24f);
+		background: var(--s-accent-bg, rgba(201, 162, 79, 0.05));
 	}
-	:global(.staff-app.dark) .cat-arrow.expanded {
-		background: var(--s-accent, #c9a24f);
-		color: #000;
+	.open-catalog-btn:active {
+		transform: scale(0.98);
+	}
+
+	:global(.staff-app.dark) .open-catalog-btn {
+		background: transparent;
+		border-color: #444;
+		color: #e5e7eb;
+	}
+	:global(.staff-app.dark) .open-catalog-btn:hover {
+		border-color: var(--s-accent, #c9a24f);
+		color: var(--s-accent, #c9a24f);
+	}
+
+	.catalog-plus {
+		font-size: 1.2rem;
+		font-weight: 400;
+		line-height: 1;
 	}
 
 	.confirm-add-btn {
@@ -1848,14 +2155,23 @@
 	}
 
 	.text-btn {
-		background: none;
-		border: none;
+		width: 100%;
+		background: transparent;
+		border: 1px solid transparent;
 		color: var(--s-accent, #c9a24f);
 		font-weight: 700;
-		font-size: 0.9rem;
+		font-size: 0.95rem;
 		cursor: pointer;
-		padding: 8px 0;
-		text-align: left;
+		padding: 12px 0;
+		text-align: center;
+		border-radius: var(--s-radius-md, 10px);
+		transition: background 0.2s ease;
+	}
+	.text-btn:hover {
+		background: var(--s-accent-bg, rgba(201, 162, 79, 0.05));
+	}
+	.text-btn:active {
+		transform: scale(0.98);
 	}
 
 	.notes-group {
@@ -1863,12 +2179,40 @@
 		padding: 0;
 	}
 
+	.notes-group textarea {
+		background: var(--s-surface, white);
+		border-radius: var(--s-radius-xl, 16px);
+		border: 1px solid var(--s-border, #e5e7eb);
+		padding: 20px 16px;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+		font-size: 0.95rem;
+		resize: none;
+		min-height: 120px;
+		transition: all 0.2s ease;
+	}
+
+	.notes-group textarea:focus {
+		border-color: var(--s-accent, #c9a24f);
+		box-shadow:
+			0 0 0 3px var(--s-accent-bg, rgba(201, 162, 79, 0.1)),
+			0 1px 3px rgba(0, 0, 0, 0.02);
+	}
+
+	:global(.staff-app.dark) .notes-group textarea {
+		background: var(--s-surface, #1e1e1e);
+		border-color: #333;
+		color: #fff;
+	}
+	:global(.staff-app.dark) .notes-group textarea:focus {
+		border-color: var(--s-accent, #c9a24f);
+	}
+
 	/* Footer */
 	.modal-footer {
 		display: flex;
 		gap: 10px;
 		padding: 16px 24px;
-		padding-bottom: max(80px, calc(env(safe-area-inset-bottom, 16px) + 72px));
+		padding-bottom: max(24px, env(safe-area-inset-bottom, 16px));
 		border-top: 1px solid var(--s-border, #e5e7eb);
 		flex-shrink: 0;
 		background: var(--s-bg, #f8f9fa);
@@ -1975,5 +2319,224 @@
 
 	.save-btn:disabled {
 		opacity: 0.6;
+	}
+
+	/* ======== CATALOG FULLSCREEN OVERLAY ======== */
+	.catalog-fullscreen-overlay {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: var(--s-bg, #f8f9fa);
+		z-index: 300;
+		display: flex;
+		flex-direction: column;
+		animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+		border-radius: var(--s-radius-2xl, 24px) var(--s-radius-2xl, 24px) 0 0;
+		overflow: hidden;
+	}
+
+	@media (min-width: 768px) {
+		.catalog-fullscreen-overlay {
+			top: 50%;
+			left: 50%;
+			bottom: auto;
+			width: 100%;
+			max-width: 500px;
+			max-height: 92vh;
+			height: 100%;
+			transform: translate(-50%, -50%);
+			border-radius: var(--s-radius-2xl, 20px);
+			animation: catalogFadeInDesktop 0.3s ease-out forwards;
+		}
+	}
+
+	@keyframes catalogFadeInDesktop {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -45%);
+		}
+		to {
+			opacity: 1;
+			transform: translate(-50%, -50%);
+		}
+	}
+
+	:global(.staff-app.dark) .catalog-fullscreen-overlay {
+		background: var(--s-surface, #1e1e1e);
+	}
+
+	.catalog-fs-header {
+		display: flex;
+		flex-direction: column;
+		padding: 20px 24px 16px;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		flex-shrink: 0;
+		background: var(--s-surface, white);
+	}
+
+	:global(.staff-app.dark) .catalog-fs-header {
+		background: #2a2a2a;
+		border-color: #333;
+	}
+
+	.catalog-fs-title {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.catalog-fs-title h2 {
+		margin: 0;
+		font-family: var(--s-font-display, 'Outfit', sans-serif);
+		font-size: 1.3rem;
+		font-weight: 700;
+		color: var(--s-text-primary, #1a1a2e);
+	}
+
+	:global(.staff-app.dark) .catalog-fs-title h2 {
+		color: #fff;
+	}
+
+	.catalog-back-btn {
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border: none;
+		width: 40px;
+		height: 40px;
+		border-radius: var(--s-radius-full, 50%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--s-text-secondary, #6b7280);
+		cursor: pointer;
+		transition: all var(--s-duration-fast, 0.15s) ease;
+		flex-shrink: 0;
+	}
+
+	.catalog-back-btn:active {
+		background: var(--s-border, #e5e7eb);
+		transform: scale(0.92);
+	}
+
+	:global(.staff-app.dark) .catalog-back-btn {
+		background: #1e1e1e;
+		color: #aaa;
+	}
+
+	.catalog-fs-sort {
+		padding: 10px 24px;
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-shrink: 0;
+	}
+
+	:global(.staff-app.dark) .catalog-fs-sort {
+		background: #2a2a2a;
+		border-color: #333;
+	}
+
+	.catalog-fs-body {
+		flex: 1;
+		overflow-y: auto;
+		padding: 16px 24px;
+		-ms-overflow-style: none;
+		scrollbar-width: thin;
+	}
+
+	.dropdown-list.fs-list {
+		height: auto;
+		min-height: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding-bottom: 24px;
+	}
+
+	/* Action Buttons Grid */
+	.action-column {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		width: 100%;
+	}
+
+	.action-row {
+		display: flex;
+		gap: 12px;
+		width: 100%;
+	}
+
+	.action-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		font-weight: 700;
+		border-radius: var(--s-radius-lg, 16px);
+		padding: 16px;
+		font-size: 0.95rem;
+		border: none;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+	}
+
+	.qr-btn {
+		background: #6366f1; /* Indigo */
+		color: white;
+	}
+
+	.qr-btn:active {
+		background: #4f46e5;
+		transform: scale(0.97);
+	}
+
+	.pay-btn {
+		background: #f43f5e; /* Rose/Red color */
+		color: white;
+	}
+
+	.pay-btn:active {
+		background: #e11d48;
+		transform: scale(0.97);
+	}
+
+	.chat-btn {
+		background: #25d366;
+		color: white;
+	}
+
+	.chat-btn:active {
+		background: #1da851;
+		transform: scale(0.97);
+	}
+
+	.chat-btn:disabled {
+		background: #a0d8b4;
+		cursor: not-allowed;
+	}
+
+	.invoice-btn {
+		background: var(--s-accent, #c8956c);
+		color: white;
+	}
+
+	.invoice-btn:active {
+		filter: brightness(0.9);
+		transform: scale(0.97);
+	}
+
+	.invoice-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.mt-2 {
+		margin-top: 8px;
 	}
 </style>

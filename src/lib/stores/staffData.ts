@@ -175,16 +175,91 @@ export async function searchUsersByPhone(phoneQuery: string): Promise<AppUser[]>
 		if (!phoneQuery || phoneQuery.trim().length < 3) return []; // Require at least 3 chars
 
 		// Note: Firestore doesn't do substring search well, but prefix search works.
-		const q = query(
-			collection(db, 'users'),
-			where('phone', '>=', phoneQuery),
-			where('phone', '<=', phoneQuery + '\uf8ff'),
-			limit(5)
-		);
-		const snapshot = await getDocs(q);
-		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as AppUser);
+		// Since we stripped the user input to just digits, we should try a few common prefixes in the DB
+		const formats = [phoneQuery, `+91${phoneQuery}`, `+91 ${phoneQuery}`, `+91-${phoneQuery}`];
+
+		const allResults: AppUser[] = [];
+		const seenIds = new Set<string>();
+
+		for (const format of formats) {
+			const q = query(
+				collection(db, 'users'),
+				where('phone', '>=', format),
+				where('phone', '<=', format + '\uf8ff'),
+				limit(5)
+			);
+			const snapshot = await getDocs(q);
+
+			snapshot.docs.forEach((d) => {
+				if (!seenIds.has(d.id)) {
+					seenIds.add(d.id);
+					allResults.push({ id: d.id, ...d.data() } as AppUser);
+				}
+			});
+			if (allResults.length >= 5) break;
+		}
+
+		return allResults.slice(0, 5);
 	} catch (e) {
 		console.error('Error searching users by phone:', e);
+		return [];
+	}
+}
+
+export async function searchUsersByName(nameQuery: string): Promise<AppUser[]> {
+	try {
+		if (!nameQuery || nameQuery.trim().length < 3) return [];
+
+		const queryLower = nameQuery.toLowerCase();
+
+		// Attempt to search across common name fields by doing an exact
+		// or starting-with query. Firestore doesn't support case-insensitive
+		// fields natively without a dedicated lowercase index field,
+		// but we'll try standard capitalized approaches as a best-effort.
+
+		// For simplicity given Firestore limits, assuming names are stored with standard casing
+		const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+		const queryCap = capitalize(nameQuery);
+
+		const allResults: AppUser[] = [];
+		const seenIds = new Set<string>();
+
+		// We will prioritize checking the 'name' field since that's what BookingModal uses most
+		const queries = [
+			query(
+				collection(db, 'users'),
+				where('name', '>=', queryCap),
+				where('name', '<=', queryCap + '\uf8ff'),
+				limit(5)
+			),
+			query(
+				collection(db, 'users'),
+				where('displayName', '>=', queryCap),
+				where('displayName', '<=', queryCap + '\uf8ff'),
+				limit(5)
+			),
+			query(
+				collection(db, 'users'),
+				where('name', '>=', queryLower),
+				where('name', '<=', queryLower + '\uf8ff'),
+				limit(5)
+			)
+		];
+
+		for (const q of queries) {
+			const snapshot = await getDocs(q);
+			snapshot.docs.forEach((d) => {
+				if (!seenIds.has(d.id)) {
+					seenIds.add(d.id);
+					allResults.push({ id: d.id, ...d.data() } as AppUser);
+				}
+			});
+			if (allResults.length >= 5) break;
+		}
+
+		return allResults.slice(0, 5);
+	} catch (e) {
+		console.error('Error searching users by name:', e);
 		return [];
 	}
 }

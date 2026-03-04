@@ -23,6 +23,7 @@ export async function generateAndShareInvoice(params: {
 	discountAmount?: number;
 	extraCharge?: number;
 	couponCode?: string | null;
+	paymentStatus?: 'paid' | 'unpaid';
 }) {
 	const {
 		booking,
@@ -30,7 +31,8 @@ export async function generateAndShareInvoice(params: {
 		totalAmount,
 		discountAmount = 0,
 		extraCharge = 0,
-		couponCode
+		couponCode,
+		paymentStatus = 'unpaid'
 	} = params;
 
 	// 1. Load jsPDF + autoTable (cached after first load)
@@ -178,6 +180,42 @@ export async function generateAndShareInvoice(params: {
 	doc.setFontSize(42);
 	doc.setTextColor(64, 64, 64);
 	doc.text('INVOICE', px(600), py(247), { align: 'right' });
+
+	// ═══════════════════════════════════════════
+	//   PAYMENT STATUS BADGE — Pill below INVOICE title
+	// ═══════════════════════════════════════════
+
+	{
+		const isPaid = paymentStatus === 'paid';
+		const badgeText = isPaid ? '✓ PAID' : 'UNPAID';
+		const badgeFill: [number, number, number] = isPaid ? [254, 232, 240] : [255, 237, 213];
+		const badgeBorder: [number, number, number] = isPaid ? [220, 100, 140] : [234, 88, 12];
+		const badgeTextColor: [number, number, number] = isPaid ? [160, 40, 80] : [194, 65, 12];
+
+		doc.setFont(bodyFont, 'bold');
+		doc.setFontSize(10);
+		const textW = doc.getTextWidth(badgeText);
+		const padH = 10;
+		const padV = 4;
+		const pillW = textW + padH * 2;
+		const pillH = 16;
+		const pillR = pillH / 2;
+		const pillX = px(600) - pillW;
+		const pillY = py(257);
+
+		// Fill
+		doc.setFillColor(...badgeFill);
+		doc.roundedRect(pillX, pillY, pillW, pillH, pillR, pillR, 'F');
+
+		// Border
+		doc.setDrawColor(...badgeBorder);
+		doc.setLineWidth(0.6);
+		doc.roundedRect(pillX, pillY, pillW, pillH, pillR, pillR, 'S');
+
+		// Text
+		doc.setTextColor(...badgeTextColor);
+		doc.text(badgeText, pillX + padH, pillY + pillH - padV, { baseline: 'bottom' });
+	}
 
 	// ═══════════════════════════════════════════
 	//   META — Invoice No, Date (left) / Client (right)

@@ -29,9 +29,7 @@
 	});
 
 	const filters = [
-		{ key: 'upcoming', label: '📅 Upcoming', emoji: '📅' },
-		{ key: 'pending', label: '⏳ Pending', emoji: '⏳' },
-		{ key: 'today', label: '🕐 Today', emoji: '🕐' },
+		{ key: 'upcoming', label: '📅 Today', emoji: '📅' },
 		{ key: 'completed', label: '✅ Done', emoji: '✅' },
 		{ key: 'cancelled', label: '❌ Cancelled', emoji: '❌' },
 		{ key: 'all', label: '📋 All', emoji: '📋' }
@@ -43,15 +41,12 @@
 
 		switch (activeFilter) {
 			case 'upcoming':
-				bookings = bookings.filter(
-					(b) => b.status !== 'completed' && b.status !== 'cancelled' && b.date >= today
-				);
-				break;
-			case 'pending':
-				bookings = bookings.filter((b) => b.status === 'pending');
-				break;
-			case 'today':
-				bookings = bookings.filter((b) => b.date === today);
+				// All of today's bookings (any status) + future active bookings
+				bookings = bookings.filter((b) => {
+					if (b.date === today) return true; // All today's bookings regardless of status
+					if (b.date > today && b.status !== 'completed' && b.status !== 'cancelled') return true; // Future active
+					return false;
+				});
 				break;
 			case 'completed':
 				bookings = bookings.filter((b) => b.status === 'completed');
@@ -180,15 +175,34 @@
 		return 'payment-salon';
 	}
 
-	// Group bookings by date
+	// Group bookings by date — for upcoming, split active vs done today
+	let activeBookings = $derived(() => {
+		const today = new Date().toISOString().split('T')[0];
+		if (activeFilter === 'upcoming') {
+			// Active = not completed/cancelled
+			return filteredBookings().filter((b) => b.status !== 'completed' && b.status !== 'cancelled');
+		}
+		return filteredBookings();
+	});
+
+	let todayDoneBookings = $derived(() => {
+		const today = new Date().toISOString().split('T')[0];
+		if (activeFilter === 'upcoming') {
+			return filteredBookings().filter(
+				(b) => b.date === today && (b.status === 'completed' || b.status === 'cancelled')
+			);
+		}
+		return [];
+	});
+
 	let groupedBookings = $derived(() => {
 		const groups: Record<string, any[]> = {};
-		filteredBookings().forEach((b) => {
+		activeBookings().forEach((b) => {
 			const key = b.date || 'unknown';
 			if (!groups[key]) groups[key] = [];
 			groups[key].push(b);
 		});
-		return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+		return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])); // chronological for upcoming
 	});
 
 	let pendingBadge = $derived($staffBookings.filter((b) => b.status === 'pending').length);
@@ -235,7 +249,7 @@
 				}}
 			>
 				{filter.label}
-				{#if filter.key === 'pending' && pendingBadge > 0}
+				{#if filter.key === 'upcoming' && pendingBadge > 0}
 					<span class="pill-badge">{pendingBadge}</span>
 				{/if}
 			</button>
@@ -261,6 +275,19 @@
 		/>
 	{:else}
 		<div class="bookings-list s-stagger">
+			{#if activeFilter === 'upcoming'}
+				<div class="date-divider">
+					<span class="dd-label">📅 Upcoming</span>
+					<span class="dd-count">{activeBookings().length}</span>
+				</div>
+				{#if activeBookings().length === 0}
+					<EmptyState
+						icon="☕"
+						title="All Caught Up!"
+						description="No upcoming appointments. Time for a break?"
+					/>
+				{/if}
+			{/if}
 			{#each groupedBookings() as [dateKey, bookings]}
 				<div class="date-group">
 					<div class="date-divider">
@@ -473,7 +500,16 @@
 												{/if}
 											</p>
 										</div>
-										<StatusBadge status={booking.status} size="sm" />
+										<div class="bc-badges">
+											<StatusBadge status={booking.status} size="sm" />
+											{#if booking.status === 'completed'}
+												{#if booking.payment?.status === 'paid'}
+													<span class="pay-tag paid">✓ Paid</span>
+												{:else}
+													<span class="pay-tag unpaid">Unpaid</span>
+												{/if}
+											{/if}
+										</div>
 									</div>
 
 									<div class="bc-meta">
@@ -543,6 +579,112 @@
 				</div>
 			{/each}
 		</div>
+
+		{#if todayDoneBookings().length > 0}
+			<div class="done-today-section">
+				<div class="date-divider done-divider">
+					<span class="dd-label">✅ Completed / Cancelled Today</span>
+					<span class="dd-count">{todayDoneBookings().length}</span>
+				</div>
+				{#each todayDoneBookings() as booking}
+					<div
+						class="booking-card s-card s-card-interactive card-{booking.status}"
+						onclick={() => openBooking(booking)}
+						role="button"
+						tabindex="0"
+						onkeydown={(e) => e.key === 'Enter' && openBooking(booking)}
+					>
+						<div class="bc-body">
+							<div class="bc-top">
+								<button
+									class="bc-avatar"
+									onclick={(e) => {
+										e.stopPropagation();
+										openClient(booking);
+									}}
+								>
+									{booking.userName?.[0]?.toUpperCase() || 'G'}
+								</button>
+								<div class="bc-info">
+									<h4 class="bc-name">{booking.userName || 'Guest'}</h4>
+									<p class="bc-phone">
+										{#if booking.userPhone}
+											<svg
+												class="phone-icon"
+												width="12"
+												height="12"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												><path
+													d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+												/></svg
+											>
+											{booking.userPhone}
+										{:else}
+											<span class="no-phone">No phone number</span>
+										{/if}
+									</p>
+									<p class="bc-services">
+										{#if booking.servicesList?.length}
+											{booking.servicesList.map((s: any) => s.name).join(', ')}
+										{:else}
+											{booking.serviceName || 'Service'}
+										{/if}
+									</p>
+								</div>
+								<div class="bc-badges">
+									<StatusBadge status={booking.status} size="sm" />
+									{#if booking.status === 'completed'}
+										{#if booking.payment?.status === 'paid'}
+											<span class="pay-tag paid">✓ Paid</span>
+										{:else}
+											<span class="pay-tag unpaid">Unpaid</span>
+										{/if}
+									{/if}
+								</div>
+							</div>
+
+							<div class="bc-meta">
+								<span class="bc-meta-item">🕐 {formatTime12h(booking.time)}</span>
+								{#if booking.servicesList?.some((s: any) => s.duration)}
+									<span class="bc-meta-item"
+										>⏱ {formatDuration(
+											booking.servicesList.reduce((a: number, s: any) => a + (s.duration || 0), 0)
+										)}</span
+									>
+								{/if}
+								<span class="bc-meta-item price"
+									>₹{booking.totalAmount || booking.price || '-'}</span
+								>
+							</div>
+
+							{#if booking.payment}
+								<div class="bc-payment">
+									<span class="payment-badge {getPaymentBadgeClass(booking)}">
+										{getPaymentMethodIcon(booking)}
+										{getPaymentLabel(booking)}
+									</span>
+									{#if booking.payment.type === 'token' && booking.payment.amount}
+										<div class="payment-details">
+											<span class="payment-paid">✓ ₹{booking.payment.amount} paid</span>
+											<span class="payment-due"
+												>• ₹{(booking.totalAmount || booking.price || 0) - booking.payment.amount} due</span
+											>
+										</div>
+									{:else if booking.payment.type === 'full' && booking.payment.amount}
+										<span class="payment-paid">✓ Fully paid</span>
+									{/if}
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	{/if}
 
 	<!-- FAB -->
@@ -1312,5 +1454,63 @@
 	.fab:active {
 		transform: scale(0.9);
 		box-shadow: var(--s-shadow-xl);
+	}
+
+	/* Done Today Section */
+	.done-today-section {
+		margin-top: var(--s-space-lg);
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-space-sm);
+	}
+
+	.done-divider {
+		padding-top: var(--s-space-md);
+		border-top: 1px dashed var(--s-border);
+	}
+
+	.done-card {
+		opacity: 0.75;
+		transition: opacity 0.2s ease;
+	}
+
+	.done-card:hover {
+		opacity: 1;
+	}
+
+	.no-upcoming-msg {
+		text-align: center;
+		color: var(--s-text-tertiary);
+		font-size: var(--s-text-sm);
+		padding: var(--s-space-md) 0;
+		font-style: italic;
+	}
+
+	.bc-badges {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 4px;
+	}
+
+	.pay-tag {
+		font-size: 0.65rem;
+		font-weight: 700;
+		padding: 2px 8px;
+		border-radius: 99px;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
+	.pay-tag.paid {
+		background: #dcfce7;
+		color: #15803d;
+		border: 1px solid #bbf7d0;
+	}
+
+	.pay-tag.unpaid {
+		background: #fef2f2;
+		color: #dc2626;
+		border: 1px solid #fecaca;
 	}
 </style>
