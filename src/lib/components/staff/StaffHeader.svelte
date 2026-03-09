@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { staffUser } from '$lib/stores/staffAuth';
+	import { isOnline } from '$lib/stores/networkStatus';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
 
@@ -13,7 +14,7 @@
 		notificationCount?: number;
 	} = $props();
 
-	let isOnline = $state(true);
+	let isOnlineVal = $derived($isOnline);
 
 	// Live clock
 	let clockTime = $state('');
@@ -37,20 +38,13 @@
 	onDestroy(() => {
 		if (clockInterval) clearInterval(clockInterval);
 	});
-
-	// Check online status
-	if (typeof window !== 'undefined') {
-		isOnline = navigator.onLine;
-		window.addEventListener('online', () => (isOnline = true));
-		window.addEventListener('offline', () => (isOnline = false));
-	}
 </script>
 
 <header class="staff-header s-glass-strong">
 	<div class="header-content">
 		<div class="header-left">
 			<h1 class="page-title">{title}</h1>
-			{#if !isOnline}
+			{#if !isOnlineVal}
 				<span class="offline-badge">Offline</span>
 			{/if}
 		</div>
@@ -104,7 +98,7 @@
 							'S'}
 					</div>
 				{/if}
-				<span class="online-dot" class:offline={!isOnline}></span>
+				<span class="online-dot" class:offline={!isOnlineVal}></span>
 			</button>
 		</div>
 	</div>

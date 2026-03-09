@@ -1,7 +1,13 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import {
+	initializeFirestore,
+	persistentLocalCache,
+	persistentMultipleTabManager,
+	type Firestore
+} from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { getMessaging, isSupported, type Messaging } from 'firebase/messaging';
 import { browser } from '$app/environment';
 
 const firebaseConfig = {
@@ -17,12 +23,22 @@ let app: FirebaseApp | undefined;
 let db: Firestore;
 let auth: Auth;
 let storage: FirebaseStorage;
+let messaging: Messaging | null = null;
 
 if (browser) {
 	app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-	db = getFirestore(app);
+	db = initializeFirestore(app, {
+		localCache: persistentLocalCache({
+			tabManager: persistentMultipleTabManager()
+		})
+	});
 	auth = getAuth(app);
 	storage = getStorage(app);
+	isSupported().then((supported) => {
+		if (supported && app) {
+			messaging = getMessaging(app);
+		}
+	});
 }
 
-export { app, db, auth, storage };
+export { app, db, auth, storage, messaging };

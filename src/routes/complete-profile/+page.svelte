@@ -233,6 +233,26 @@
 					...profileData,
 					createdAt: serverTimestamp()
 				});
+
+				// Send targeted push notification to Admin
+				try {
+					const idToken = await currentUser.getIdToken();
+					await fetch('/api/notifications/notifyStaff', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${idToken}`
+						},
+						body: JSON.stringify({
+							title: 'New User Signup! 🎉',
+							body: `${name.trim()} has just completed their profile on Blancbeu.`,
+							targetRoles: ['admin'],
+							notificationType: 'newSignups'
+						})
+					}).catch((err) => console.error('Failed to send notification request:', err));
+				} catch (notificationErr) {
+					console.error('Error triggering notification:', notificationErr);
+				}
 			}
 
 			showToast(`Welcome, ${name.trim()}! 🎉`, 'success');

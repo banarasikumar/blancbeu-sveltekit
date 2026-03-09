@@ -25,6 +25,11 @@
 	import { flip } from 'svelte/animate';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import {
+		requestNotificationPermission,
+		notificationStatus,
+		checkNotificationStatus
+	} from '$lib/stores/staffNotifications';
 
 	let userName = $derived(($adminUser?.displayName || 'Admin').split(' ')[0]);
 
@@ -101,6 +106,19 @@
 	let draggingIndex = $state<number | null>(null);
 
 	onMount(() => {
+		checkNotificationStatus();
+
+		// Auto-prompt Admin after 2 seconds
+		setTimeout(() => {
+			if ($notificationStatus === 'default' && $adminUser) {
+				requestNotificationPermission($adminUser.uid).then((success) => {
+					if (success) {
+						showToast('Push Notifications Enabled!', 'success');
+					}
+				});
+			}
+		}, 2000);
+
 		if (browser) {
 			const saved = localStorage.getItem('adminActionOrder');
 			if (saved) {

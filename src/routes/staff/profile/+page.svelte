@@ -4,6 +4,13 @@
 	import { themeMode, setTheme } from '$lib/stores/staffTheme';
 	import { showToast } from '$lib/stores/toast';
 	import { goto } from '$app/navigation';
+	import {
+		requestNotificationPermission,
+		disableNotifications,
+		notificationStatus,
+		checkNotificationStatus
+	} from '$lib/stores/staffNotifications';
+	import { onMount } from 'svelte';
 
 	// Real stats from bookings
 	let completedAll = $derived($staffBookings.filter((b) => b.status === 'completed').length);
@@ -33,6 +40,45 @@
 
 	let isAvailable = $state(true);
 	let soundEnabled = $state(true);
+
+	onMount(() => {
+		checkNotificationStatus();
+	});
+
+	let showDeniedModal = $state(false);
+
+	async function toggleNotifications() {
+		if ($notificationStatus === 'denied') {
+			showDeniedModal = true;
+			return;
+		}
+
+		if ($notificationStatus === 'granted') {
+			// Disable
+			if (!$staffUser) return;
+			const success = await disableNotifications($staffUser.uid);
+			if (success) {
+				// Manually update local state to reflect it's effectively "off" for this app
+				// even if browser permission is still granted
+				$notificationStatus = 'default' as any;
+				showToast('Push Notifications Disabled', 'success');
+			} else {
+				showToast('Failed to disable notifications', 'error');
+			}
+			return;
+		}
+
+		// Enable
+		if (!$staffUser) return;
+		const success = await requestNotificationPermission($staffUser.uid);
+		if (success) {
+			showToast('Push Notifications Enabled!', 'success');
+		} else if ($notificationStatus === 'denied') {
+			showDeniedModal = true;
+		} else {
+			showToast('Failed to enable, please try again.', 'error');
+		}
+	}
 
 	// Theme cycling
 	let currentTheme = $state<'light' | 'dark' | 'system'>('light');
@@ -201,6 +247,36 @@
 				<div class="toggle-thumb"></div>
 			</div>
 		</div>
+
+		<div
+			class="setting-item"
+			onclick={toggleNotifications}
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => e.key === 'Enter' && toggleNotifications()}
+		>
+			<span class="si-icon">🔔</span>
+			<div class="si-text">
+				<span class="si-label">Push Notifications</span>
+				<span class="si-value">
+					{#if $notificationStatus === 'granted'}
+						On
+					{:else if $notificationStatus === 'denied'}
+						Blocked
+					{:else if $notificationStatus === 'unsupported'}
+						Not supported
+					{:else}
+						Off
+					{/if}
+				</span>
+			</div>
+
+			{#if $notificationStatus !== 'unsupported'}
+				<div class="toggle-switch" class:on={$notificationStatus === 'granted'}>
+					<div class="toggle-thumb"></div>
+				</div>
+			{/if}
+		</div>
 	</section>
 
 	<!-- Account Info -->
@@ -233,6 +309,31 @@
 	<div class="app-version">
 		<p>Blancbeu Staff v2.0</p>
 	</div>
+	<!-- Permission Denied Modal -->
+	{#if showDeniedModal}
+		<div class="modal-backdrop" onclick={() => (showDeniedModal = false)}>
+			<div class="modal-content s-card" onclick={(e) => e.stopPropagation()}>
+				<div class="modal-header">
+					<h3>Notifications Blocked</h3>
+				</div>
+				<div class="modal-body">
+					<p>
+						Your browser is currently blocking notifications for this app. To receive alerts for new
+						bookings, please open your device settings:
+					</p>
+					<div class="settings-instructions">
+						<strong>Settings &gt; Apps &gt; Blancbeu Staff &gt; Permissions</strong>
+					</div>
+					<p class="text-sm mt-2 text-center">and Allow Notifications.</p>
+				</div>
+				<div class="modal-footer">
+					<button class="s-btn s-btn-primary s-btn-block" onclick={() => (showDeniedModal = false)}>
+						Got it
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -462,6 +563,11 @@
 		font-weight: 600;
 	}
 
+	.si-icon-success {
+		color: var(--s-success);
+		font-weight: bold;
+	}
+
 	/* Toggle Switch */
 	.toggle-switch {
 		width: 44px;
@@ -532,5 +638,67 @@
 		font-size: var(--s-text-xs);
 		color: var(--s-text-tertiary);
 		font-weight: 500;
+	}
+
+	/* Simple Modal styles for the Denied Warning */
+	.modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(4px);
+		z-index: var(--s-z-modal);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--s-space-lg);
+	}
+
+	.modal-content {
+		width: 100%;
+		max-width: 400px;
+		background: var(--s-surface);
+		border-radius: var(--s-radius-xl);
+		padding: var(--s-space-xl);
+		animation: s-zoomIn var(--s-duration-normal) var(--s-ease-spring);
+	}
+
+	.modal-header h3 {
+		margin: 0 0 var(--s-space-md);
+		font-family: var(--s-font-display);
+		font-size: var(--s-text-xl);
+		text-align: center;
+		color: var(--s-error);
+	}
+
+	.modal-body p {
+		margin: 0 0 var(--s-space-md);
+		text-align: center;
+		color: var(--s-text-secondary);
+		line-height: 1.5;
+	}
+
+	.settings-instructions {
+		background: var(--s-bg-secondary);
+		padding: var(--s-space-md);
+		border-radius: var(--s-radius-md);
+		text-align: center;
+		font-family: monospace;
+		color: var(--s-text-primary);
+		margin-bottom: var(--s-space-md);
+	}
+
+	.text-center {
+		text-align: center;
+	}
+
+	.mt-2 {
+		margin-top: 8px;
+	}
+
+	.modal-footer {
+		margin-top: var(--s-space-lg);
 	}
 </style>

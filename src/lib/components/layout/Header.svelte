@@ -2,6 +2,7 @@
 	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 	import { Bell } from 'lucide-svelte';
 	import { unreadCount } from '$lib/stores/notifications';
+	import { isOnline } from '$lib/stores/networkStatus';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
@@ -42,6 +43,13 @@
 		<ThemeToggle />
 	</div>
 </header>
+
+{#if !$isOnline}
+	<div class="offline-banner">
+		<span class="offline-dot"></span>
+		You are offline
+	</div>
+{/if}
 
 <style>
 	.app-header {
@@ -147,6 +155,53 @@
 		}
 		to {
 			transform: scale(1);
+		}
+	}
+
+	/* Offline Banner */
+	.offline-banner {
+		position: fixed;
+		top: 56px;
+		left: 0;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 6px 16px;
+		background: #d32f2f;
+		color: #fff;
+		font-size: 0.75rem;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		z-index: 999;
+		animation: slideDown 0.3s ease;
+	}
+
+	.offline-dot {
+		width: 6px;
+		height: 6px;
+		background: #fff;
+		border-radius: 50%;
+		animation: pulse-dot 2s ease-in-out infinite;
+	}
+
+	@keyframes slideDown {
+		from {
+			transform: translateY(-100%);
+		}
+		to {
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes pulse-dot {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.4;
 		}
 	}
 </style>

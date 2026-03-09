@@ -17,6 +17,26 @@
 	import EmptyState from '$lib/components/staff/EmptyState.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import {
+		requestNotificationPermission,
+		notificationStatus,
+		checkNotificationStatus
+	} from '$lib/stores/staffNotifications';
+
+	onMount(() => {
+		checkNotificationStatus();
+
+		// Auto-prompt to enable push notifications if not decided yet
+		setTimeout(() => {
+			if ($notificationStatus === 'default' && $staffUser) {
+				requestNotificationPermission($staffUser.uid).then((success) => {
+					if (success) {
+						showToast('Push Notifications Enabled!', 'success');
+					}
+				});
+			}
+		}, 2000); // Wait 2s for dashboard to settle
+	});
 
 	// Data
 	let nextAppointment = $derived($upcomingBookings[0]);

@@ -499,6 +499,29 @@
 			showSummaryModal = false;
 			cart.clear();
 
+			// Trigger Push Notification to Staff
+			try {
+				if (auth.currentUser) {
+					const idToken = await auth.currentUser.getIdToken();
+					const serviceNames = $cart.map((s) => s.name).join(', ');
+					await fetch('/api/notifications/notifyStaff', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${idToken}`
+						},
+						body: JSON.stringify({
+							title: 'New Booking Request!',
+							body: `${userName} just booked ${serviceNames} for ${selectedDate} at ${selectedTime}`,
+							targetRoles: ['staff', 'admin'],
+							notificationType: 'newBookings'
+						})
+					}).catch((err) => console.error('Failed to send notification request:', err));
+				}
+			} catch (notificationErr) {
+				console.error('Error triggering notification:', notificationErr);
+			}
+
 			// Trigger Confetti
 			if (browser) triggerConfetti();
 		} catch (error) {
