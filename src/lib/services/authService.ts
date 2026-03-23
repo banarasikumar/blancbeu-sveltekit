@@ -12,7 +12,7 @@ import { showToast } from '$lib/stores/toast';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
 
-const WHATSAPP_NUMBER = '919229915277';
+const WHATSAPP_NUMBER = '919297602833';
 const WHATSAPP_MESSAGE = '*Hi BlancBeu, please help me log in.*';
 const BOT_SECRET_KEY = 'X9vP2kL5jM8zQ4wN7cR3bT1f';
 
