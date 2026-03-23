@@ -3,6 +3,12 @@ import { redirect, type Handle } from '@sveltejs/kit';
 export const handle: Handle = async ({ event, resolve }) => {
 	const host = event.url.host;
 	const path = event.url.pathname;
+	const proto = event.request.headers.get('x-forwarded-proto') || 'https';
+
+	// Force HTTPS: If the request came via HTTP, redirect to HTTPS
+	if (proto === 'http') {
+		throw redirect(301, `https://${host}${path}${event.url.search}`);
+	}
 
 	// Skip routing for static files, manifest, and api routes inside the handler
 	// to prevent infinite redirect loops on subdomains.
@@ -44,5 +50,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	return resolve(event);
+	// Resolve the request and add security headers
+	const response = await resolve(event);
+
+	// HSTS: Tell browsers to ALWAYS use HTTPS for this domain (1 year, include subdomains)
+	response.headers.set(
+		'Strict-Transport-Security',
+		'max-age=31536000; includeSubDomains; preload'
+	);
+
+	return response;
 };
