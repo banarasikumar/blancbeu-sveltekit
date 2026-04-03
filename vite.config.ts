@@ -12,6 +12,7 @@ export default defineConfig({
 			registerType: 'autoUpdate',
 			injectRegister: 'auto',
 			workbox: {
+				cacheId: 'blancbeu-0.0.2',
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif}'],
 				cleanupOutdatedCaches: true
 			},
