@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '$lib/styles/staffTheme.css';
 	import { onMount, onDestroy } from 'svelte';
+	import { get } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -12,8 +13,11 @@
 		upcomingBookings
 	} from '$lib/stores/staffData';
 	import { initTheme, destroyTheme, resolvedTheme } from '$lib/stores/staffTheme';
+	import { soundEnabled } from '$lib/stores/staffNotifications';
+	import { playNotificationChime } from '$lib/utils/notificationSound';
 	import StaffNav from '$lib/components/staff/StaffNav.svelte';
 	import StaffHeader from '$lib/components/staff/StaffHeader.svelte';
+	import StaffBgAnimation from '$lib/components/staff/StaffBgAnimation.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 
@@ -45,6 +49,7 @@
 	let metaThemeColor = $derived($resolvedTheme === 'dark' ? '#16161d' : '#ffffff');
 
 	let unsub: (() => void) | null = null;
+	let unsubFcm: (() => void) | null = null;
 
 	onMount(() => {
 		initTheme();
@@ -63,10 +68,35 @@
 				}
 			}
 		});
+
+		// Foreground FCM: when the staff app is open, Firebase does NOT auto-show
+		// the push notification — we must handle it ourselves here.
+		import('firebase/messaging').then(({ onMessage, isSupported }) => {
+			isSupported().then((supported) => {
+				if (!supported) return;
+				import('$lib/firebase').then(({ app }) => {
+					if (!app) return;
+					import('firebase/messaging').then(({ getMessaging }) => {
+						const msgInstance = getMessaging(app);
+						unsubFcm = onMessage(msgInstance, (payload) => {
+							const title = payload.notification?.title ?? 'New Booking!';
+							const body = payload.notification?.body ?? '';
+							// Play chime if sound is enabled
+							if (get(soundEnabled)) {
+								playNotificationChime();
+							}
+							// Show in-app toast (body included if available)
+							showToast(body ? `${title}: ${body}` : title, 'success');
+						});
+					});
+				});
+			});
+		});
 	});
 
 	onDestroy(() => {
 		if (unsub) unsub();
+		if (unsubFcm) unsubFcm();
 		destroyStaffAuth();
 		destroyStaffDataListeners();
 		destroyTheme();
@@ -81,18 +111,24 @@
 </svelte:head>
 
 <div class="staff-app {$resolvedTheme}">
+	<!-- Global animated background — always visible, pauses when tab hidden -->
+	<StaffBgAnimation />
+
 	{#if $staffAuthState === 'loading' || $staffAuthState === 'checking'}
-		<!-- If Firebase Auth takes longer than the 2s global splash screen, show this localized loader -->
+		<!-- Localized loader if Firebase Auth takes longer than splash screen -->
 		<div class="loading-screen" in:fade={{ duration: 300 }}>
 			<div class="loading-brand">
-				<div class="brand-mark">B</div>
+				<div class="brand-mark">
+					<span class="brand-mark-letter">B</span>
+					<div class="brand-mark-ring"></div>
+				</div>
 				<h1 class="brand-text">Blancbeu</h1>
 				<span class="brand-sub">Stylist Portal</span>
 			</div>
 			<div class="loading-dots">
-				<div class="dot"></div>
-				<div class="dot"></div>
-				<div class="dot"></div>
+				<div class="dot dot-1"></div>
+				<div class="dot dot-2"></div>
+				<div class="dot dot-3"></div>
 			</div>
 		</div>
 	{:else if isLoginPage}
@@ -143,6 +179,7 @@
 		background: var(--s-bg-secondary);
 		box-shadow: var(--s-shadow-lg);
 		position: relative;
+		z-index: 1;
 	}
 
 	.staff-header-container {
@@ -186,81 +223,112 @@
 
 	/* Loading Screen */
 	.loading-screen {
+		position: relative;
 		height: 100vh;
 		height: 100dvh;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 32px;
-		background: var(--s-bg-primary);
+		gap: 36px;
+		z-index: 1;
 	}
 
 	.loading-brand {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 8px;
-		animation: s-fadeIn 0.6s var(--s-ease);
+		gap: 12px;
+		animation: s-fadeIn 0.7s var(--s-ease);
 	}
 
 	.brand-mark {
-		width: 64px;
-		height: 64px;
-		border-radius: var(--s-radius-xl);
-		background: linear-gradient(135deg, var(--s-brand), var(--s-accent));
+		position: relative;
+		width: 76px;
+		height: 76px;
+		border-radius: 22px;
+		background: var(--s-grad-hero);
 		color: white;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		box-shadow: 0 8px 32px rgba(124, 58, 237, 0.45), 0 0 0 1px rgba(255,255,255,0.1);
+		animation: s-float 3s ease-in-out infinite;
+	}
+
+	.brand-mark-letter {
 		font-family: var(--s-font-display);
-		font-size: 2rem;
+		font-size: 2.2rem;
 		font-weight: 800;
-		box-shadow: var(--s-shadow-lg);
+		position: relative;
+		z-index: 1;
+		background: linear-gradient(135deg, #fff 0%, var(--s-accent-light) 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.brand-mark-ring {
+		position: absolute;
+		inset: -6px;
+		border-radius: 28px;
+		border: 2px solid transparent;
+		background: var(--s-grad-aurora) border-box;
+		-webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+		mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+		-webkit-mask-composite: destination-out;
+		mask-composite: exclude;
+		animation: s-spin 4s linear infinite;
+		opacity: 0.7;
 	}
 
 	.brand-text {
 		font-family: var(--s-font-display);
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: var(--s-text-primary);
-		letter-spacing: -0.02em;
+		font-size: 1.75rem;
+		font-weight: 800;
+		background: var(--s-grad-aurora);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		letter-spacing: -0.03em;
 		margin-top: 4px;
 	}
 
 	.brand-sub {
-		font-size: 0.8rem;
-		font-weight: 500;
-		color: var(--s-text-secondary);
-		letter-spacing: 0.1em;
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: var(--s-text-tertiary);
+		letter-spacing: 0.18em;
 		text-transform: uppercase;
 	}
 
 	.loading-dots {
 		display: flex;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	.loading-dots .dot {
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: var(--s-accent);
 		animation: s-bounce 1.4s ease-in-out infinite;
 	}
 
-	.loading-dots .dot:nth-child(2) {
-		animation-delay: 0.16s;
-	}
-	.loading-dots .dot:nth-child(3) {
-		animation-delay: 0.32s;
-	}
+	.dot-1 { background: var(--s-accent-2); }
+	.dot-2 { background: var(--s-accent-3); animation-delay: 0.18s; }
+	.dot-3 { background: var(--s-accent); animation-delay: 0.36s; }
 
 	/* Access Denied */
 	.access-denied {
 		text-align: center;
 		padding: 32px;
 		animation: s-fadeInUp 0.4s var(--s-ease);
+		background: var(--s-bg-glass-strong);
+		backdrop-filter: var(--s-blur-strong);
+		border-radius: var(--s-radius-2xl);
+		border: 1px solid var(--s-border);
+		max-width: 340px;
+		width: 90%;
 	}
 
 	.denied-icon {

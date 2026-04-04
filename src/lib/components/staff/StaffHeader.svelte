@@ -111,7 +111,15 @@
 		z-index: var(--s-z-sticky, 200);
 		border-bottom: 1px solid var(--s-border);
 		padding: 10px 16px;
+		background: var(--s-bg-glass-strong);
+		backdrop-filter: var(--s-blur-strong);
+		-webkit-backdrop-filter: var(--s-blur-strong);
+		box-shadow: 0 1px 16px rgba(100, 60, 200, 0.07);
 		transition: background var(--s-duration-normal, 250ms) var(--s-ease);
+	}
+
+	:global(.staff-app.dark) .staff-header {
+		box-shadow: 0 1px 24px rgba(0, 0, 0, 0.4);
 	}
 
 	.header-content {
@@ -131,36 +139,47 @@
 	.page-title {
 		font-family: var(--s-font-display, 'Outfit', sans-serif);
 		font-size: 1.2rem;
-		font-weight: 700;
-		color: var(--s-text-primary);
+		font-weight: 800;
 		margin: 0;
-		letter-spacing: -0.02em;
+		letter-spacing: -0.03em;
+		background: var(--s-grad-hero);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	:global(.staff-app.dark) .page-title {
+		background: var(--s-grad-aurora);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
 	}
 
 	.offline-badge {
 		font-size: 0.6rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		padding: 2px 6px;
+		padding: 2px 8px;
 		border-radius: var(--s-radius-full, 9999px);
 		background: var(--s-warning-bg);
 		color: var(--s-warning);
 		letter-spacing: 0.05em;
+		border: 1px solid rgba(245, 158, 11, 0.25);
 		animation: s-pulse 2s ease-in-out infinite;
 	}
 
 	.header-right {
 		display: flex;
 		align-items: center;
-		gap: 16px;
+		gap: 12px;
 	}
 
 	/* Notification Button */
 	.header-icon-btn {
 		position: relative;
-		background: var(--s-surface-light, rgba(255, 255, 255, 0.5));
-		border: 1px solid var(--s-border, #eaeaea);
-		color: var(--s-text-primary);
+		background: var(--s-accent-2-bg);
+		border: 1px solid var(--s-accent-2-bg);
+		color: var(--s-accent-2);
 		padding: 0;
 		width: 40px;
 		height: 40px;
@@ -169,19 +188,25 @@
 		justify-content: center;
 		border-radius: 50%;
 		cursor: pointer;
-		box-shadow: var(--s-shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.05));
+		box-shadow: 0 2px 10px rgba(124, 58, 237, 0.15);
 		transition: all var(--s-duration-fast, 150ms) var(--s-ease);
 	}
 
+	:global(.staff-app.dark) .header-icon-btn {
+		background: var(--s-accent-2-bg);
+		border-color: rgba(167, 139, 250, 0.2);
+		color: var(--s-accent-2-light);
+		box-shadow: 0 2px 12px rgba(167, 139, 250, 0.2);
+	}
+
 	.header-icon-btn:hover {
-		background: var(--s-surface, #fff);
-		box-shadow: var(--s-shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.05));
-		border-color: var(--s-border-accent, #ccc);
+		background: rgba(124, 58, 237, 0.14);
+		box-shadow: 0 4px 16px rgba(124, 58, 237, 0.25);
+		transform: translateY(-1px);
 	}
 
 	.header-icon-btn:active {
-		background: var(--s-surface-active);
-		transform: scale(0.95);
+		transform: scale(0.94);
 	}
 
 	.notification-badge {
@@ -190,7 +215,7 @@
 		right: -4px;
 		min-width: 20px;
 		height: 20px;
-		background: var(--s-error);
+		background: var(--s-grad-rose);
 		color: white;
 		font-size: 0.65rem;
 		font-weight: 800;
@@ -199,8 +224,8 @@
 		align-items: center;
 		justify-content: center;
 		padding: 0 5px;
-		border: 2px solid var(--s-bg-glass-strong, white);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+		border: 2px solid var(--s-bg-glass-strong);
+		box-shadow: 0 2px 8px rgba(244, 63, 94, 0.45);
 		animation: s-scaleIn 0.3s var(--s-ease-bounce);
 	}
 
@@ -218,17 +243,20 @@
 		transition: transform var(--s-duration-fast, 150ms) var(--s-ease);
 	}
 
-	.profile-avatar-btn::after {
+	/* Gradient ring around avatar */
+	.profile-avatar-btn::before {
 		content: '';
 		position: absolute;
 		inset: -2px;
 		border-radius: 50%;
-		border: 1px solid transparent;
-		transition: border-color var(--s-duration-fast, 150ms) var(--s-ease);
+		background: var(--s-grad-aurora);
+		z-index: 0;
+		opacity: 0.5;
+		transition: opacity 0.2s var(--s-ease);
 	}
 
-	.profile-avatar-btn:hover::after {
-		border-color: var(--s-border, #eaeaea);
+	.profile-avatar-btn:hover::before {
+		opacity: 1;
 	}
 
 	.profile-avatar-btn:active {
@@ -236,84 +264,89 @@
 	}
 
 	.avatar-img {
-		width: 40px;
-		height: 40px;
+		position: relative;
+		z-index: 1;
+		width: 36px;
+		height: 36px;
 		border-radius: 50%;
 		object-fit: cover;
-		border: 2px solid var(--s-border-accent);
-		box-shadow: var(--s-shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.1));
-		transition: border-color var(--s-duration-fast, 150ms) var(--s-ease);
-	}
-
-	.profile-avatar-btn:hover .avatar-img {
-		border-color: var(--s-accent, #b08d4f);
+		border: 2px solid var(--s-bg-glass-strong);
+		box-shadow: var(--s-shadow-sm);
 	}
 
 	.avatar-fallback {
-		width: 40px;
-		height: 40px;
+		position: relative;
+		z-index: 1;
+		width: 36px;
+		height: 36px;
 		border-radius: 50%;
-		background: linear-gradient(135deg, var(--s-accent), var(--s-accent-dark, #b08d4f));
+		background: var(--s-grad-violet);
 		color: white;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-weight: 700;
-		font-size: 1.1rem;
-		border: 2px solid var(--s-border-accent);
-		box-shadow: var(--s-shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.1));
-		transition: border-color var(--s-duration-fast, 150ms) var(--s-ease);
-	}
-
-	.profile-avatar-btn:hover .avatar-fallback {
-		border-color: var(--s-accent, #b08d4f);
+		font-weight: 800;
+		font-size: 1rem;
+		border: 2px solid var(--s-bg-glass-strong);
+		box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35);
 	}
 
 	.online-dot {
 		position: absolute;
-		bottom: 0px;
-		right: 0px;
-		width: 12px;
-		height: 12px;
+		bottom: 1px;
+		right: 1px;
+		width: 11px;
+		height: 11px;
 		background: var(--s-success);
-		border: 2px solid var(--s-bg-glass-strong, white);
+		border: 2px solid var(--s-bg-glass-strong);
 		border-radius: 50%;
 		z-index: 2;
+		box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
 		transition: background var(--s-duration-fast, 150ms) var(--s-ease);
 	}
 
 	.online-dot.offline {
 		background: var(--s-text-tertiary);
+		box-shadow: none;
 	}
 
-	/* Live Clock */
+	/* Live Clock — colorful pill */
 	.live-clock {
 		display: flex;
 		align-items: baseline;
-		gap: 4px;
-		padding: 6px 14px;
-		background: var(--s-surface);
-		border: 1px solid var(--s-border);
+		gap: 3px;
+		padding: 5px 12px;
+		background: var(--s-accent-bg);
+		border: 1px solid var(--s-border-accent);
 		border-radius: var(--s-radius-full, 9999px);
-		box-shadow: var(--s-shadow-xs);
+		box-shadow: 0 2px 10px rgba(232, 167, 48, 0.15);
+	}
+
+	:global(.staff-app.dark) .live-clock {
+		background: var(--s-accent-bg);
+		box-shadow: 0 2px 12px rgba(245, 192, 64, 0.15);
 	}
 
 	.clock-time {
 		font-family: var(--s-font-display, 'Outfit', sans-serif);
-		font-size: 1.15rem;
+		font-size: 1.1rem;
 		font-weight: 800;
-		color: var(--s-text-primary);
+		color: var(--s-text-accent);
 		letter-spacing: 0.03em;
 		line-height: 1;
 	}
 
 	.clock-period {
 		font-family: var(--s-font-display, 'Outfit', sans-serif);
-		font-size: 0.65rem;
+		font-size: 0.6rem;
 		font-weight: 700;
-		color: var(--s-accent);
+		color: var(--s-accent-3);
 		text-transform: uppercase;
-		letter-spacing: 0.06em;
+		letter-spacing: 0.08em;
 		line-height: 1;
+	}
+
+	:global(.staff-app.dark) .clock-period {
+		color: var(--s-accent-3-light);
 	}
 </style>

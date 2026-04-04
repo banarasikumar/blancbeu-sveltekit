@@ -174,13 +174,6 @@
 </script>
 
 <div class="dashboard s-stagger">
-	<!-- ━━━ MODERN BACKGROUND EFFECTS ━━━ -->
-	<div class="dashboard-bg">
-		<div class="blob blob-1"></div>
-		<div class="blob blob-2"></div>
-		<div class="blob blob-3"></div>
-	</div>
-
 	<!-- ━━━ HERO WELCOME ━━━ -->
 	<section class="hero-card">
 		<div class="hero-gradient"></div>
@@ -240,7 +233,7 @@
 
 	<!-- ━━━ STATS ROW ━━━ -->
 	<section class="stats-row">
-		<button class="stat-card" onclick={() => goto('/staff/bookings?filter=today')}>
+		<button class="stat-card" onclick={() => goto('/staff/bookings?filter=upcoming')}>
 			<span class="stat-value">{todayCount}</span>
 			<span class="stat-label">Today</span>
 			<span class="stat-icon">📅</span>
@@ -596,79 +589,6 @@
 		z-index: 1;
 	}
 
-	/* ━━━ MODERN BACKGROUND EFFECTS ━━━ */
-	.dashboard-bg {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		z-index: -1;
-		pointer-events: none;
-		overflow: hidden;
-		background: #fafafc;
-	}
-
-	:global(.staff-app.dark) .dashboard-bg {
-		background: #111116;
-	}
-
-	.blob {
-		position: absolute;
-		border-radius: 50%;
-		filter: blur(80px);
-		opacity: 0.4;
-		animation: float 20s infinite ease-in-out alternate;
-	}
-
-	.blob-1 {
-		top: -10%;
-		left: -10%;
-		width: 300px;
-		height: 300px;
-		background: #60a5fa; /* Blue */
-	}
-
-	.blob-2 {
-		top: 20%;
-		right: -10%;
-		width: 250px;
-		height: 250px;
-		background: #c084fc; /* Purple */
-		animation-delay: -5s;
-		animation-duration: 25s;
-	}
-
-	.blob-3 {
-		bottom: 10%;
-		left: 20%;
-		width: 350px;
-		height: 350px;
-		background: #f472b6; /* Pink */
-		animation-delay: -10s;
-		animation-duration: 30s;
-		opacity: 0.3;
-	}
-
-	:global(.staff-app.dark) .blob {
-		opacity: 0.2;
-	}
-
-	@keyframes float {
-		0% {
-			transform: translate(0, 0) scale(1);
-		}
-		33% {
-			transform: translate(30px, -50px) scale(1.1);
-		}
-		66% {
-			transform: translate(-20px, 20px) scale(0.9);
-		}
-		100% {
-			transform: translate(0, 0) scale(1);
-		}
-	}
-
 	/* ━━━ HERO ━━━ */
 	.hero-card {
 		position: relative;
@@ -693,12 +613,12 @@
 	.hero-gradient {
 		position: absolute;
 		inset: 0;
-		background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #f43f5e 150%);
+		background: var(--s-grad-hero, linear-gradient(135deg, #1a0a2e 0%, #3730a3 40%, #7c3aed 100%));
 		z-index: 0;
 	}
 
 	:global(.staff-app.dark) .hero-gradient {
-		background: linear-gradient(135deg, #3730a3 0%, #5b21b6 50%, #9f1239 180%);
+		background: var(--s-grad-hero, linear-gradient(135deg, #0d0520 0%, #1e1060 40%, #3b0764 100%));
 	}
 
 	.hero-content {
@@ -823,7 +743,25 @@
 		left: 0;
 		width: 100%;
 		height: 3px;
-		background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+		opacity: 0.7;
+		transition: opacity 0.2s ease;
+	}
+
+	.qa-walkin::after {
+		background: var(--s-grad-violet);
+	}
+	.qa-booking::after {
+		background: var(--s-grad-rose);
+	}
+	.qa-schedule::after {
+		background: var(--s-grad-teal);
+	}
+	.qa-history::after {
+		background: var(--s-grad-gold);
+	}
+
+	.qa-btn:hover::after {
+		opacity: 1;
 	}
 
 	.qa-btn:hover {
@@ -1108,13 +1046,13 @@
 	}
 
 	.stat-card:nth-child(1) {
-		border-top: 3px solid #3b82f6;
+		border-top: 3px solid var(--s-accent-2, #7c3aed);
 	}
 	.stat-card:nth-child(2) {
-		border-top: 3px solid #f59e0b;
+		border-top: 3px solid var(--s-accent-3, #f43f5e);
 	}
 	.stat-card:nth-child(3) {
-		border-top: 3px solid #10b981;
+		border-top: 3px solid var(--s-success, #10b981);
 	}
 
 	.stat-card.accent {

@@ -121,12 +121,12 @@
 		bottom: 0;
 		left: 0;
 		width: 100%;
-		border-top: 1px solid var(--s-border);
 		padding-bottom: env(safe-area-inset-bottom, 0px);
 		z-index: var(--s-z-sticky, 200);
 		transition: background var(--s-duration-normal, 250ms) var(--s-ease);
 	}
 
+	/* Premium glass bar */
 	.nav-content {
 		display: flex;
 		justify-content: space-around;
@@ -135,18 +135,28 @@
 		max-width: 600px;
 		margin: 0 auto;
 		position: relative;
+		background: var(--s-bg-glass-strong);
+		backdrop-filter: var(--s-blur-strong);
+		-webkit-backdrop-filter: var(--s-blur-strong);
+		border-top: 1px solid var(--s-border);
+		box-shadow: 0 -4px 24px rgba(100, 60, 200, 0.08);
 	}
 
-	/* Active Indicator Pill */
+	:global(.staff-app.dark) .nav-content {
+		box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5);
+	}
+
+	/* Sliding gradient active indicator at top */
 	.active-pill {
 		position: absolute;
-		top: 4px;
+		top: 0;
 		left: 0;
 		height: 3px;
-		background: var(--s-accent);
+		background: var(--s-grad-aurora);
 		border-radius: 0 0 var(--s-radius-full, 9999px) var(--s-radius-full, 9999px);
-		transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+		transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 		pointer-events: none;
+		box-shadow: 0 1px 8px rgba(124, 58, 237, 0.5);
 	}
 
 	.nav-item {
@@ -158,47 +168,73 @@
 		color: var(--s-text-tertiary);
 		font-size: 0.65rem;
 		font-weight: 500;
-		gap: 3px;
-		width: 64px;
-		padding: 6px 0;
+		gap: 4px;
+		flex: 1;
+		padding: 8px 0 6px;
 		border-radius: var(--s-radius-md, 12px);
-		transition: color var(--s-duration-fast, 150ms) var(--s-ease);
+		transition:
+			color var(--s-duration-fast, 150ms) var(--s-ease),
+			transform 0.2s var(--s-ease-spring);
 		-webkit-tap-highlight-color: transparent;
 		position: relative;
 	}
 
 	.nav-item.active {
-		color: var(--s-text-primary);
+		color: var(--s-accent-2);
+	}
+
+	:global(.staff-app.dark) .nav-item.active {
+		color: var(--s-accent-2-light);
 	}
 
 	.nav-item:active {
-		transform: scale(0.92);
+		transform: scale(0.88);
 	}
 
+	/* Active icon background bubble */
 	.icon-wrap {
 		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: transform 0.25s var(--s-ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
+		width: 42px;
+		height: 32px;
+		border-radius: var(--s-radius-lg);
+		transition:
+			transform 0.28s var(--s-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+			background 0.2s var(--s-ease);
 	}
 
 	.nav-item.active .icon-wrap {
+		background: var(--s-accent-2-bg);
 		transform: translateY(-2px);
+	}
+
+	:global(.staff-app.dark) .nav-item.active .icon-wrap {
+		background: var(--s-accent-2-bg);
 	}
 
 	.nav-item svg {
 		width: 22px;
 		height: 22px;
-		transition: stroke-width var(--s-duration-fast, 150ms) var(--s-ease);
+		transition:
+			stroke-width var(--s-duration-fast, 150ms) var(--s-ease),
+			filter 0.2s var(--s-ease);
 	}
 
 	.nav-item.active svg {
 		stroke-width: 2.5;
+		filter: drop-shadow(0 0 5px rgba(124, 58, 237, 0.6));
+	}
+
+	:global(.staff-app.dark) .nav-item.active svg {
+		filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.8));
 	}
 
 	.nav-label {
 		letter-spacing: 0.01em;
+		font-size: 0.62rem;
+		transition: font-weight 0.1s;
 	}
 
 	.nav-item.active .nav-label {
@@ -208,11 +244,11 @@
 	/* Badge */
 	.nav-badge {
 		position: absolute;
-		top: -6px;
-		right: -10px;
-		min-width: 16px;
-		height: 16px;
-		background: var(--s-error, #ef4444);
+		top: -4px;
+		right: -2px;
+		min-width: 17px;
+		height: 17px;
+		background: var(--s-grad-rose);
 		color: white;
 		font-size: 0.55rem;
 		font-weight: 800;
@@ -221,7 +257,8 @@
 		align-items: center;
 		justify-content: center;
 		padding: 0 4px;
-		border: 2px solid var(--s-bg-glass-strong, white);
+		border: 2px solid var(--s-bg-glass-strong);
+		box-shadow: 0 2px 8px rgba(244, 63, 94, 0.4);
 		animation: s-scaleIn 0.3s var(--s-ease-bounce, ease);
 	}
 </style>

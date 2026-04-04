@@ -48,28 +48,37 @@
 		requestNotificationPermission,
 		disableNotifications,
 		notificationStatus,
-		checkNotificationStatus
+		checkNotificationStatus,
+		soundEnabled
 	} from '$lib/stores/staffNotifications';
 	import { onMount } from 'svelte';
-	import { doc, updateDoc } from 'firebase/firestore';
+	import { doc, updateDoc, getDoc } from 'firebase/firestore';
 	import { db } from '$lib/firebase';
 
-	onMount(() => {
+	onMount(async () => {
 		checkNotificationStatus();
+
+		// Load notification preferences from Firestore
+		// ($adminUser is a Firebase Auth User — notificationPreferences lives in Firestore, not on the Auth object)
+		if ($adminUser) {
+			try {
+				const snap = await getDoc(doc(db, 'users', $adminUser.uid));
+				if (snap.exists()) {
+					const prefs = snap.data()?.notificationPreferences;
+					if (prefs) {
+						prefNewBookings = prefs.newBookings !== false;
+						prefNewSignups = prefs.newSignups !== false;
+					}
+				}
+			} catch (e) {
+				console.warn('[AdminSettings] Failed to load notification preferences:', e);
+			}
+		}
 	});
 
 	let showDeniedModal = $state(false);
 	let prefNewBookings = $state(true);
 	let prefNewSignups = $state(true);
-
-	// Sync local preferences state whenever adminUser loads
-	$effect(() => {
-		if ($adminUser?.notificationPreferences) {
-			const prefs = $adminUser.notificationPreferences;
-			prefNewBookings = prefs.newBookings !== false;
-			prefNewSignups = prefs.newSignups !== false;
-		}
-	});
 
 	async function updatePreference(type: 'newBookings' | 'newSignups', value: boolean) {
 		if (!$adminUser) return;
@@ -110,7 +119,7 @@
 		const success = await requestNotificationPermission($adminUser.uid);
 		if (success) {
 			showToast('Push Notifications Enabled!', 'success');
-		} else if ($notificationStatus === 'denied') {
+		} else if (Notification.permission === 'denied') {
 			showDeniedModal = true;
 		} else {
 			showToast('Failed to enable, please try again.', 'error');
@@ -247,6 +256,30 @@
 			</div>
 		</div>
 	{/if}
+
+	<div
+		class="admin-settings-item"
+		role="button"
+		tabindex="0"
+		onclick={() => {
+			soundEnabled.toggle();
+			showToast($soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
+		}}
+		onkeydown={(e) => e.key === 'Enter' && soundEnabled.toggle()}
+	>
+		<div class="admin-settings-item-left">
+			<span style="font-size: 20px;">{$soundEnabled ? '🔊' : '🔇'}</span>
+			<div style="display: flex; flex-direction: column;">
+				<span style="font-size: 16px; font-weight: 500;">Sound Effects</span>
+				<span style="font-size: 12px; color: var(--admin-text-secondary);">
+					{$soundEnabled ? 'On' : 'Off'}
+				</span>
+			</div>
+		</div>
+		<div class="toggle-switch" class:on={$soundEnabled}>
+			<div class="toggle-thumb"></div>
+		</div>
+	</div>
 
 	<div class="admin-settings-item" role="button" tabindex="0" onclick={handleLogout}>
 		<div class="admin-settings-item-left">

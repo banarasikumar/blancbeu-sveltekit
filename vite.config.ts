@@ -12,9 +12,11 @@ export default defineConfig({
 			registerType: 'autoUpdate',
 			injectRegister: 'auto',
 			workbox: {
-				cacheId: 'blancbeu-0.0.2',
+				cacheId: 'blancbeu-0.0.3',
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif}'],
-				cleanupOutdatedCaches: true
+				cleanupOutdatedCaches: true,
+				skipWaiting: true,
+				clientsClaim: true
 			},
 			manifest: false // Multi-scope: Manifests are handled manually in static/
 		})

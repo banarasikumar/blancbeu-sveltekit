@@ -167,17 +167,29 @@ export async function generateAndShareInvoice(params: {
 	doc.setTextColor(51, 51, 51);
 	doc.text('BLANCBEU', px(640), py(140), { align: 'right' });
 
+	doc.setFont(headingFont, 'bold');
+	doc.setFontSize(13);
+	doc.setTextColor(100, 100, 100);
+	doc.text('BEAUTY SALON', px(640), py(159), { align: 'right' });
+
+	doc.setFont(bodyFont, 'italic');
+	doc.setFontSize(8.5);
+	doc.setTextColor(180, 70, 110);
+	doc.text('Redefining Elegance', px(640), py(174), { align: 'right' });
+
 	doc.setFont(bodyFont, 'normal');
-	doc.setFontSize(8);
+	doc.setFontSize(7);
 	doc.setTextColor(150, 150, 150);
-	doc.text('PREMIUM SALON & SPA', px(640), py(160), { align: 'right' });
+	doc.text('4th Floor, Victory Mall, Upper Bazar', px(640), py(188), { align: 'right' });
+	doc.text('Ranchi, Jharkhand \u2014 834001', px(640), py(200), { align: 'right' });
+	doc.text('Ph: 9229915277', px(640), py(212), { align: 'right' });
 
 	// ═══════════════════════════════════════════
 	//   "INVOICE" TITLE — Right-aligned
 	// ═══════════════════════════════════════════
 
 	doc.setFont(headingFont, 'bold');
-	doc.setFontSize(42);
+	doc.setFontSize(30);
 	doc.setTextColor(64, 64, 64);
 	doc.text('INVOICE', px(600), py(247), { align: 'right' });
 

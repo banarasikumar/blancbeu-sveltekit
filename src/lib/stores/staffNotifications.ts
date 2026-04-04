@@ -1,7 +1,34 @@
 import { writable } from 'svelte/store';
 import { getToken, type Messaging } from 'firebase/messaging';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { db, messaging } from '$lib/firebase';
+import { browser } from '$app/environment';
+
+// ---------------------------------------------------------------------------
+// Sound preference — persisted in localStorage
+// ---------------------------------------------------------------------------
+const SOUND_PREF_KEY = 'blancbeu_staff_sound';
+
+function createSoundStore() {
+    const initial = browser ? localStorage.getItem(SOUND_PREF_KEY) !== 'false' : true;
+    const { subscribe, set, update } = writable<boolean>(initial);
+    return {
+        subscribe,
+        toggle() {
+            update((v) => {
+                const next = !v;
+                if (browser) localStorage.setItem(SOUND_PREF_KEY, String(next));
+                return next;
+            });
+        },
+        set(val: boolean) {
+            set(val);
+            if (browser) localStorage.setItem(SOUND_PREF_KEY, String(val));
+        }
+    };
+}
+
+export const soundEnabled = createSoundStore();
 
 export type NotificationsState = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -42,10 +69,10 @@ export async function requestNotificationPermission(userId: string): Promise<boo
                 // Save token to user profile
                 const userRef = doc(db, 'users', userId);
                 // We store it as an array to support multiple devices in the future if needed
-                await updateDoc(userRef, {
+                await setDoc(userRef, {
                     fcmTokens: [token],
                     updatedAt: new Date().toISOString()
-                });
+                }, { merge: true });
                 return true;
             } else {
                 console.warn('[Notifications] No registration token available.');
@@ -63,29 +90,17 @@ export async function requestNotificationPermission(userId: string): Promise<boo
 
 export async function disableNotifications(userId: string): Promise<boolean> {
     try {
-        if (!messaging) return false;
         console.log('[Notifications] Disabling notifications for device...');
-
-        // Get the current token
-        const token = await getToken(messaging, {
-            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
-        });
-
-        if (token) {
-            // Remove token from Firestore
-            const userRef = doc(db, 'users', userId);
-
-            // Note: If you want to support multiple devices natively in the future, 
-            // you should read the array, filter out this specific token, and update.
-            // For now, replacing with empty array completely disables it for this user.
-            await updateDoc(userRef, {
-                fcmTokens: [],
-                updatedAt: new Date().toISOString()
-            });
-            console.log('[Notifications] Token removed from database. Notifications disabled.');
-            return true;
-        }
-        return false;
+        // Clearing fcmTokens in Firestore is sufficient to stop receiving pushes.
+        // We do NOT depend on getToken() here — it can fail (messaging uninitialized,
+        // VAPID issue, SW error) and would silently leave tokens in the database.
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+            fcmTokens: [],
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log('[Notifications] Tokens cleared. Notifications disabled.');
+        return true;
     } catch (error) {
         console.error('[Notifications] Error disabling notifications:', error);
         return false;

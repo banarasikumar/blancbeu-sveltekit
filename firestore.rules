@@ -1,20 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is admin
-    function isAdmin() {
-      // In a real app, you'd check a custom claim or a user role document.
-      // For this simplified version (and based on your adminAuth store), 
-      // we'll assume any authenticated user can read, but only specific logic writes.
-      // However, since we don't have custom claims set up in the code seen so far,
-      // we will allow read/write for now TO DEBUG, or check against a hardcoded list/collection.
-      
-      // Better approach for now: Allow authenticated users to READ services.
-      // Allow authenticated users to WRITE services (for the migration script).
-      // WARN: This is permissive. Ideally, restrict to specific UIDs.
-      return request.auth != null;
-    }
-
     match /embeddings/{embedding} {
       allow read, write: if true;
     }

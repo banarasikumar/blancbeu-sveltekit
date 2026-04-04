@@ -1,10 +1,9 @@
-import { initializeApp } from "firebase/app";
-import { getMessaging, onBackgroundMessage } from "firebase/messaging/sw";
+// importScripts is the only reliable way to load Firebase in a service worker.
+// Bare ESM imports (import { ... } from "firebase/...") do NOT work here.
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
 
-// Initialize the Firebase app in the service worker by passing in
-// your app's Firebase config object.
-// https://firebase.google.com/docs/web/setup#config-object
-const firebaseApp = initializeApp({
+firebase.initializeApp({
     apiKey: "AIzaSyC4jkARU5-Ohb5w71Bi9eXY3A4ozOidyro",
     authDomain: "blancbeu-60b2a.firebaseapp.com",
     projectId: "blancbeu-60b2a",
@@ -14,20 +13,21 @@ const firebaseApp = initializeApp({
     measurementId: "G-PJK4Y0R8RE"
 });
 
-// Retrieve an instance of Firebase Messaging so that it can handle background
-// messages.
-const messaging = getMessaging(firebaseApp);
+const messaging = firebase.messaging();
 
-onBackgroundMessage(messaging, (payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    // Customize notification here
-    const notificationTitle = payload.notification?.title || 'New Notification';
+messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message', payload);
+    const notificationTitle = payload.notification?.title || 'New Booking!';
+    // Use icon sent with the message (data.icon), otherwise fall back to the generic app icon
+    const icon = payload.data?.icon || '/pwa-192x192.png';
     const notificationOptions = {
         body: payload.notification?.body || '',
-        icon: '/logo.png', // Or another appropriate icon
-        badge: '/logo.png' // Or another appropriate icon
+        icon,
+        badge: icon,
+        tag: 'booking-notification',
+        renotify: true,
+        vibrate: [200, 100, 200]
     };
 
-    self.registration.showNotification(notificationTitle,
-        notificationOptions);
+    self.registration.showNotification(notificationTitle, notificationOptions);
 });

@@ -8,7 +8,8 @@
 		requestNotificationPermission,
 		disableNotifications,
 		notificationStatus,
-		checkNotificationStatus
+		checkNotificationStatus,
+		soundEnabled
 	} from '$lib/stores/staffNotifications';
 	import { onMount } from 'svelte';
 
@@ -39,7 +40,6 @@
 	});
 
 	let isAvailable = $state(true);
-	let soundEnabled = $state(true);
 
 	onMount(() => {
 		checkNotificationStatus();
@@ -73,7 +73,7 @@
 		const success = await requestNotificationPermission($staffUser.uid);
 		if (success) {
 			showToast('Push Notifications Enabled!', 'success');
-		} else if ($notificationStatus === 'denied') {
+		} else if (Notification.permission === 'denied') {
 			showDeniedModal = true;
 		} else {
 			showToast('Failed to enable, please try again.', 'error');
@@ -231,19 +231,19 @@
 		<div
 			class="setting-item"
 			onclick={() => {
-				soundEnabled = !soundEnabled;
-				showToast(soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
+				soundEnabled.toggle();
+				showToast($soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
 			}}
 			role="button"
 			tabindex="0"
-			onkeydown={(e) => e.key === 'Enter' && (soundEnabled = !soundEnabled)}
+			onkeydown={(e) => e.key === 'Enter' && soundEnabled.toggle()}
 		>
-			<span class="si-icon">{soundEnabled ? '🔊' : '🔇'}</span>
+			<span class="si-icon">{$soundEnabled ? '🔊' : '🔇'}</span>
 			<div class="si-text">
 				<span class="si-label">Sound Effects</span>
-				<span class="si-value">{soundEnabled ? 'On' : 'Off'}</span>
+				<span class="si-value">{$soundEnabled ? 'On' : 'Off'}</span>
 			</div>
-			<div class="toggle-switch" class:on={soundEnabled}>
+			<div class="toggle-switch" class:on={$soundEnabled}>
 				<div class="toggle-thumb"></div>
 			</div>
 		</div>
@@ -358,7 +358,7 @@
 		height: 88px;
 		border-radius: var(--s-radius-2xl);
 		overflow: hidden;
-		background: linear-gradient(135deg, var(--s-brand), var(--s-accent));
+		background: var(--s-grad-hero);
 		display: flex;
 		align-items: center;
 		justify-content: center;

@@ -7,6 +7,7 @@
 	import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 	import { showToast } from '$lib/stores/toast';
 	import { pendingProfileData, isProfileMandatory, clearPendingProfile } from '$lib/stores/profile';
+	import { mergeAllWalkIns } from '$lib/services/walkInService';
 	import { User, Calendar, Sparkles } from 'lucide-svelte';
 
 	let loading = true;
@@ -253,6 +254,18 @@
 				} catch (notificationErr) {
 					console.error('Error triggering notification:', notificationErr);
 				}
+			}
+
+			// Merge any matching walk-in (shadow) accounts into this newly registered user
+			try {
+				const phone = pendingData?.phone || currentUser.phoneNumber || '';
+				const email = currentUser.email || '';
+				const merged = await mergeAllWalkIns(currentUser.uid, phone, email);
+				if (merged > 0) {
+					console.log(`[CompleteProfile] Merged ${merged} walk-in account(s) into ${currentUser.uid}`);
+				}
+			} catch (mergeErr) {
+				console.warn('[CompleteProfile] Walk-in merge failed (non-blocking):', mergeErr);
 			}
 
 			showToast(`Welcome, ${name.trim()}! 🎉`, 'success');

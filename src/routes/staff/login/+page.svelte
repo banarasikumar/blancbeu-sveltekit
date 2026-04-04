@@ -29,8 +29,11 @@
 <div class="login-container">
 	<div class="login-card">
 		<div class="brand">
+			<div class="brand-logo">
+				<span class="brand-logo-letter">B</span>
+			</div>
 			<h1>Blancbeu</h1>
-			<span class="badge">Staff</span>
+			<span class="brand-badge">Stylist Portal</span>
 		</div>
 
 		<p class="subtitle">Sign in to manage appointments</p>
@@ -84,144 +87,227 @@
 
 <style>
 	.login-container {
+		position: relative;
 		height: 100vh;
+		height: 100dvh;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: #f5f5f7;
-		padding: 20px;
+		padding: 24px;
+		z-index: 1;
 	}
 
 	.login-card {
-		background: white;
-		padding: 40px;
-		border-radius: 24px;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+		background: var(--s-bg-glass-strong, rgba(253, 252, 255, 0.92));
+		backdrop-filter: var(--s-blur-strong, blur(32px));
+		-webkit-backdrop-filter: var(--s-blur-strong, blur(32px));
+		padding: 40px 36px;
+		border-radius: 28px;
+		border: 1px solid var(--s-border, rgba(100, 80, 160, 0.08));
+		box-shadow:
+			0 8px 40px rgba(100, 60, 200, 0.12),
+			0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 		width: 100%;
-		max-width: 400px;
+		max-width: 380px;
 		text-align: center;
+		animation: s-fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	:global(.staff-app.dark) .login-card {
+		background: var(--s-bg-glass-strong, rgba(16, 14, 26, 0.94));
+		border-color: var(--s-border, rgba(180, 160, 255, 0.07));
+		box-shadow:
+			0 8px 48px rgba(0, 0, 0, 0.6),
+			0 0 0 1px rgba(180, 160, 255, 0.06) inset;
 	}
 
 	.brand {
-		margin-bottom: 24px;
+		margin-bottom: 28px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
+	}
+
+	.brand-logo {
+		width: 72px;
+		height: 72px;
+		border-radius: 20px;
+		background: var(--s-grad-hero, linear-gradient(135deg, #1a0a2e 0%, #3730a3 40%, #7c3aed 100%));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow:
+			0 8px 28px rgba(124, 58, 237, 0.45),
+			0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+		margin-bottom: 4px;
+		animation: s-float 3.5s ease-in-out infinite;
+		position: relative;
+	}
+
+	.brand-logo-letter {
+		font-family: 'Outfit', sans-serif;
+		font-size: 2.2rem;
+		font-weight: 800;
+		background: linear-gradient(135deg, #ffffff 0%, #f5c866 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
 	}
 
 	.brand h1 {
 		font-family: 'Outfit', sans-serif;
 		font-size: 2rem;
-		font-weight: 700;
-		color: #1c1c1e;
+		font-weight: 800;
 		margin: 0;
+		letter-spacing: -0.04em;
+		background: var(--s-grad-hero, linear-gradient(135deg, #1a0a2e 0%, #7c3aed 100%));
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
 	}
 
-	.badge {
-		background: #000;
+	:global(.staff-app.dark) .brand h1 {
+		background: var(--s-grad-aurora, linear-gradient(135deg, #a78bfa 0%, #fb7185 50%, #f5c040 100%));
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.brand-badge {
+		background: var(--s-grad-violet, linear-gradient(135deg, #7c3aed, #4f46e5));
 		color: white;
-		padding: 4px 12px;
-		border-radius: 20px;
-		font-size: 0.8rem;
-		font-weight: 600;
+		padding: 3px 14px;
+		border-radius: 999px;
+		font-size: 0.72rem;
+		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 1px;
+		letter-spacing: 0.12em;
+		box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
 	}
 
 	.subtitle {
-		color: #8e8e93;
-		margin-bottom: 32px;
+		color: var(--s-text-secondary, #6b6680);
+		margin-bottom: 28px;
+		font-size: 0.92rem;
+		font-weight: 500;
 	}
 
 	.login-btn {
 		width: 100%;
-		padding: 12px;
-		border-radius: 12px;
-		border: 1px solid #e5e5ea;
-		background: white;
-		color: #1c1c1e;
-		font-weight: 500;
-		font-size: 1rem;
+		padding: 13px 16px;
+		border-radius: 14px;
+		border: 1px solid var(--s-border-strong, rgba(100, 80, 160, 0.15));
+		background: var(--s-surface, rgba(255, 255, 255, 0.95));
+		color: var(--s-text-primary, #12091e);
+		font-family: 'Inter', sans-serif;
+		font-weight: 600;
+		font-size: 0.95rem;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
 		cursor: pointer;
-		transition: all 0.2s;
+		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+		box-shadow: 0 2px 12px rgba(100, 60, 200, 0.06);
+	}
+
+	:global(.staff-app.dark) .login-btn {
+		background: var(--s-surface, #1a1628);
+		border-color: var(--s-border-strong, rgba(180, 160, 255, 0.14));
+		color: var(--s-text-primary, #f0eeff);
 	}
 
 	.login-btn:hover {
-		background: #f5f5f7;
-		transform: translateY(-1px);
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(100, 60, 200, 0.14);
+		border-color: var(--s-border-accent, rgba(232, 167, 48, 0.3));
 	}
 
 	.login-btn:active {
-		transform: scale(0.98);
+		transform: scale(0.97);
+		box-shadow: 0 2px 8px rgba(100, 60, 200, 0.08);
 	}
 
 	.login-btn:disabled {
-		opacity: 0.7;
+		opacity: 0.6;
 		cursor: not-allowed;
+		transform: none;
 	}
 
 	.error-msg {
-		color: #ff3b30;
-		background: rgba(255, 59, 48, 0.1);
-		padding: 12px;
-		border-radius: 8px;
+		color: var(--s-error, #ef4444);
+		background: var(--s-error-bg, #fef2f2);
+		padding: 12px 16px;
+		border-radius: 12px;
 		margin-bottom: 20px;
-		font-size: 0.9rem;
+		font-size: 0.88rem;
+		font-weight: 500;
+		border: 1px solid rgba(239, 68, 68, 0.2);
+		text-align: left;
 	}
 
 	.spinner {
 		width: 20px;
 		height: 20px;
-		border: 2px solid rgba(0, 0, 0, 0.1);
-		border-top-color: #000;
+		border: 2.5px solid var(--s-accent-2-bg, rgba(124, 58, 237, 0.15));
+		border-top-color: var(--s-accent-2, #7c3aed);
 		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
+		animation: s-spin 0.8s linear infinite;
+		flex-shrink: 0;
 	}
 
 	.divider {
 		display: flex;
 		align-items: center;
-		margin: 24px 0;
-		color: #8e8e93;
-		font-size: 0.8rem;
+		margin: 22px 0;
+		color: var(--s-text-tertiary, #b0aac0);
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
 		width: 100%;
+		gap: 12px;
 	}
+
 	.divider::before,
 	.divider::after {
 		content: '';
 		flex: 1;
 		height: 1px;
-		background: #e5e5ea;
-	}
-	.divider span {
-		padding: 0 10px;
+		background: var(--s-border, rgba(100, 80, 160, 0.08));
 	}
 
 	.whatsapp-btn {
-		background: #25d366;
+		background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
 		color: white;
-		border-color: #25d366;
+		border-color: transparent;
+		box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
 	}
 
 	.whatsapp-btn:hover {
-		background: #20bd5a;
-		border-color: #20bd5a;
+		background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+		border-color: transparent;
+		box-shadow: 0 6px 24px rgba(34, 197, 94, 0.4);
+		transform: translateY(-2px);
 	}
 
 	.whatsapp-hint {
-		color: #8e8e93;
-		font-size: 0.85rem;
-		margin-top: 12px;
+		color: var(--s-text-tertiary, #b0aac0);
+		font-size: 0.8rem;
+		margin-top: 10px;
+		font-weight: 500;
+	}
+
+	@keyframes s-fadeInUp {
+		from { opacity: 0; transform: translateY(20px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+	@keyframes s-spin {
+		to { transform: rotate(360deg); }
+	}
+	@keyframes s-float {
+		0%, 100% { transform: translateY(0px); }
+		50% { transform: translateY(-8px); }
 	}
 </style>

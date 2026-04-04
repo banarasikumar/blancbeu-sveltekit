@@ -40,6 +40,10 @@ export interface AppUser {
 	avatar?: string;
 	image?: string;
 	role?: string;
+	accountType?: 'user' | 'walkin';
+	accountStatus?: 'active' | 'shadow' | 'merged';
+	createdBy?: string;
+	mergedIntoUid?: string;
 	[key: string]: any;
 }
 

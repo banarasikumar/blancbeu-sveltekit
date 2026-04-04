@@ -19,8 +19,14 @@ export async function POST({ request }) {
             return json({ error: 'Missing title or body' }, { status: 400 });
         }
 
-        // Get all users who have the required role and have FCM tokens
-        const tokens: string[] = [];
+        // Role → icon mapping so each app gets its branded icon on background notifications
+        const ROLE_ICONS: Record<string, string> = {
+            staff: '/staff-icon-192.png',
+            admin: '/admin-icon-192.png'
+        };
+
+        // Collect tokens per role (separate multicasts so each role gets the right icon)
+        const roleTokenMap: Record<string, string[]> = {};
 
         for (const role of targetRoles) {
             const usersSnapshot = await adminDb
@@ -28,6 +34,7 @@ export async function POST({ request }) {
                 .where('role', '==', role)
                 .get();
 
+            const roleTokens: string[] = [];
             usersSnapshot.forEach((doc) => {
                 const data = doc.data();
 
@@ -39,45 +46,72 @@ export async function POST({ request }) {
                 }
 
                 if (data.fcmTokens && Array.isArray(data.fcmTokens)) {
-                    tokens.push(...data.fcmTokens);
+                    roleTokens.push(...data.fcmTokens);
                 }
             });
+
+            if (roleTokens.length > 0) {
+                roleTokenMap[role] = [...new Set(roleTokens)];
+            }
         }
 
-        // Deduplicate tokens
-        const uniqueTokens = [...new Set(tokens)];
-
-        if (uniqueTokens.length === 0) {
+        const totalDevices = Object.values(roleTokenMap).reduce((s, t) => s + t.length, 0);
+        if (totalDevices === 0) {
             return json({ success: true, message: 'No devices to notify' });
         }
 
-        // Send messages
-        const message = {
-            notification: {
-                title,
-                body,
-                image: iconUrl || undefined // Optional image in notification
-            },
-            tokens: uniqueTokens
-        };
+        // Send one multicast per role (preserves correct icon per app)
+        let totalSent = 0;
+        let totalFailed = 0;
+        const allFailedTokens: string[] = [];
 
-        const response = await admin.messaging().sendEachForMulticast(message);
+        for (const [role, tokens] of Object.entries(roleTokenMap)) {
+            const message = {
+                notification: {
+                    title,
+                    body,
+                    image: iconUrl || undefined
+                },
+                data: {
+                    icon: ROLE_ICONS[role] || '/pwa-192x192.png'
+                },
+                tokens
+            };
 
-        const failedTokens: string[] = [];
-        if (response.failureCount > 0) {
-            response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    failedTokens.push(uniqueTokens[idx]);
+            const response = await admin.messaging().sendEachForMulticast(message);
+            totalSent += response.successCount;
+            totalFailed += response.failureCount;
+
+            if (response.failureCount > 0) {
+                response.responses.forEach((resp, idx) => {
+                    if (!resp.success) allFailedTokens.push(tokens[idx]);
+                });
+            }
+        }
+
+        if (allFailedTokens.length > 0) {
+            console.warn('[Push] Failed tokens:', allFailedTokens);
+
+            // Remove expired / invalid tokens from Firestore
+            const allUsersSnap = await adminDb
+                .collection('users')
+                .where('fcmTokens', 'array-contains-any', allFailedTokens.slice(0, 10))
+                .get();
+
+            const cleanupPromises = allUsersSnap.docs.map((docSnap) => {
+                const existing: string[] = docSnap.data().fcmTokens || [];
+                const cleaned = existing.filter((t) => !allFailedTokens.includes(t));
+                if (cleaned.length !== existing.length) {
+                    return docSnap.ref.update({ fcmTokens: cleaned });
                 }
             });
-            console.warn('[Push] Some notifications failed for tokens:', failedTokens);
-            // Optionally, you could remove failed/expired tokens from the database here
+            await Promise.allSettled(cleanupPromises);
         }
 
         return json({
             success: true,
-            sentCount: response.successCount,
-            failureCount: response.failureCount
+            sentCount: totalSent,
+            failureCount: totalFailed
         });
     } catch (error) {
         console.error('Error sending notification:', error);

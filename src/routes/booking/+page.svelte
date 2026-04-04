@@ -6,6 +6,7 @@
 	import { cart } from '$lib/stores/booking';
 	import { db, auth } from '$lib/firebase';
 	import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+	import { requestUserNotificationPermission } from '$lib/stores/userNotifications';
 
 	import { goto } from '$app/navigation';
 	import BookingSuccess from '$lib/components/BookingSuccess.svelte';
@@ -520,6 +521,11 @@
 				}
 			} catch (notificationErr) {
 				console.error('Error triggering notification:', notificationErr);
+			}
+
+			// Request notification permission so the user receives booking status updates
+			if (auth.currentUser) {
+				requestUserNotificationPermission(auth.currentUser.uid).catch(() => {});
 			}
 
 			// Trigger Confetti

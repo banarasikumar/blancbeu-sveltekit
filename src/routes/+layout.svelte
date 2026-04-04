@@ -5,9 +5,10 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 	import SplashScreen from '$lib/components/layout/SplashScreen.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { onNavigate, afterNavigate } from '$app/navigation';
 	import { initAuth } from '$lib/stores/auth';
+	import { playNotificationChime } from '$lib/utils/notificationSound';
 	import { page } from '$app/state';
 	import { restoreScrollPosition, saveScrollPosition, scrollPositions } from '$lib/stores/scroll';
 
@@ -19,6 +20,7 @@
 	let mounted = $state(false);
 	let isDesktop = $state(false);
 	let SimulatorComponent = $state<any>(null);
+	let unsubUserFcm: (() => void) | null = null;
 
 	let isHomePage = $derived(page.url.pathname === '/');
 	let isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
@@ -38,6 +40,28 @@
 		if (!isAdminRoute && !isStaffRoute) {
 			initAuth();
 			initAppServiceListener();
+
+			// Foreground FCM handler for the customer app
+			import('firebase/messaging').then(({ onMessage, isSupported }) => {
+				isSupported().then((supported) => {
+					if (!supported) return;
+					import('$lib/firebase').then(({ app }) => {
+						if (!app) return;
+						import('firebase/messaging').then(({ getMessaging }) => {
+							const msgInstance = getMessaging(app);
+							unsubUserFcm = onMessage(msgInstance, (payload) => {
+								const title = payload.notification?.title ?? 'Booking Update';
+								const body = payload.notification?.body ?? '';
+								playNotificationChime(0.45);
+								// showToast is available via the Toast component already rendered
+								import('$lib/stores/toast').then(({ showToast }) => {
+									showToast(body ? `${title}: ${body}` : title, 'success');
+								});
+							});
+						});
+					});
+				});
+			});
 		}
 
 		// Check for desktop environment to load simulator
@@ -52,6 +76,11 @@
 
 		// Mark as mounted AFTER we've determined the device type
 		mounted = true;
+	});
+
+
+	onDestroy(() => {
+		if (unsubUserFcm) unsubUserFcm();
 	});
 
 	// Centralized Scroll Handling

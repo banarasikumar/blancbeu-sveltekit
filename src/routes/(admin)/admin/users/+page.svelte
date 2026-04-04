@@ -12,12 +12,24 @@
 
 	let searchQuery = $state('');
 	let selectedUser = $state<AppUser | null>(null);
+	let showWalkIns = $state(true);
+	let showMerged = $state(false);
 
 	let sortBy = $state<'name' | 'joined'>('name');
 
 	// Filtered & Sorted users
 	let filteredUsers = $derived.by(() => {
 		let users = $allUsers;
+
+		// Hide merged shadow accounts by default
+		if (!showMerged) {
+			users = users.filter((u) => u.accountStatus !== 'merged');
+		}
+
+		// Toggle walk-in (shadow) accounts
+		if (!showWalkIns) {
+			users = users.filter((u) => u.accountType !== 'walkin');
+		}
 
 		if (searchQuery) {
 			const q = searchQuery.toLowerCase();
@@ -91,8 +103,24 @@
 <div class="admin-view-header">
 	<h2 class="admin-view-title">Users</h2>
 	<div style="font-size: 12px; color: var(--admin-text-secondary); font-weight: 600;">
-		{filteredUsers.length} Registered
+		{filteredUsers.length} shown
 	</div>
+</div>
+
+<!-- Filters -->
+<div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+	<button
+		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showWalkIns ? 'var(--admin-accent)' : 'var(--admin-border)'}; background: {showWalkIns ? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)' : 'transparent'}; color: {showWalkIns ? 'var(--admin-accent)' : 'var(--admin-text-secondary)'}; cursor: pointer;"
+		onclick={() => (showWalkIns = !showWalkIns)}
+	>
+		Walk-ins {showWalkIns ? '✓' : ''}
+	</button>
+	<button
+		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showMerged ? 'var(--admin-accent)' : 'var(--admin-border)'}; background: {showMerged ? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)' : 'transparent'}; color: {showMerged ? 'var(--admin-accent)' : 'var(--admin-text-secondary)'}; cursor: pointer;"
+		onclick={() => (showMerged = !showMerged)}
+	>
+		Merged {showMerged ? '✓' : ''}
+	</button>
 </div>
 
 <!-- Search & Sort -->
@@ -136,13 +164,19 @@
 			<div class="admin-user-info">
 				<div class="admin-user-name">
 					{name}
-					<span
-						class="admin-role-badge"
-						class:admin={user.role === 'admin'}
-						class:user={user.role !== 'admin'}
-					>
-						{user.role === 'admin' ? 'ADMIN' : 'USER'}
-					</span>
+					{#if user.accountType === 'walkin'}
+						<span class="admin-role-badge" style="background: rgba(234,179,8,0.15); color: #ca8a04; border-color: rgba(234,179,8,0.3);">
+							WALK-IN
+						</span>
+					{:else}
+						<span
+							class="admin-role-badge"
+							class:admin={user.role === 'admin'}
+							class:user={user.role !== 'admin'}
+						>
+							{user.role === 'admin' ? 'ADMIN' : 'USER'}
+						</span>
+					{/if}
 				</div>
 				<div class="admin-user-email">{user.email || 'No email'}</div>
 				{#if phone}
@@ -169,8 +203,10 @@
 	{@const phone = getUserPhone(selectedUser)}
 
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<div class="admin-action-sheet-overlay" onclick={closeSheet} role="dialog">
+	<!-- svelte-ignore a11y_interactive_supports_focus -->
+	<div class="admin-action-sheet-overlay" onclick={closeSheet} role="dialog" tabindex="-1">
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<div class="admin-action-sheet" onclick={(e) => e.stopPropagation()} role="document">
 			<div class="admin-action-sheet-header">
 				<div>

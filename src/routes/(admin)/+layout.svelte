@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '$lib/styles/admin.css';
 	import { onMount, onDestroy } from 'svelte';
+	import { get } from 'svelte/store';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { showToast } from '$lib/stores/toast';
@@ -10,6 +11,8 @@
 		initAdminAuth,
 		destroyAdminAuth
 	} from '$lib/stores/adminAuth';
+	import { soundEnabled } from '$lib/stores/staffNotifications';
+	import { playNotificationChime } from '$lib/utils/notificationSound';
 	import {
 		initBookingListener,
 		initUserListener,
@@ -50,8 +53,29 @@
 		return '#1C1C1E'; // Admin Surface Color (Gold Theme Header) or #000000
 	});
 
+	let unsubFcm: (() => void) | null = null;
+
 	onMount(() => {
 		initAdminAuth();
+
+		// Foreground FCM handler — fires when admin app is open
+		import('firebase/messaging').then(({ onMessage, isSupported }) => {
+			isSupported().then((supported) => {
+				if (!supported) return;
+				import('$lib/firebase').then(({ app }) => {
+					if (!app) return;
+					import('firebase/messaging').then(({ getMessaging }) => {
+						const msgInstance = getMessaging(app);
+						unsubFcm = onMessage(msgInstance, (payload) => {
+							const title = payload.notification?.title ?? 'New Booking!';
+							const body = payload.notification?.body ?? '';
+							if (get(soundEnabled)) playNotificationChime();
+							showToast(body ? `${title}: ${body}` : title, 'success');
+						});
+					});
+				});
+			});
+		});
 
 		// Watch auth state and redirect accordingly
 		const unsub = adminAuthState.subscribe((state) => {
@@ -77,6 +101,7 @@
 	});
 
 	onDestroy(() => {
+		if (unsubFcm) unsubFcm();
 		destroyAdminAuth();
 		destroyListeners();
 	});
@@ -117,7 +142,7 @@
 					.then(() => {
 						cancelledCount++;
 						if (cancelledCount === overdueBookings.length) {
-							showToast(`Auto-cancelled ${cancelledCount} overdue bookings`, 'info');
+							showToast(`Auto-cancelled ${cancelledCount} overdue bookings`, 'success');
 						}
 					})
 					.catch((err) => console.error(`Failed to auto-cancel ${b.id}`, err));

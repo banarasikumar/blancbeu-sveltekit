@@ -7,7 +7,11 @@
 		searchUsersByName,
 		upcomingBookings
 	} from '$lib/stores/staffData';
+	import { findOrCreateWalkIn } from '$lib/services/walkInService';
+	import { staffUser } from '$lib/stores/staffAuth';
+	import { get } from 'svelte/store';
 	import { showToast } from '$lib/stores/toast';
+	import { auth } from '$lib/firebase';
 	import type { Booking, AppUser } from '$lib/stores/adminData';
 	import { goto } from '$app/navigation';
 	import { startServiceTimer } from '$lib/stores/serviceTimer';
@@ -21,6 +25,7 @@
 
 	let name = $state('');
 	let phone = $state('');
+	let selectedUserId = $state('');
 	let date = $state('');
 	let time = $state('');
 	let notes = $state('');
@@ -132,6 +137,7 @@
 				// Reset for create
 				name = '';
 				phone = '';
+				selectedUserId = '';
 				const nextSlot = getNextAvailableSlot();
 				date = nextSlot.date;
 				time = nextSlot.time;
@@ -341,6 +347,7 @@
 		if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
 
 		phone = cleanPhone;
+		selectedUserId = user.id || '';
 
 		showUserDropdown = false;
 		showUserNameDropdown = false;
@@ -386,9 +393,25 @@
 		isSubmitting = true;
 
 		try {
+			// Resolve userId: use selected existing user, or find/create a walk-in account
+			let userId = selectedUserId;
+			if (!userId && phone) {
+				try {
+					const staffUid = get(staffUser)?.uid;
+					userId = await findOrCreateWalkIn({
+						name: name.trim(),
+						phone,
+						...(staffUid ? { createdBy: staffUid } : {})
+					});
+				} catch (err) {
+					console.warn('[BookingModal] Could not resolve walk-in account:', err);
+				}
+			}
+
 			const bookingData = {
 				userName: name,
 				userPhone: phone,
+				...(userId ? { userId } : {}),
 				date,
 				time,
 				// Main source of truth
@@ -418,6 +441,39 @@
 		}
 	}
 
+	// Status-to-user-message map for notification bodies
+	const STATUS_MESSAGES: Record<string, { title: string; body: (b: any) => string }> = {
+		confirmed: {
+			title: 'Booking Confirmed! ✅',
+			body: (b) => `Your booking on ${b.date} at ${b.time} has been confirmed.`
+		},
+		cancelled: {
+			title: 'Booking Cancelled',
+			body: (b) => `Your booking on ${b.date} at ${b.time} has been cancelled.`
+		},
+		completed: {
+			title: 'Service Completed 🎉',
+			body: (b) => `Your service on ${b.date} is complete. Thank you for visiting Blancbeu!`
+		}
+	};
+
+	async function notifyBookingUser(booking: any, newStatus: string) {
+		const userId = booking.userId;
+		if (!userId || !auth.currentUser) return;
+		const msg = STATUS_MESSAGES[newStatus];
+		if (!msg) return;
+		try {
+			const idToken = await auth.currentUser.getIdToken();
+			fetch('/api/notifications/notifyUser', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+				body: JSON.stringify({ userId, title: msg.title, body: msg.body(booking) })
+			}).catch((e) => console.warn('[BookingModal] notifyUser failed:', e));
+		} catch (e) {
+			console.warn('[BookingModal] Could not get idToken:', e);
+		}
+	}
+
 	async function handleStatusChange(newStatus: string) {
 		if (!existingBooking) return;
 
@@ -433,6 +489,7 @@
 			} else {
 				await updateBookingDetails(existingBooking.id, { status: newStatus });
 				showToast(`Status updated to ${newStatus}`, 'success');
+				notifyBookingUser(existingBooking, newStatus);
 			}
 			isOpen = false; // Close modal after action
 		} catch (error) {
