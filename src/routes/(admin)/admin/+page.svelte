@@ -36,9 +36,9 @@
 		adminUnreadCount
 	} from '$lib/stores/adminNotificationsList';
 	import { 
-		soundEnabled as adminSoundEnabled,
-		selectedSoundType as adminSelectedSoundType,
-		customSoundPath as adminCustomSoundPath,
+		adminSoundEnabled,
+		adminSelectedSoundType,
+		adminCustomSoundPath,
 		AVAILABLE_SOUNDS as ADMIN_AVAILABLE_SOUNDS,
 		type SoundType
 	} from '$lib/stores/adminNotificationPreferences';
