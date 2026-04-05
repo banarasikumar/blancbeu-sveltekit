@@ -13,8 +13,8 @@
 		upcomingBookings
 	} from '$lib/stores/staffData';
 	import { initTheme, destroyTheme, resolvedTheme } from '$lib/stores/staffTheme';
-	import { soundEnabled } from '$lib/stores/staffNotifications';
-	import { playNotificationChime } from '$lib/utils/notificationSound';
+	import { soundEnabled, selectedSoundType, customSoundPath, AVAILABLE_SOUNDS } from '$lib/stores/staffNotifications';
+	import { playNotificationChime, playNotificationSound, playSelectedNotificationSound } from '$lib/utils/notificationSound';
 	import StaffNav from '$lib/components/staff/StaffNav.svelte';
 	import StaffHeader from '$lib/components/staff/StaffHeader.svelte';
 	import StaffBgAnimation from '$lib/components/staff/StaffBgAnimation.svelte';
@@ -81,10 +81,8 @@
 						unsubFcm = onMessage(msgInstance, (payload) => {
 							const title = payload.notification?.title ?? 'New Booking!';
 							const body = payload.notification?.body ?? '';
-							// Play chime if sound is enabled
-							if (get(soundEnabled)) {
-								playNotificationChime();
-							}
+							// Play the user's selected notification sound (with automatic fallback)
+							playSelectedNotificationSound(0.7);
 							// Show in-app toast (body included if available)
 							showToast(body ? `${title}: ${body}` : title, 'success');
 						});

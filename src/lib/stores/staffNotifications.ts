@@ -8,27 +8,84 @@ import { browser } from '$app/environment';
 // Sound preference — persisted in localStorage
 // ---------------------------------------------------------------------------
 const SOUND_PREF_KEY = 'blancbeu_staff_sound';
+const SOUND_TYPE_KEY = 'blancbeu_staff_sound_type';
+const CUSTOM_SOUND_KEY = 'blancbeu_staff_custom_sound';
+
+export type SoundType = 'iphone' | 'livechat' | 'notification' | 'custom';
+
+export const AVAILABLE_SOUNDS = [
+	{ id: 'iphone' as SoundType, name: 'iPhone', path: '/sounds/Iphone.mp3' },
+	{ id: 'livechat' as SoundType, name: 'Live Chat', path: '/sounds/livechat.mp3' },
+	{ id: 'notification' as SoundType, name: 'Notification', path: '/sounds/notification.mp3' }
+];
 
 function createSoundStore() {
-    const initial = browser ? localStorage.getItem(SOUND_PREF_KEY) !== 'false' : true;
-    const { subscribe, set, update } = writable<boolean>(initial);
-    return {
-        subscribe,
-        toggle() {
-            update((v) => {
-                const next = !v;
-                if (browser) localStorage.setItem(SOUND_PREF_KEY, String(next));
-                return next;
-            });
-        },
-        set(val: boolean) {
-            set(val);
-            if (browser) localStorage.setItem(SOUND_PREF_KEY, String(val));
-        }
-    };
+	const initial = browser ? localStorage.getItem(SOUND_PREF_KEY) !== 'false' : true;
+	const { subscribe, set, update } = writable<boolean>(initial);
+	return {
+		subscribe,
+		toggle() {
+			update((v) => {
+				const next = !v;
+				if (browser) localStorage.setItem(SOUND_PREF_KEY, String(next));
+				return next;
+			});
+		},
+		set(val: boolean) {
+			set(val);
+			if (browser) localStorage.setItem(SOUND_PREF_KEY, String(val));
+		}
+	};
+}
+
+function createSoundTypeStore() {
+	const initial: SoundType = browser 
+		? (localStorage.getItem(SOUND_TYPE_KEY) as SoundType) || 'iphone'
+		: 'iphone';
+	const { subscribe, set } = writable<SoundType>(initial);
+	
+	return {
+		subscribe,
+		set(type: SoundType) {
+			if (browser) localStorage.setItem(SOUND_TYPE_KEY, type);
+			set(type);
+		},
+		getCurrentSound(): { type: SoundType; path: string } {
+			const currentType = browser 
+				? (localStorage.getItem(SOUND_TYPE_KEY) as SoundType) || 'iphone'
+				: 'iphone';
+			
+			if (currentType === 'custom') {
+				const customPath = browser ? localStorage.getItem(CUSTOM_SOUND_KEY) : null;
+				return { type: 'custom', path: customPath || AVAILABLE_SOUNDS[0].path };
+			}
+			
+			const sound = AVAILABLE_SOUNDS.find(s => s.id === currentType);
+			return { type: currentType, path: sound?.path || AVAILABLE_SOUNDS[0].path };
+		}
+	};
+}
+
+function createCustomSoundStore() {
+	const initial = browser ? localStorage.getItem(CUSTOM_SOUND_KEY) || '' : '';
+	const { subscribe, set } = writable<string>(initial);
+	
+	return {
+		subscribe,
+		set(path: string) {
+			if (browser) localStorage.setItem(CUSTOM_SOUND_KEY, path);
+			set(path);
+		},
+		clear() {
+			if (browser) localStorage.removeItem(CUSTOM_SOUND_KEY);
+			set('');
+		}
+	};
 }
 
 export const soundEnabled = createSoundStore();
+export const selectedSoundType = createSoundTypeStore();
+export const customSoundPath = createCustomSoundStore();
 
 export type NotificationsState = 'default' | 'granted' | 'denied' | 'unsupported';
 

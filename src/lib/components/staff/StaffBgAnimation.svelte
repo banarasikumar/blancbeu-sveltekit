@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 
 	let paused = $state(false);
 
@@ -9,10 +9,9 @@
 
 	onMount(() => {
 		document.addEventListener('visibilitychange', handleVisibilityChange);
-	});
-
-	onDestroy(() => {
-		document.removeEventListener('visibilitychange', handleVisibilityChange);
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
 	});
 
 	const particles = Array.from({ length: 22 }, (_, i) => ({

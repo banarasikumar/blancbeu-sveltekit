@@ -30,6 +30,7 @@
 
 	const filters = [
 		{ key: 'upcoming', label: '📅 Today', emoji: '📅' },
+		{ key: 'pending', label: '⏳ Pending', emoji: '⏳' },
 		{ key: 'completed', label: '✅ Done', emoji: '✅' },
 		{ key: 'cancelled', label: '❌ Cancelled', emoji: '❌' },
 		{ key: 'all', label: '📋 All', emoji: '📋' }
@@ -47,6 +48,9 @@
 					if (b.date > today && b.status !== 'completed' && b.status !== 'cancelled') return true; // Future active
 					return false;
 				});
+				break;
+			case 'pending':
+				bookings = bookings.filter((b) => b.status === 'pending');
 				break;
 			case 'completed':
 				bookings = bookings.filter((b) => b.status === 'completed');

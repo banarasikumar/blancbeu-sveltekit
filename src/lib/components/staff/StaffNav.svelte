@@ -3,7 +3,14 @@
 	import { upcomingBookings } from '$lib/stores/staffData';
 
 	let activeRoute = $derived(page.url.pathname);
-	let pendingCount = $derived($upcomingBookings.filter((b) => b.status === 'pending').length);
+	// Count all upcoming bookings for today (pending, confirmed, in-progress - not completed/cancelled)
+	let todayActiveCount = $derived(() => {
+		const today = new Date().toISOString().split('T')[0];
+		return $upcomingBookings.filter((b) => {
+			const bookingDate = typeof b.date === 'string' ? b.date.split('T')[0] : '';
+			return bookingDate === today;
+		}).length;
+	});
 
 	const routes = [
 		{ path: '/staff/dashboard', label: 'Home', icon: 'home' },
@@ -105,8 +112,8 @@
 						</svg>
 					{/if}
 
-					{#if route.showBadge && pendingCount > 0}
-						<span class="nav-badge">{pendingCount > 9 ? '9+' : pendingCount}</span>
+					{#if route.showBadge && todayActiveCount() > 0}
+						<span class="nav-badge">{todayActiveCount() > 9 ? '9+' : todayActiveCount()}</span>
 					{/if}
 				</div>
 				<span class="nav-label">{route.label}</span>

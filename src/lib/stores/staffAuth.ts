@@ -1,5 +1,5 @@
-import { writable, derived } from 'svelte/store';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { writable, derived, get } from 'svelte/store';
+import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '$lib/firebase';
 import type { User } from 'firebase/auth';
@@ -22,66 +22,42 @@ export const staffAuthState = writable<StaffAuthState>('loading');
 export const isStaff = derived(staffAuthState, ($state) => $state === 'authorized');
 
 let unsubscribeAuth: (() => void) | null = null;
+let loadingTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Verify if a user has staff role in Firestore
  */
 async function verifyStaffRole(uid: string, email: string | null): Promise<boolean> {
+	// Extract phone from uid if user logged in via WhatsApp
+	// Magic link users have uids like: "wa:+919229915277"
+	const phone = uid.startsWith('wa:') ? uid.replace('wa:', '') : null;
+
+	// Fast path: grant access immediately if email/phone is in the allowed list.
+	// Firestore promotion runs in the background so a DB error never blocks login.
+	if (email && ALLOWED_STAFF_EMAILS.includes(email)) {
+		const docRef = doc(db, 'users', uid);
+		setDoc(docRef, { email, role: 'staff' }, { merge: true }).catch((e) =>
+			console.warn('[StaffAuth] Background promote failed:', e)
+		);
+		return true;
+	}
+
+	if (phone && ALLOWED_STAFF_PHONES.includes(phone)) {
+		const docRef = doc(db, 'users', uid);
+		setDoc(docRef, { phone, role: 'staff' }, { merge: true }).catch((e) =>
+			console.warn('[StaffAuth] Background promote failed:', e)
+		);
+		return true;
+	}
+
+	// Slow path: check Firestore for an existing staff/admin role
 	try {
 		const docRef = doc(db, 'users', uid);
 		const docSnap = await getDoc(docRef);
-
-		// Extract phone from uid if user logged in via WhatsApp
-		// Magic link users have uids like: "wa:+919229915277"
-		let phone = null;
-		if (uid.startsWith('wa:')) {
-			phone = uid.replace('wa:', '');
-		}
-
 		if (docSnap.exists()) {
 			const data = docSnap.data();
 			// Check for 'staff' or 'admin' role (admins should also access staff app)
 			if (data.role === 'staff' || data.role === 'admin') return true;
-
-			// Auto-promote allowed emails
-			if (email && ALLOWED_STAFF_EMAILS.includes(email)) {
-				await setDoc(docRef, { role: 'staff' }, { merge: true });
-				return true;
-			}
-
-			// Auto-promote allowed phones
-			if (phone && ALLOWED_STAFF_PHONES.includes(phone)) {
-				await setDoc(docRef, { role: 'staff' }, { merge: true });
-				return true;
-			}
-		} else {
-			// User doc doesn't exist — check allowed emails
-			if (email && ALLOWED_STAFF_EMAILS.includes(email)) {
-				await setDoc(
-					docRef,
-					{
-						email,
-						role: 'staff',
-						createdAt: new Date().toISOString()
-					},
-					{ merge: true }
-				);
-				return true;
-			}
-
-			// User doc doesn't exist — check allowed phones
-			if (phone && ALLOWED_STAFF_PHONES.includes(phone)) {
-				await setDoc(
-					docRef,
-					{
-						phone,
-						role: 'staff',
-						createdAt: new Date().toISOString()
-					},
-					{ merge: true }
-				);
-				return true;
-			}
 		}
 		return false;
 	} catch (e) {
@@ -96,7 +72,27 @@ async function verifyStaffRole(uid: string, email: string | null): Promise<boole
 export function initStaffAuth() {
 	if (unsubscribeAuth) return; // Already initialized
 
+	// Set a timeout to fallback to unauthenticated if Firebase takes too long
+	loadingTimeout = setTimeout(() => {
+		const currentState = get(staffAuthState);
+		if (currentState === 'loading') {
+			console.warn('[StaffAuth] Auth initialization timed out, falling back to unauthenticated');
+			staffAuthState.set('unauthenticated');
+		}
+	}, 3000);
+
+	// Handle any pending redirect sign-in result (fallback from popup-blocked)
+	getRedirectResult(auth).catch((err) => {
+		console.error('[StaffAuth] Redirect result error:', err);
+	});
+
 	unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+		// Clear the timeout since we got a response
+		if (loadingTimeout) {
+			clearTimeout(loadingTimeout);
+			loadingTimeout = null;
+		}
+
 		console.log('[StaffAuth] Auth state changed:', user ? user.uid : 'null');
 		if (user) {
 			staffUser.set(user);
@@ -127,6 +123,11 @@ export async function staffSignIn(): Promise<void> {
 	try {
 		await signInWithPopup(auth, provider);
 	} catch (error: any) {
+		if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+			console.warn('[StaffAuth] Popup blocked or closed, falling back to redirect...');
+			await signInWithRedirect(auth, provider);
+			return;
+		}
 		console.error('[StaffAuth] Login failed:', error);
 		throw error;
 	}
@@ -152,6 +153,10 @@ export async function staffLogout(): Promise<void> {
  * Cleanup
  */
 export function destroyStaffAuth() {
+	if (loadingTimeout) {
+		clearTimeout(loadingTimeout);
+		loadingTimeout = null;
+	}
 	if (unsubscribeAuth) {
 		unsubscribeAuth();
 		unsubscribeAuth = null;

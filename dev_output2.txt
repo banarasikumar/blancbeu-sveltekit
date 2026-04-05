@@ -1,0 +1,66 @@
+
+> svelteblancbeu@0.0.3 dev
+> vite dev
+
+Port 5173 is in use, trying another one...
+Port 5174 is in use, trying another one...
+Port 5175 is in use, trying another one...
+
+  [32m[1mVITE[22m v7.3.1[39m  [2mready in [0m[1m4063[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5176[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://100.92.215.61:[1m5176[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.7:[1m5176[22m/[39m
+7:34:38 PM [vite-plugin-svelte] src/routes/+layout.svelte:175:2 `<svelte:component>` is deprecated in runes mode — components are dynamic by default
+https://svelte.dev/e/svelte_component_deprecated
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:503:1 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:503:1 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:504:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:504:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:707:10 Non-interactive element `<li>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:741:10 Non-interactive element `<li>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:989:3 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:989:3 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:1620:1 Unused CSS selector "select"
+https://svelte.dev/e/css_unused_selector
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:1636:1 Unused CSS selector "select:focus"
+https://svelte.dev/e/css_unused_selector
+7:34:41 PM [vite-plugin-svelte] src/lib/components/staff/BookingModal.svelte:1924:1 Unused CSS selector ".custom-dropdown-container.active .dropdown-trigger"
+https://svelte.dev/e/css_unused_selector
+
+[1;31m[500] GET /staff/dashboard[0m
+ReferenceError: document is not defined
+    at C:\Users\banar\CascadeProjects\blancbeu-sveltekit\src\lib\components\staff\StaffBgAnimation.svelte:15:3
+    at #close_render (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\internal\server\renderer.js:645:4)
+    at #render (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\internal\server\renderer.js:520:33)
+    at Object.get (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\internal\server\renderer.js:408:39)
+    at Object.get (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\legacy\legacy-server.js:40:24)
+    at C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\@sveltejs\kit\src\runtime\server\page\render.js:230:13
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:63:14)
+    at with_request_store (file:///C:/Users/banar/CascadeProjects/blancbeu-sveltekit/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_response (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\@sveltejs\kit\src\runtime\server\page\render.js:204:39)
+    at async render_page (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\@sveltejs\kit\src\runtime\server\page\index.js:340:10)
+[2m7:35:14 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mstaff_dash.html[22m
+
+[1;31m[500] GET /staff/dashboard[0m
+ReferenceError: document is not defined
+    at C:\Users\banar\CascadeProjects\blancbeu-sveltekit\src\lib\components\staff\StaffBgAnimation.svelte:15:3
+    at #close_render (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\internal\server\renderer.js:645:4)
+    at #render (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\internal\server\renderer.js:520:33)
+    at Object.get (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\internal\server\renderer.js:408:39)
+    at Object.get (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\svelte\src\legacy\legacy-server.js:40:24)
+    at C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\@sveltejs\kit\src\runtime\server\page\render.js:230:13
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:63:14)
+    at with_request_store (file:///C:/Users/banar/CascadeProjects/blancbeu-sveltekit/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_response (C:\Users\banar\CascadeProjects\blancbeu-sveltekit\node_modules\@sveltejs\kit\src\runtime\server\page\render.js:204:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2m7:35:14 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mstaff_dash.html[22m
+[2m7:36:04 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/components/staff/StaffBgAnimation.svelte[22m

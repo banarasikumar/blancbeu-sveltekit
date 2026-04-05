@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { db } from '$lib/firebase'; // Ensure this points to your initialized firebase instance (server-side safe if possible, client SDK is fine if used carefully)
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { adminDb } from '$lib/server/firebaseAdmin';
+import admin from 'firebase-admin';
 
 // Define a secret key. In production, use process.env.CRON_SECRET
 // For Vercel, you would add this to Environment Variables
@@ -18,18 +18,18 @@ export async function POST({ request }) {
 		const now = Date.now();
 		const oneHour = 60 * 60 * 1000;
 
-		// 2. Query Pending Bookings
-		// Note: We can't easily filter by "overdue" in Firestore query without storing a computed timestamp
-		// So we fetch all pending and filter in memory. If list is huge, this might need index changes.
-		const q = query(collection(db, 'bookings'), where('status', '==', 'pending'));
-		const querySnapshot = await getDocs(q);
+		// 2. Query Pending Bookings using Admin SDK
+		const snapshot = await adminDb
+			.collection('bookings')
+			.where('status', '==', 'pending')
+			.get();
 
 		const overdueBookings = [];
 
-		querySnapshot.forEach((doc) => {
+		snapshot.forEach((doc) => {
 			const data = doc.data();
 
-			// Helper to get timestamp (copied logic from adminData.ts to allow server independence)
+			// Helper to get timestamp
 			let ts = 0;
 			if (data.date) {
 				if (data.date.seconds) ts = data.date.seconds * 1000;
@@ -47,8 +47,7 @@ export async function POST({ request }) {
 					: new Date(data.createdAt).getTime();
 			}
 
-			// Check if overdue
-			// Appointment Time + 1 Hour < Now
+			// Check if overdue (Appointment Time + 1 Hour < Now)
 			if (ts + oneHour < now) {
 				overdueBookings.push(doc.id);
 			}
@@ -56,13 +55,13 @@ export async function POST({ request }) {
 
 		console.log(`[API] Found ${overdueBookings.length} overdue bookings.`);
 
-		// 3. Batch Update (or individual updates)
+		// 3. Batch Update
 		let cancelledCount = 0;
 		const updatePromises = overdueBookings.map(async (id) => {
 			try {
-				await updateDoc(doc(db, 'bookings', id), {
+				await adminDb.collection('bookings').doc(id).update({
 					status: 'cancelled',
-					updatedAt: new Date().toISOString(),
+					updatedAt: admin.firestore.FieldValue.serverTimestamp(),
 					cancelledBy: 'system-cron'
 				});
 				cancelledCount++;

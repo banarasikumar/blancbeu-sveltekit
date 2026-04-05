@@ -9,8 +9,13 @@
 		disableNotifications,
 		notificationStatus,
 		checkNotificationStatus,
-		soundEnabled
+		soundEnabled,
+		selectedSoundType,
+		customSoundPath,
+		AVAILABLE_SOUNDS,
+		type SoundType
 	} from '$lib/stores/staffNotifications';
+	import { playSelectedNotificationSound, playNotificationSound } from '$lib/utils/notificationSound';
 	import { onMount } from 'svelte';
 
 	// Real stats from bookings
@@ -119,6 +124,56 @@
 		{ icon: '📋', label: 'Bookings', sub: 'All your bookings', path: '/staff/bookings' },
 		{ icon: '📊', label: 'Dashboard', sub: 'Overview & stats', path: '/staff/dashboard' }
 	];
+
+	// Sound selection state
+	let showSoundSelector = $state(false);
+	let fileInput: HTMLInputElement | null = $state(null);
+
+	function handleSoundSelect(type: SoundType) {
+		selectedSoundType.set(type);
+		showToast(`Sound: ${AVAILABLE_SOUNDS.find(s => s.id === type)?.name || 'Custom'}`, 'success');
+		// Play a preview
+		setTimeout(() => playSelectedNotificationSound(0.5), 100);
+	}
+
+	function handleCustomSoundUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		
+		if (!file) return;
+
+		// Validate file type
+		if (!file.type.startsWith('audio/')) {
+			showToast('Please select an audio file', 'error');
+			return;
+		}
+
+		// Validate file size (max 2MB)
+		if (file.size > 2 * 1024 * 1024) {
+			showToast('File too large (max 2MB)', 'error');
+			return;
+		}
+
+		// Create object URL for the file
+		const objectUrl = URL.createObjectURL(file);
+		customSoundPath.set(objectUrl);
+		selectedSoundType.set('custom');
+		showToast('Custom sound uploaded!', 'success');
+		
+		// Play preview
+		setTimeout(() => playNotificationSound(objectUrl, 0.5).catch(() => {
+			showToast('Preview failed, but sound is saved', 'error');
+		}), 100);
+	}
+
+	function openFilePicker() {
+		fileInput?.click();
+	}
+
+	let currentSoundName = $derived(() => {
+		if ($selectedSoundType === 'custom') return 'Custom Sound';
+		return AVAILABLE_SOUNDS.find(s => s.id === $selectedSoundType)?.name || 'iPhone';
+	});
 </script>
 
 <div class="profile-page s-stagger">
@@ -277,6 +332,24 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Notification Sound Selection -->
+		{#if $soundEnabled}
+			<div
+				class="setting-item sound-selector-item"
+				onclick={() => showSoundSelector = true}
+				role="button"
+				tabindex="0"
+				onkeydown={(e) => e.key === 'Enter' && (showSoundSelector = true)}
+			>
+				<span class="si-icon">🎵</span>
+				<div class="si-text">
+					<span class="si-label">Notification Sound</span>
+					<span class="si-value">{currentSoundName()}</span>
+				</div>
+				<span class="si-action">Tap to change</span>
+			</div>
+		{/if}
 	</section>
 
 	<!-- Account Info -->
@@ -311,8 +384,8 @@
 	</div>
 	<!-- Permission Denied Modal -->
 	{#if showDeniedModal}
-		<div class="modal-backdrop" onclick={() => (showDeniedModal = false)}>
-			<div class="modal-content s-card" onclick={(e) => e.stopPropagation()}>
+		<div class="modal-backdrop" onclick={() => (showDeniedModal = false)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showDeniedModal = false)}>
+			<div class="modal-content s-card" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
 				<div class="modal-header">
 					<h3>Notifications Blocked</h3>
 				</div>
@@ -334,6 +407,68 @@
 			</div>
 		</div>
 	{/if}
+
+	<!-- Sound Selector Modal -->
+	{#if showSoundSelector}
+		<div class="modal-backdrop" onclick={() => showSoundSelector = false} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showSoundSelector = false)}>
+			<div class="modal-content s-card sound-modal" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
+				<div class="modal-header">
+					<h3>Choose Notification Sound</h3>
+				</div>
+				<div class="modal-body">
+					<div class="sound-options">
+						{#each AVAILABLE_SOUNDS as sound}
+							<button
+								class="sound-option"
+								class:selected={$selectedSoundType === sound.id}
+								onclick={() => handleSoundSelect(sound.id)}
+								type="button"
+							>
+								<span class="sound-icon">🔔</span>
+								<span class="sound-name">{sound.name}</span>
+								{#if $selectedSoundType === sound.id}
+									<span class="check-icon">✓</span>
+								{/if}
+							</button>
+						{/each}
+
+						<button
+							class="sound-option"
+							class:selected={$selectedSoundType === 'custom'}
+							onclick={openFilePicker}
+							type="button"
+						>
+							<span class="sound-icon">📁</span>
+							<span class="sound-name">
+								{$selectedSoundType === 'custom' ? 'Custom Sound' : 'Upload Your Own'}
+							</span>
+							{#if $selectedSoundType === 'custom'}
+								<span class="check-icon">✓</span>
+							{/if}
+						</button>
+					</div>
+
+					<p class="sound-help">
+						💡 Tap any sound to preview. Falls back to default chime if sound fails.
+					</p>
+				</div>
+				<div class="modal-footer">
+					<button class="s-btn s-btn-secondary s-btn-block" onclick={() => showSoundSelector = false} type="button">
+						Close
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Hidden file input for custom sound upload -->
+	<input
+		bind:this={fileInput}
+		type="file"
+		accept="audio/*"
+		onchange={handleCustomSoundUpload}
+		style="display: none;"
+	/>
 </div>
 
 <style>
@@ -700,5 +835,67 @@
 
 	.modal-footer {
 		margin-top: var(--s-space-lg);
+	}
+
+	/* Sound Selector Styles */
+	.sound-selector-item {
+		background: linear-gradient(135deg, var(--s-surface) 0%, var(--s-bg-secondary) 100%);
+	}
+
+	.sound-modal .modal-header h3 {
+		color: var(--s-text-primary);
+	}
+
+	.sound-options {
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-space-sm);
+	}
+
+	.sound-option {
+		display: flex;
+		align-items: center;
+		gap: var(--s-space-md);
+		padding: var(--s-space-md) var(--s-space-lg);
+		background: var(--s-bg-secondary);
+		border: 2px solid var(--s-border);
+		border-radius: var(--s-radius-lg);
+		cursor: pointer;
+		transition: all var(--s-duration-fast) var(--s-ease);
+		text-align: left;
+		width: 100%;
+	}
+
+	.sound-option:hover {
+		background: var(--s-surface-hover);
+		border-color: var(--s-accent);
+	}
+
+	.sound-option.selected {
+		background: var(--s-accent-bg);
+		border-color: var(--s-accent);
+	}
+
+	.sound-icon {
+		font-size: 1.5rem;
+	}
+
+	.sound-name {
+		flex: 1;
+		font-weight: 600;
+		color: var(--s-text-primary);
+	}
+
+	.check-icon {
+		color: var(--s-success);
+		font-weight: bold;
+		font-size: 1.2rem;
+	}
+
+	.sound-help {
+		margin-top: var(--s-space-lg);
+		font-size: var(--s-text-xs);
+		color: var(--s-text-secondary);
+		text-align: center;
 	}
 </style>

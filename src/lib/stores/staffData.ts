@@ -14,10 +14,18 @@ import {
 } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 import type { Booking, Service, AppUser } from './adminData'; // Reuse types
+import { get } from 'svelte/store';
+import { soundEnabled } from './staffNotifications';
+import { playNotificationChime, playSelectedNotificationSound } from '$lib/utils/notificationSound';
+import { showToast } from './toast';
 
 // --- Stores ---
 export const staffBookings = writable<Booking[]>([]);
 export const staffServices = writable<Service[]>([]);
+
+// Track previous bookings to detect new ones
+let previousBookingIds = new Set<string>();
+let isInitialLoad = true;
 
 // Derived stats
 // Derived stats
@@ -90,6 +98,30 @@ export function initStaffDataListener() {
 				id: d.id,
 				...d.data()
 			})) as Booking[];
+
+			// Detect new bookings (not in previous set)
+			const currentIds = new Set(bookings.map(b => b.id));
+			const newBookings = bookings.filter(b => !previousBookingIds.has(b.id));
+
+			// Play sound and show toast for new bookings (not on initial load)
+			if (!isInitialLoad && newBookings.length > 0) {
+				const newPendingBookings = newBookings.filter(b => b.status === 'pending');
+				if (newPendingBookings.length > 0) {
+					// Play the user's selected notification sound (with automatic fallback)
+					playSelectedNotificationSound(0.7);
+
+					// Show toast for each new booking
+					newPendingBookings.forEach(booking => {
+						const customerName = booking.customerName || booking.userName || 'New customer';
+						showToast(`New booking from ${customerName}!`, 'success');
+					});
+				}
+			}
+
+			// Update tracking state
+			previousBookingIds = currentIds;
+			isInitialLoad = false;
+
 			staffBookings.set(bookings);
 		},
 		(error) => {

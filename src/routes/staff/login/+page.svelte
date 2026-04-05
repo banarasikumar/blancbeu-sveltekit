@@ -2,14 +2,33 @@
 	import { staffSignIn, staffAuthState } from '$lib/stores/staffAuth';
 	import { handleWhatsAppLogin, checkMagicLink } from '$lib/services/authService';
 	import { MessageCircle } from 'lucide-svelte';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	let isLoading = $state(false);
 	let error = $state<string | null>(null);
+	let prevState = $state<string>('loading');
+
+	let stateUnsub: (() => void) | null = null;
 
 	onMount(async () => {
 		// Check for magic link token in URL on load
 		await checkMagicLink('staff');
+
+		// React to auth state changes to surface denial errors in the UI
+		stateUnsub = staffAuthState.subscribe((state) => {
+			if (state === 'denied') {
+				error = 'Access denied. This Google account is not authorized for the staff portal.';
+				isLoading = false;
+			} else if (state === 'unauthenticated' && prevState === 'checking') {
+				// Signed out after failed role check — reset loading so button re-enables
+				isLoading = false;
+			}
+			prevState = state;
+		});
+	});
+
+	onDestroy(() => {
+		if (stateUnsub) stateUnsub();
 	});
 
 	async function handleLogin() {

@@ -1,10 +1,136 @@
 let audioCtx: AudioContext | null = null;
+let audioUnlocked = false;
 
 function getAudioContext(): AudioContext {
     if (!audioCtx || audioCtx.state === 'closed') {
         audioCtx = new AudioContext();
     }
     return audioCtx;
+}
+
+/**
+ * Unlock audio context on first user interaction (required by browser autoplay policy)
+ */
+export function unlockAudio(): void {
+    if (audioUnlocked) return;
+    if (typeof window === 'undefined') return;
+    
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        ctx.resume().then(() => {
+            audioUnlocked = true;
+            console.log('[NotificationSound] Audio unlocked');
+        }).catch((err) => {
+            console.warn('[NotificationSound] Failed to unlock audio:', err);
+        });
+    } else {
+        audioUnlocked = true;
+    }
+}
+
+// Auto-unlock on first user interaction
+if (typeof window !== 'undefined') {
+    const unlockEvents = ['click', 'touchstart', 'keydown'];
+    const unlockHandler = () => {
+        unlockAudio();
+        // Remove listeners after first interaction
+        unlockEvents.forEach(evt => {
+            window.removeEventListener(evt, unlockHandler);
+        });
+    };
+    unlockEvents.forEach(evt => {
+        window.addEventListener(evt, unlockHandler, { once: true });
+    });
+}
+
+import { selectedSoundType, customSoundPath, soundEnabled, type SoundType, AVAILABLE_SOUNDS } from '$lib/stores/staffNotifications';
+import { get } from 'svelte/store';
+
+/**
+ * Plays the user's selected notification sound with automatic fallback.
+ * Uses the sound type from settings, falls back to chime if sound fails.
+ * Respects the soundEnabled setting.
+ * @param volume - Volume level 0.0 to 1.0 (default 0.7)
+ */
+export async function playSelectedNotificationSound(volume = 0.7): Promise<void> {
+    // Check if sound is enabled
+    if (!get(soundEnabled)) {
+        return;
+    }
+
+    const soundType = get(selectedSoundType);
+    let soundPath: string;
+
+    if (soundType === 'custom') {
+        const customPath = get(customSoundPath);
+        soundPath = customPath || AVAILABLE_SOUNDS[0].path;
+    } else {
+        const sound = AVAILABLE_SOUNDS.find(s => s.id === soundType);
+        soundPath = sound?.path || AVAILABLE_SOUNDS[0].path;
+    }
+
+    // Try to play the selected sound, fall back to chime on failure
+    try {
+        await playNotificationSound(soundPath, volume);
+    } catch (err) {
+        console.warn('[NotificationSound] Selected sound failed, falling back to chime:', err);
+        playNotificationChime(volume * 0.8); // Slightly lower volume for fallback
+    }
+}
+
+/**
+ * Plays a notification sound from an MP3 file.
+ * @param src - Path to the sound file (e.g., '/sounds/notification.mp3')
+ * @param volume - Volume level 0.0 to 1.0 (default 0.7)
+ * @returns Promise that resolves when sound starts playing, rejects on error
+ */
+export function playNotificationSound(src: string, volume = 0.7): Promise<void> {
+    return new Promise((resolve, reject) => {
+        try {
+            if (typeof window === 'undefined') {
+                reject(new Error('Not in browser environment'));
+                return;
+            }
+
+            const audio = new Audio(src);
+            audio.volume = volume;
+
+            // Unlock audio context if needed
+            const ctx = getAudioContext();
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(() => {
+                    // Silent fail - audio not unlocked yet
+                });
+            }
+
+            audio.addEventListener('canplaythrough', () => {
+                audio.play()
+                    .then(() => {
+                        console.log('[NotificationSound] Playing sound:', src);
+                        resolve();
+                    })
+                    .catch((err) => {
+                        console.warn('[NotificationSound] Failed to play sound:', err);
+                        reject(err);
+                    });
+            }, { once: true });
+
+            audio.addEventListener('error', (err) => {
+                console.warn('[NotificationSound] Error loading sound:', src, err);
+                reject(new Error('Failed to load sound'));
+            }, { once: true });
+
+            // Timeout if sound doesn't load
+            setTimeout(() => {
+                reject(new Error('Sound load timeout'));
+            }, 3000);
+
+            audio.load();
+        } catch (err) {
+            console.warn('[NotificationSound] Could not play sound:', err);
+            reject(err);
+        }
+    });
 }
 
 /**
@@ -20,8 +146,12 @@ export function playNotificationChime(volume = 0.55): void {
 
         const ctx = getAudioContext();
 
+        // Try to resume if suspended (may fail without user gesture, but we try)
         if (ctx.state === 'suspended') {
-            ctx.resume();
+            ctx.resume().catch(() => {
+                // Silent fail - audio not unlocked yet
+            });
+            return; // Don't play if still suspended
         }
 
         // Luxury salon chime: C5 → E5 → G5 (major chord ascent)
