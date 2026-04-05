@@ -4,6 +4,7 @@
 	import { showToast } from '$lib/stores/toast';
 	import { UserCircle, Bell, LogOut, ChevronRight, Database } from 'lucide-svelte';
 	import { migrateServices } from '$lib/migrateServices';
+	import { onMount } from 'svelte';
 
 	let userName = $derived($adminUser?.displayName || 'Admin User');
 	let userEmail = $derived($adminUser?.email || '');
@@ -43,58 +44,20 @@
 		showToast(`${feature} — coming soon!`, 'success');
 	}
 
-	// Notifications
+	// Notifications - new granular preferences
 	import {
 		requestNotificationPermission,
 		disableNotifications,
 		notificationStatus,
 		checkNotificationStatus,
-		soundEnabled
-	} from '$lib/stores/staffNotifications';
-	import { onMount } from 'svelte';
-	import { doc, updateDoc, getDoc } from 'firebase/firestore';
-	import { db } from '$lib/firebase';
+		adminNotificationPrefs
+	} from '$lib/stores/adminNotificationPreferences';
 
 	onMount(async () => {
 		checkNotificationStatus();
-
-		// Load notification preferences from Firestore
-		// ($adminUser is a Firebase Auth User — notificationPreferences lives in Firestore, not on the Auth object)
-		if ($adminUser) {
-			try {
-				const snap = await getDoc(doc(db, 'users', $adminUser.uid));
-				if (snap.exists()) {
-					const prefs = snap.data()?.notificationPreferences;
-					if (prefs) {
-						prefNewBookings = prefs.newBookings !== false;
-						prefNewSignups = prefs.newSignups !== false;
-					}
-				}
-			} catch (e) {
-				console.warn('[AdminSettings] Failed to load notification preferences:', e);
-			}
-		}
 	});
 
 	let showDeniedModal = $state(false);
-	let prefNewBookings = $state(true);
-	let prefNewSignups = $state(true);
-
-	async function updatePreference(type: 'newBookings' | 'newSignups', value: boolean) {
-		if (!$adminUser) return;
-		try {
-			await updateDoc(doc(db, 'users', $adminUser.uid), {
-				[`notificationPreferences.${type}`]: value
-			});
-			showToast('Preferences updated', 'success');
-		} catch (e) {
-			console.error('Failed to update preference:', e);
-			showToast('Failed to save preference', 'error');
-			// Revert toggle visually on error
-			if (type === 'newBookings') prefNewBookings = !value;
-			if (type === 'newSignups') prefNewSignups = !value;
-		}
-	}
 
 	async function toggleNotifications() {
 		if ($notificationStatus === 'denied') {
@@ -201,58 +164,111 @@
 			<h4
 				style="font-size: 13px; color: var(--admin-text-secondary); margin: 0 0 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;"
 			>
-				Preferences
+				Order Notifications
 			</h4>
 
 			<div class="admin-settings-subitem">
-				<div style="display: flex; flex-direction: column;">
-					<span style="font-size: 15px; font-weight: 500;">📅 New Bookings</span>
-				</div>
-				<div
+				<span style="font-size: 15px; font-weight: 500;">📅 New Bookings</span>
+				<button
 					class="sub-toggle-switch"
-					class:on={prefNewBookings}
-					role="button"
-					tabindex="0"
+					class:on={$adminNotificationPrefs.newBookings}
 					onclick={() => {
-						prefNewBookings = !prefNewBookings;
-						updatePreference('newBookings', prefNewBookings);
-					}}
-					onkeydown={(e) => {
-						if (e.key === 'Enter') {
-							prefNewBookings = !prefNewBookings;
-							updatePreference('newBookings', prefNewBookings);
-						}
+						adminNotificationPrefs.toggle('newBookings');
+						showToast($adminNotificationPrefs.newBookings ? 'New bookings enabled' : 'New bookings disabled', 'success');
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
-				</div>
+				</button>
 			</div>
 
-			<div
-				class="admin-settings-subitem"
-				style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;"
-			>
-				<div style="display: flex; flex-direction: column;">
-					<span style="font-size: 15px; font-weight: 500;">👤 New Signups</span>
-				</div>
-				<div
+			<div class="admin-settings-subitem">
+				<span style="font-size: 15px; font-weight: 500;">&#x1F6B6; Walk-in Orders</span>
+				<button
 					class="sub-toggle-switch"
-					class:on={prefNewSignups}
-					role="button"
-					tabindex="0"
+					class:on={$adminNotificationPrefs.walkInOrders}
 					onclick={() => {
-						prefNewSignups = !prefNewSignups;
-						updatePreference('newSignups', prefNewSignups);
-					}}
-					onkeydown={(e) => {
-						if (e.key === 'Enter') {
-							prefNewSignups = !prefNewSignups;
-							updatePreference('newSignups', prefNewSignups);
-						}
+						adminNotificationPrefs.toggle('walkInOrders');
+						showToast($adminNotificationPrefs.walkInOrders ? 'Walk-in orders enabled' : 'Walk-in orders disabled', 'success');
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
-				</div>
+				</button>
+			</div>
+
+			<div class="admin-settings-subitem">
+				<span style="font-size: 15px; font-weight: 500;">🔄 Status Changes</span>
+				<button
+					class="sub-toggle-switch"
+					class:on={$adminNotificationPrefs.statusChanges}
+					onclick={() => {
+						adminNotificationPrefs.toggle('statusChanges');
+						showToast($adminNotificationPrefs.statusChanges ? 'Status changes enabled' : 'Status changes disabled', 'success');
+					}}
+				>
+					<div class="sub-toggle-thumb"></div>
+				</button>
+			</div>
+
+			<div class="admin-settings-subitem">
+				<span style="font-size: 15px; font-weight: 500;">✅ Completed</span>
+				<button
+					class="sub-toggle-switch"
+					class:on={$adminNotificationPrefs.completedBookings}
+					onclick={() => {
+						adminNotificationPrefs.toggle('completedBookings');
+						showToast($adminNotificationPrefs.completedBookings ? 'Completed bookings enabled' : 'Completed bookings disabled', 'success');
+					}}
+				>
+					<div class="sub-toggle-thumb"></div>
+				</button>
+			</div>
+
+			<div class="admin-settings-subitem">
+				<span style="font-size: 15px; font-weight: 500;">❌ Cancelled</span>
+				<button
+					class="sub-toggle-switch"
+					class:on={$adminNotificationPrefs.cancelledBookings}
+					onclick={() => {
+						adminNotificationPrefs.toggle('cancelledBookings');
+						showToast($adminNotificationPrefs.cancelledBookings ? 'Cancelled bookings enabled' : 'Cancelled bookings disabled', 'success');
+					}}
+				>
+					<div class="sub-toggle-thumb"></div>
+				</button>
+			</div>
+
+			<div class="admin-settings-subitem">
+				<span style="font-size: 15px; font-weight: 500;">&#x1F4B0; Payments</span>
+				<button
+					class="sub-toggle-switch"
+					class:on={$adminNotificationPrefs.paymentReceived}
+					onclick={() => {
+						adminNotificationPrefs.toggle('paymentReceived');
+						showToast($adminNotificationPrefs.paymentReceived ? 'Payment notifications enabled' : 'Payment notifications disabled', 'success');
+					}}
+				>
+					<div class="sub-toggle-thumb"></div>
+				</button>
+			</div>
+
+			<h4
+				style="font-size: 13px; color: var(--admin-text-secondary); margin: 16px 0 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;"
+			>
+				User Notifications
+			</h4>
+
+			<div class="admin-settings-subitem">
+				<span style="font-size: 15px; font-weight: 500;">👤 New User Signups</span>
+				<button
+					class="sub-toggle-switch"
+					class:on={$adminNotificationPrefs.newUsers}
+					onclick={() => {
+						adminNotificationPrefs.toggle('newUsers');
+						showToast($adminNotificationPrefs.newUsers ? 'New user notifications enabled' : 'New user notifications disabled', 'success');
+					}}
+				>
+					<div class="sub-toggle-thumb"></div>
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -262,21 +278,26 @@
 		role="button"
 		tabindex="0"
 		onclick={() => {
-			soundEnabled.toggle();
-			showToast($soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
+			adminNotificationPrefs.toggle('soundEnabled');
+			showToast($adminNotificationPrefs.soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
 		}}
-		onkeydown={(e) => e.key === 'Enter' && soundEnabled.toggle()}
+		onkeydown={(e) => {
+			if (e.key === 'Enter') {
+				adminNotificationPrefs.toggle('soundEnabled');
+				showToast($adminNotificationPrefs.soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
+			}
+		}}
 	>
 		<div class="admin-settings-item-left">
-			<span style="font-size: 20px;">{$soundEnabled ? '🔊' : '🔇'}</span>
+			<span style="font-size: 20px;">{$adminNotificationPrefs.soundEnabled ? '🔊' : '🔇'}</span>
 			<div style="display: flex; flex-direction: column;">
 				<span style="font-size: 16px; font-weight: 500;">Sound Effects</span>
 				<span style="font-size: 12px; color: var(--admin-text-secondary);">
-					{$soundEnabled ? 'On' : 'Off'}
+					{$adminNotificationPrefs.soundEnabled ? 'On' : 'Off'}
 				</span>
 			</div>
 		</div>
-		<div class="toggle-switch" class:on={$soundEnabled}>
+		<div class="toggle-switch" class:on={$adminNotificationPrefs.soundEnabled}>
 			<div class="toggle-thumb"></div>
 		</div>
 	</div>
@@ -422,6 +443,7 @@
 		height: 20px;
 		border-radius: 20px;
 		background: #cbd5e1;
+		border: none;
 		position: relative;
 		cursor: pointer;
 		transition: background 0.3s ease;

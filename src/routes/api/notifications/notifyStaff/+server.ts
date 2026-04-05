@@ -2,6 +2,24 @@ import { json } from '@sveltejs/kit';
 import { adminAuth, adminDb } from '$lib/server/firebaseAdmin';
 import admin from 'firebase-admin';
 
+// Notification type mapping for admin granular preferences
+const ADMIN_PREF_MAPPING: Record<string, string> = {
+    'newBookings': 'newBookings',
+    'new_booking': 'newBookings',
+    'walk_in_order': 'walkInOrders',
+    'walkInOrders': 'walkInOrders',
+    'status_change': 'statusChanges',
+    'statusChanges': 'statusChanges',
+    'cancelled': 'cancelledBookings',
+    'cancelledBookings': 'cancelledBookings',
+    'completed': 'completedBookings',
+    'completedBookings': 'completedBookings',
+    'new_user': 'newUsers',
+    'newUsers': 'newUsers',
+    'payment_received': 'paymentReceived',
+    'paymentReceived': 'paymentReceived'
+};
+
 export async function POST({ request }) {
     try {
         // Authenticate the request since it comes from client side when a booking is created
@@ -42,6 +60,14 @@ export async function POST({ request }) {
                 if (notificationType && data.notificationPreferences) {
                     if (data.notificationPreferences[notificationType] === false) {
                         return; // Skip this user
+                    }
+                }
+
+                // For admin role, also check granular admin notification preferences
+                if (role === 'admin' && data.adminNotificationPreferences) {
+                    const adminPrefKey = ADMIN_PREF_MAPPING[notificationType];
+                    if (adminPrefKey && data.adminNotificationPreferences[adminPrefKey] === false) {
+                        return; // Skip this admin user
                     }
                 }
 

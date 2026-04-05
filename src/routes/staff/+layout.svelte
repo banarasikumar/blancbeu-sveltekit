@@ -14,6 +14,7 @@
 	} from '$lib/stores/staffData';
 	import { initTheme, destroyTheme, resolvedTheme } from '$lib/stores/staffTheme';
 	import { soundEnabled, selectedSoundType, customSoundPath, AVAILABLE_SOUNDS } from '$lib/stores/staffNotifications';
+	import { notifications } from '$lib/stores/staffNotificationsList';
 	import { playNotificationChime, playNotificationSound, playSelectedNotificationSound } from '$lib/utils/notificationSound';
 	import StaffNav from '$lib/components/staff/StaffNav.svelte';
 	import StaffHeader from '$lib/components/staff/StaffHeader.svelte';
@@ -34,11 +35,13 @@
 				? 'Schedule'
 				: page.url.pathname.includes('bookings')
 					? 'Bookings'
-					: page.url.pathname.includes('settings')
-						? 'Settings'
-						: page.url.pathname.includes('profile')
-							? 'Profile'
-							: 'Blancbeu Stylist'
+					: page.url.pathname.includes('notifications')
+						? 'Notifications'
+						: page.url.pathname.includes('settings')
+							? 'Settings'
+							: page.url.pathname.includes('profile')
+								? 'Profile'
+								: 'Blancbeu Stylist'
 	);
 
 	let isNavVisible = $derived(
@@ -85,6 +88,13 @@
 							playSelectedNotificationSound(0.7);
 							// Show in-app toast (body included if available)
 							showToast(body ? `${title}: ${body}` : title, 'success');
+							// Add to notifications list
+							notifications.add({
+								type: 'booking',
+								title,
+								message: body,
+								data: payload.data
+							});
 						});
 					});
 				});
@@ -134,7 +144,7 @@
 	{:else if $staffAuthState === 'authorized'}
 		<div class="staff-layout">
 			<div class="staff-header-container">
-				<StaffHeader title={currentTitle} notificationCount={pendingCount} />
+				<StaffHeader title={currentTitle} />
 			</div>
 
 			<main class="staff-main {!isNavVisible ? 'no-nav' : ''}">

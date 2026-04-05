@@ -16,6 +16,7 @@ import { db } from '$lib/firebase';
 import type { Booking, Service, AppUser } from './adminData'; // Reuse types
 import { get } from 'svelte/store';
 import { soundEnabled } from './staffNotifications';
+import { notifications } from './staffNotificationsList';
 import { playNotificationChime, playSelectedNotificationSound } from '$lib/utils/notificationSound';
 import { showToast } from './toast';
 
@@ -114,6 +115,18 @@ export function initStaffDataListener() {
 					newPendingBookings.forEach(booking => {
 						const customerName = booking.customerName || booking.userName || 'New customer';
 						showToast(`New booking from ${customerName}!`, 'success');
+						
+						// Add to notifications list
+						notifications.addBookingNotification({
+							id: booking.id,
+							userName: booking.userName,
+							userPhone: booking.userPhone,
+							date: booking.date,
+							time: booking.time,
+							serviceName: booking.serviceName,
+							totalAmount: booking.totalAmount,
+							status: booking.status
+						});
 					});
 				}
 			}

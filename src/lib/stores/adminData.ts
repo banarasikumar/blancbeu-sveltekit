@@ -1,6 +1,11 @@
 import { writable, derived } from 'svelte/store';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { db } from '$lib/firebase';
+import { adminNotifications } from './adminNotificationsList';
+import { adminNotificationPrefs } from './adminNotificationPreferences';
+import { get } from 'svelte/store';
+import { showToast } from './toast';
+import { playNotificationSound } from '$lib/utils/notificationSound';
 
 // --- Types ---
 export interface Booking {
@@ -81,6 +86,25 @@ let bookingsUnsub: (() => void) | null = null;
 let usersUnsub: (() => void) | null = null;
 let servicesUnsub: (() => void) | null = null;
 
+// Track previous bookings to detect changes
+let previousBookings: Map<string, Booking> = new Map();
+let previousUserCount = 0;
+
+// Helper to play notification sound
+async function playAdminNotification() {
+	const prefs = get(adminNotificationPrefs);
+	if (!prefs.soundEnabled) return;
+	
+	try {
+		const soundPath = prefs.selectedSoundType === 'custom' 
+			? prefs.customSoundPath 
+			: '/sounds/chime.mp3';
+		await playNotificationSound(soundPath, 0.6);
+	} catch (err) {
+		console.warn('[AdminNotification] Failed to play sound:', err);
+	}
+}
+
 export function initBookingListener() {
 	if (bookingsUnsub) return;
 	console.log('[AdminData] Starting booking listener');
@@ -93,6 +117,70 @@ export function initBookingListener() {
 				id: d.id,
 				...d.data()
 			})) as Booking[];
+			
+			const prefs = get(adminNotificationPrefs);
+			const newBookingsMap = new Map(bookings.map(b => [b.id, b]));
+			
+			// Check for new bookings and status changes
+			for (const booking of bookings) {
+				const prevBooking = previousBookings.get(booking.id);
+				
+				if (!prevBooking) {
+					// This is a new booking
+					const isWalkIn = booking.accountType === 'walkin' || booking.createdBy?.startsWith('staff_');
+					
+					if ((isWalkIn && prefs.walkInOrders) || (!isWalkIn && prefs.newBookings)) {
+						adminNotifications.addNewBookingNotification({
+							id: booking.id,
+							userName: booking.userName,
+							userPhone: booking.userPhone,
+							date: booking.date,
+							time: booking.time,
+							serviceName: booking.serviceName || booking.services,
+							totalAmount: booking.totalAmount,
+							status: booking.status,
+							source: isWalkIn ? 'staff_walkin' : 'user'
+						});
+						
+						// Show toast and play sound
+						const title = isWalkIn ? '🚶 Walk-in Order' : '📅 New Booking';
+						showToast(
+							`${title}: ${booking.userName || 'Guest'} - ${booking.serviceName || 'Service'}`,
+							'success'
+						);
+						playAdminNotification();
+					}
+				} else if (prevBooking.status !== booking.status) {
+					// Status changed
+					const shouldNotify = 
+						(prefs.statusChanges && booking.status !== 'cancelled' && booking.status !== 'completed') ||
+						(prefs.cancelledBookings && booking.status === 'cancelled') ||
+						(prefs.completedBookings && booking.status === 'completed');
+					
+					if (shouldNotify) {
+						adminNotifications.addStatusChangeNotification({
+							id: booking.id,
+							userName: booking.userName,
+							status: booking.status,
+							previousStatus: prevBooking.status,
+							date: booking.date,
+							time: booking.time,
+							serviceName: booking.serviceName || booking.services,
+							totalAmount: booking.totalAmount
+						});
+						
+						showToast(
+							`Status: ${booking.userName || 'Guest'} → ${booking.status}`,
+							booking.status === 'completed' ? 'success' : 
+							booking.status === 'cancelled' ? 'error' : 'info'
+						);
+						playAdminNotification();
+					}
+				}
+			}
+			
+			// Update previous bookings reference
+			previousBookings = newBookingsMap;
 			allBookings.set(bookings);
 		},
 		(error) => {
@@ -113,6 +201,43 @@ export function initUserListener() {
 				id: d.id,
 				...d.data()
 			})) as AppUser[];
+			
+			// Check for new users
+			if (previousUserCount > 0 && users.length > previousUserCount) {
+				const prefs = get(adminNotificationPrefs);
+				if (prefs.newUsers) {
+					// Find the new user(s)
+					const currentIds = new Set(users.map(u => u.id));
+					// Get the most recent user (last in array since we don't track by ID)
+					const newUser = users[users.length - 1];
+					
+					if (newUser && newUser.createdAt) {
+						const userCreatedTime = newUser.createdAt?.seconds 
+							? newUser.createdAt.seconds * 1000 
+							: new Date(newUser.createdAt).getTime();
+						const timeSinceCreated = Date.now() - userCreatedTime;
+						
+						// Only notify if user was created in the last 30 seconds
+						if (timeSinceCreated < 30000) {
+							adminNotifications.addNewUserNotification({
+								id: newUser.id,
+								name: getUserDisplayName(newUser),
+								phone: getUserPhone(newUser),
+								email: newUser.email,
+								signupMethod: newUser.providerId as any || 'phone'
+							});
+							
+							showToast(
+								`👤 New User: ${getUserDisplayName(newUser)}`,
+								'success'
+							);
+							playAdminNotification();
+						}
+					}
+				}
+			}
+			
+			previousUserCount = users.length;
 			allUsers.set(users);
 		},
 		(error) => {

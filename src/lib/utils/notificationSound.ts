@@ -44,29 +44,34 @@ if (typeof window !== 'undefined') {
 }
 
 import { selectedSoundType, customSoundPath, soundEnabled, type SoundType, AVAILABLE_SOUNDS } from '$lib/stores/staffNotifications';
+import { selectedSoundType as adminSelectedSoundType, customSoundPath as adminCustomSoundPath, soundEnabled as adminSoundEnabled, type SoundType as AdminSoundType, AVAILABLE_SOUNDS as ADMIN_AVAILABLE_SOUNDS } from '$lib/stores/adminNotifications';
 import { get } from 'svelte/store';
 
 /**
- * Plays the user's selected notification sound with automatic fallback.
- * Uses the sound type from settings, falls back to chime if sound fails.
- * Respects the soundEnabled setting.
- * @param volume - Volume level 0.0 to 1.0 (default 0.7)
+ * Generic function to play selected notification sound for any app
  */
-export async function playSelectedNotificationSound(volume = 0.7): Promise<void> {
+export async function playAppNotificationSound(
+    soundEnabledStore: { subscribe: any },
+    selectedSoundTypeStore: { subscribe: any },
+    customSoundPathStore: { subscribe: any },
+    availableSounds: Array<{ id: string; path: string }>,
+    volume = 0.7
+): Promise<void> {
     // Check if sound is enabled
-    if (!get(soundEnabled)) {
+    const enabled = get(soundEnabledStore);
+    if (!enabled) {
         return;
     }
 
-    const soundType = get(selectedSoundType);
+    const soundType = get(selectedSoundTypeStore);
     let soundPath: string;
 
     if (soundType === 'custom') {
-        const customPath = get(customSoundPath);
-        soundPath = customPath || AVAILABLE_SOUNDS[0].path;
+        const customPath = get(customSoundPathStore);
+        soundPath = customPath || availableSounds[0].path;
     } else {
-        const sound = AVAILABLE_SOUNDS.find(s => s.id === soundType);
-        soundPath = sound?.path || AVAILABLE_SOUNDS[0].path;
+        const sound = availableSounds.find(s => s.id === soundType);
+        soundPath = sound?.path || availableSounds[0].path;
     }
 
     // Try to play the selected sound, fall back to chime on failure
@@ -74,8 +79,34 @@ export async function playSelectedNotificationSound(volume = 0.7): Promise<void>
         await playNotificationSound(soundPath, volume);
     } catch (err) {
         console.warn('[NotificationSound] Selected sound failed, falling back to chime:', err);
-        playNotificationChime(volume * 0.8); // Slightly lower volume for fallback
+        playNotificationChime(volume * 0.8);
     }
+}
+
+/**
+ * Plays the staff app's selected notification sound
+ */
+export async function playSelectedNotificationSound(volume = 0.7): Promise<void> {
+    return playAppNotificationSound(
+        soundEnabled,
+        selectedSoundType,
+        customSoundPath,
+        AVAILABLE_SOUNDS,
+        volume
+    );
+}
+
+/**
+ * Plays the admin app's selected notification sound
+ */
+export async function playAdminNotificationSound(volume = 0.7): Promise<void> {
+    return playAppNotificationSound(
+        adminSoundEnabled,
+        adminSelectedSoundType,
+        adminCustomSoundPath,
+        ADMIN_AVAILABLE_SOUNDS,
+        volume
+    );
 }
 
 /**

@@ -83,6 +83,24 @@
 	let modalMode = $state('create');
 	let selectedBooking = $state<any>(null);
 
+	// Auto-open booking from URL query param
+	let urlBookingId = $derived(page.url.searchParams.get('bookingId'));
+	
+	$effect(() => {
+		if (urlBookingId && $staffBookings.length > 0) {
+			const booking = $staffBookings.find(b => b.id === urlBookingId);
+			if (booking) {
+				selectedBooking = booking;
+				modalMode = 'edit';
+				isModalOpen = true;
+				// Clean up URL after opening
+				const url = new URL(page.url);
+				url.searchParams.delete('bookingId');
+				goto(url, { replaceState: true, keepFocus: true });
+			}
+		}
+	});
+
 	// Client drawer
 	let isDrawerOpen = $state(false);
 	let drawerUserId = $state('');

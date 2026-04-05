@@ -3,6 +3,7 @@
 	import { isOnline } from '$lib/stores/networkStatus';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
+	import { unreadCount } from '$lib/stores/staffNotificationsList';
 
 	let {
 		title = 'Blancbeu Stylist',
@@ -60,7 +61,7 @@
 			{#if showNotifications}
 				<button
 					class="header-icon-btn s-touch-target"
-					onclick={() => goto('/staff/bookings?filter=pending')}
+					onclick={() => goto('/staff/notifications')}
 					aria-label="Notifications"
 				>
 					<svg
@@ -76,10 +77,8 @@
 						<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
 						<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
 					</svg>
-					{#if notificationCount > 0}
-						<span class="notification-badge"
-							>{notificationCount > 9 ? '9+' : notificationCount}</span
-						>
+					{#if $unreadCount > 0}
+						<span class="notification-badge">{$unreadCount > 9 ? '9+' : $unreadCount}</span>
 					{/if}
 				</button>
 			{/if}
