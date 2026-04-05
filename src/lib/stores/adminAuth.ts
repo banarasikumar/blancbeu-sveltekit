@@ -23,68 +23,61 @@ export const isAdmin = derived(adminAuthState, ($state) => $state === 'authorize
 
 let unsubscribeAuth: (() => void) | null = null;
 
+// Timeout wrapper for promises
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+	return Promise.race([
+		promise,
+		new Promise<T>((_, reject) => 
+			setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs)
+		)
+	]);
+}
+
 /**
  * Verify if a user has admin role in Firestore
  */
 async function verifyAdminRole(uid: string, email: string | null): Promise<boolean> {
+	console.log('[AdminAuth] Starting admin role verification for:', email || uid);
+	
+	// Extract phone from uid if user logged in via WhatsApp
+	const phone = uid.startsWith('wa:') ? uid.replace('wa:', '') : null;
+
+	// Fast path: grant access immediately if email/phone is in the super admin list.
+	// Firestore promotion runs in the background so a DB error never blocks login.
+	if (email && SUPER_ADMINS.includes(email)) {
+		const docRef = doc(db, 'users', uid);
+		setDoc(docRef, { email, role: 'admin' }, { merge: true }).catch((e) =>
+			console.error('[AdminAuth] Background admin promotion failed:', e)
+		);
+		console.log('[AdminAuth] Super admin email match - access granted');
+		return true;
+	}
+
+	if (phone && SUPER_ADMIN_PHONES.includes(phone)) {
+		const docRef = doc(db, 'users', uid);
+		setDoc(docRef, { phone, role: 'admin' }, { merge: true }).catch((e) =>
+			console.error('[AdminAuth] Background admin promotion failed:', e)
+		);
+		console.log('[AdminAuth] Super admin phone match - access granted');
+		return true;
+	}
+
+	// Check existing role in Firestore (for non-super-admins)
 	try {
 		const docRef = doc(db, 'users', uid);
-		const docSnap = await getDoc(docRef);
-
-		// Extract phone from uid if user logged in via WhatsApp
-		// Magic link users have uids like: "wa:+919229915277"
-		let phone = null;
-		if (uid.startsWith('wa:')) {
-			phone = uid.replace('wa:', '');
-		}
+		const docSnap = await withTimeout(getDoc(docRef), 10000, 'Firestore getDoc');
 
 		if (docSnap.exists()) {
 			const data = docSnap.data();
-			if (data.role === 'admin') return true;
-
-			// Super admin auto-promotion by email
-			if (email && SUPER_ADMINS.includes(email)) {
-				await setDoc(docRef, { role: 'admin' }, { merge: true });
-				return true;
-			}
-
-			// Super admin auto-promotion by phone
-			if (phone && SUPER_ADMIN_PHONES.includes(phone)) {
-				await setDoc(docRef, { role: 'admin' }, { merge: true });
-				return true;
-			}
-		} else {
-			// User doc doesn't exist — check super admin by email
-			if (email && SUPER_ADMINS.includes(email)) {
-				await setDoc(
-					docRef,
-					{
-						email,
-						role: 'admin',
-						createdAt: new Date().toISOString()
-					},
-					{ merge: true }
-				);
-				return true;
-			}
-
-			// User doc doesn't exist — check super admin by phone
-			if (phone && SUPER_ADMIN_PHONES.includes(phone)) {
-				await setDoc(
-					docRef,
-					{
-						phone,
-						role: 'admin',
-						createdAt: new Date().toISOString()
-					},
-					{ merge: true }
-				);
+			if (data.role === 'admin') {
+				console.log('[AdminAuth] User has admin role in DB - access granted');
 				return true;
 			}
 		}
+		console.log('[AdminAuth] No admin role found - access denied');
 		return false;
-	} catch (e) {
-		console.error('[AdminAuth] Error verifying admin role:', e);
+	} catch (e: any) {
+		console.error('[AdminAuth] Error checking admin role:', e.message);
 		return false;
 	}
 }
@@ -92,10 +85,20 @@ async function verifyAdminRole(uid: string, email: string | null): Promise<boole
 /**
  * Initialize admin auth listener
  */
-export function initAdminAuth() {
+export async function initAdminAuth() {
 	if (unsubscribeAuth) return; // Already initialized
 
-	unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+	console.log('[AdminAuth] Initializing auth listener...');
+	const initStartTime = performance.now();
+
+	// Use authStateReady() for faster initialization (Firebase 9.22+)
+	// This resolves immediately when auth state is known
+	try {
+		await withTimeout((auth as any).authStateReady(), 15000, 'Auth state ready');
+		const user = auth.currentUser;
+		const timeToReady = (performance.now() - initStartTime).toFixed(2);
+		console.log(`[AdminAuth] Auth state ready after ${timeToReady}ms, user:`, user?.email || user?.uid || 'null');
+		
 		if (user) {
 			adminUser.set(user);
 			adminAuthState.set('checking');
@@ -105,7 +108,31 @@ export function initAdminAuth() {
 				adminAuthState.set('authorized');
 			} else {
 				adminAuthState.set('denied');
-				// Sign out non-admin users
+				await signOut(auth);
+				adminUser.set(null);
+			}
+		} else {
+			adminUser.set(null);
+			adminAuthState.set('unauthenticated');
+		}
+	} catch (timeoutError) {
+		console.error('[AdminAuth] Auth initialization timeout:', timeoutError);
+		adminAuthState.set('unauthenticated');
+	}
+
+	// Set up listener for future auth state changes
+	unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+		console.log('[AdminAuth] Auth state changed, user:', user?.email || user?.uid || 'null');
+		
+		if (user) {
+			adminUser.set(user);
+			adminAuthState.set('checking');
+
+			const hasAccess = await verifyAdminRole(user.uid, user.email);
+			if (hasAccess) {
+				adminAuthState.set('authorized');
+			} else {
+				adminAuthState.set('denied');
 				await signOut(auth);
 				adminUser.set(null);
 			}

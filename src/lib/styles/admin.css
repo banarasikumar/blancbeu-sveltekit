@@ -1520,6 +1520,26 @@
 }
 
 /* --- Processing Overlay --- */
+.admin-loading {
+	position: fixed;
+	inset: 0;
+	background: var(--admin-bg);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	z-index: 1000;
+}
+
+.admin-spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid var(--admin-border);
+	border-top-color: var(--admin-accent);
+	border-radius: 50%;
+	animation: adminSpin 0.8s linear infinite;
+}
+
 .admin-processing-overlay {
 	position: absolute;
 	inset: 0;

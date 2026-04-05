@@ -56,7 +56,11 @@
 	let unsubFcm: (() => void) | null = null;
 
 	onMount(() => {
-		initAdminAuth();
+		// Initialize auth - this is async but we don't need to await it
+		// The auth state subscription will handle UI updates
+		initAdminAuth().catch((err) => {
+			console.error('[AdminLayout] Failed to initialize auth:', err);
+		});
 
 		// Foreground FCM handler — fires when admin app is open
 		import('firebase/messaging').then(({ onMessage, isSupported }) => {
@@ -164,8 +168,11 @@
 
 <div class="admin-app">
 	{#if $adminAuthState === 'loading' || $adminAuthState === 'checking'}
-		<!-- Global SplashScreen component handles this initial load visually -->
-		<div style="display: none;"></div>
+		<!-- Show loading spinner during auth initialization -->
+		<div class="admin-loading">
+			<div class="admin-spinner"></div>
+			<p style="margin-top: 16px; color: var(--color-text-secondary);">Loading...</p>
+		</div>
 	{:else if isLoginPage}
 		{@render children()}
 	{:else if $adminAuthState === 'authorized'}
