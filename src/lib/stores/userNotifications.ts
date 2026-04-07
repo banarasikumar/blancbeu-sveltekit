@@ -25,8 +25,12 @@ export async function requestUserNotificationPermission(userId: string): Promise
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') return false;
 
+        // Use the existing VitePWA service worker (which now includes Firebase
+        // messaging via importScripts) so there is only one active SW.
+        const swRegistration = await navigator.serviceWorker.ready;
         const token = await getToken(msgInstance, {
-            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+            serviceWorkerRegistration: swRegistration
         });
 
         if (token) {

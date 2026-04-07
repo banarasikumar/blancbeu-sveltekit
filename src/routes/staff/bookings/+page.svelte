@@ -224,7 +224,10 @@
 			if (!groups[key]) groups[key] = [];
 			groups[key].push(b);
 		});
-		return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])); // chronological for upcoming
+		if (activeFilter === 'upcoming') {
+			return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])); // chronological for upcoming
+		}
+		return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0])); // newest-first for all other filters
 	});
 
 	let pendingBadge = $derived($staffBookings.filter((b) => b.status === 'pending').length);

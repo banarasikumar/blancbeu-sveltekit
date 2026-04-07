@@ -12,11 +12,16 @@ export default defineConfig({
 			registerType: 'autoUpdate',
 			injectRegister: 'auto',
 			workbox: {
-				cacheId: 'blancbeu-0.0.3',
+				cacheId: 'blancbeu-0.0.4',
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif}'],
 				cleanupOutdatedCaches: true,
 				skipWaiting: true,
-				clientsClaim: true
+				clientsClaim: true,
+				importScripts: [
+					'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
+					'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js',
+					'/firebase-messaging-handler.js'
+				]
 			},
 			manifest: false // Multi-scope: Manifests are handled manually in static/
 		})
