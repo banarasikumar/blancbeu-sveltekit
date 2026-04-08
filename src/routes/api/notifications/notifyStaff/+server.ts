@@ -82,7 +82,9 @@ export async function POST({ request }) {
         }
 
         const totalDevices = Object.values(roleTokenMap).reduce((s, t) => s + t.length, 0);
+        console.log('[Push] Devices to notify:', totalDevices, '| Roles:', Object.keys(roleTokenMap).join(', '));
         if (totalDevices === 0) {
+            console.warn('[Push] No devices found — are FCM tokens saved in Firestore?');
             return json({ success: true, message: 'No devices to notify' });
         }
 
@@ -105,12 +107,16 @@ export async function POST({ request }) {
             };
 
             const response = await admin.messaging().sendEachForMulticast(message);
+            console.log(`[Push] Role=${role}: sent=${response.successCount}, failed=${response.failureCount}`);
             totalSent += response.successCount;
             totalFailed += response.failureCount;
 
             if (response.failureCount > 0) {
                 response.responses.forEach((resp, idx) => {
-                    if (!resp.success) allFailedTokens.push(tokens[idx]);
+                    if (!resp.success) {
+                        console.warn(`[Push] Token failed [${role}]:`, resp.error?.code, resp.error?.message);
+                        allFailedTokens.push(tokens[idx]);
+                    }
                 });
             }
         }

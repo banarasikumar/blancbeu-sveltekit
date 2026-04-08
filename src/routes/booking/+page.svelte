@@ -505,7 +505,7 @@
 				if (auth.currentUser) {
 					const idToken = await auth.currentUser.getIdToken();
 					const serviceNames = $cart.map((s) => s.name).join(', ');
-					await fetch('/api/notifications/notifyStaff', {
+					const notifyRes = await fetch('/api/notifications/notifyStaff', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
@@ -518,6 +518,10 @@
 							notificationType: 'newBookings'
 						})
 					}).catch((err) => console.error('Failed to send notification request:', err));
+					if (notifyRes) {
+						const notifyData = await notifyRes.json();
+						console.log('[Booking] Push notification response:', notifyData);
+					}
 				}
 			} catch (notificationErr) {
 				console.error('Error triggering notification:', notificationErr);
