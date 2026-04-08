@@ -1,7 +1,7 @@
 {
     "name": "BStaff",
     "short_name": "BStaff",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "start_url": "/staff?app=staff",
     "id": "/staff/",
     "scope": "/staff",

@@ -16,18 +16,64 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Primary handler — Firebase SDK routes background pushes here
 messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message', payload);
-    const notificationTitle = payload.notification?.title || 'New Booking!';
+    console.log('[FCM-SW] onBackgroundMessage', payload);
+    const title = payload.notification?.title || 'New Booking!';
     const icon = payload.data?.icon || '/pwa-192x192.png';
-    const notificationOptions = {
+    return self.registration.showNotification(title, {
         body: payload.notification?.body || '',
         icon,
         badge: icon,
         tag: 'booking-notification',
         renotify: true,
-        vibrate: [200, 100, 200]
-    };
+        vibrate: [200, 100, 200],
+        data: payload.data || {}
+    });
+});
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
+// Fallback — catches pushes that Firebase SDK might not handle
+// (e.g. if the compat SDK hasn't fully initialised in time)
+self.addEventListener('push', (event) => {
+    // Firebase SDK sets an internal flag when it handles the push.
+    // If the notification is already shown by onBackgroundMessage, skip.
+    if (event.__handled) return;
+
+    console.log('[FCM-SW] push event fallback', event);
+    let data = {};
+    try { data = event.data?.json() || {}; } catch (e) { /* empty */ }
+
+    const title = data.notification?.title || 'New Booking!';
+    const body = data.notification?.body || '';
+    const icon = data.data?.icon || '/pwa-192x192.png';
+
+    event.waitUntil(
+        self.registration.showNotification(title, {
+            body,
+            icon,
+            badge: icon,
+            tag: 'booking-notification',
+            renotify: true,
+            vibrate: [200, 100, 200],
+            data: data.data || {}
+        })
+    );
+});
+
+// Open the staff app when the notification is tapped
+self.addEventListener('notificationclick', (event) => {
+    console.log('[FCM-SW] notificationclick', event);
+    event.notification.close();
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // Focus an existing staff tab if one is open
+            for (const client of windowClients) {
+                if (client.url.includes('/staff') && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // Otherwise open a new tab
+            return clients.openWindow('/staff/dashboard');
+        })
+    );
 });

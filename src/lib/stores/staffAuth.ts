@@ -1,4 +1,4 @@
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '$lib/firebase';
@@ -69,30 +69,49 @@ async function verifyStaffRole(uid: string, email: string | null): Promise<boole
 /**
  * Initialize staff auth listener
  */
-export function initStaffAuth() {
+export async function initStaffAuth() {
 	if (unsubscribeAuth) return; // Already initialized
 
-	// Set a timeout to fallback to unauthenticated if Firebase takes too long
-	loadingTimeout = setTimeout(() => {
-		const currentState = get(staffAuthState);
-		if (currentState === 'loading') {
-			console.warn('[StaffAuth] Auth initialization timed out, falling back to unauthenticated');
-			staffAuthState.set('unauthenticated');
-		}
-	}, 3000);
+	console.log('[StaffAuth] Initializing auth listener...');
 
 	// Handle any pending redirect sign-in result (fallback from popup-blocked)
 	getRedirectResult(auth).catch((err) => {
 		console.error('[StaffAuth] Redirect result error:', err);
 	});
 
-	unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-		// Clear the timeout since we got a response
-		if (loadingTimeout) {
-			clearTimeout(loadingTimeout);
-			loadingTimeout = null;
-		}
+	// Wait for Firebase to restore auth state from IndexedDB (up to 15 s).
+	// This avoids the old 3-second timeout that falsely logged users out on
+	// slow cold starts (especially PWAs reopened after being swiped away).
+	try {
+		await Promise.race([
+			(auth as any).authStateReady(),
+			new Promise((_, reject) => setTimeout(() => reject(new Error('Auth state ready timeout')), 15000))
+		]);
+		const restoredUser = auth.currentUser;
+		console.log('[StaffAuth] Auth state ready, user:', restoredUser?.uid || 'null');
 
+		if (restoredUser) {
+			staffUser.set(restoredUser);
+			staffAuthState.set('checking');
+			const hasAccess = await verifyStaffRole(restoredUser.uid, restoredUser.email);
+			if (hasAccess) {
+				staffAuthState.set('authorized');
+			} else {
+				staffAuthState.set('denied');
+				await signOut(auth);
+				staffUser.set(null);
+			}
+		} else {
+			staffUser.set(null);
+			staffAuthState.set('unauthenticated');
+		}
+	} catch (err) {
+		console.error('[StaffAuth] Auth initialization timeout:', err);
+		staffAuthState.set('unauthenticated');
+	}
+
+	// Set up listener for future auth state changes (login / logout)
+	unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
 		console.log('[StaffAuth] Auth state changed:', user ? user.uid : 'null');
 		if (user) {
 			staffUser.set(user);
@@ -103,8 +122,6 @@ export function initStaffAuth() {
 				staffAuthState.set('authorized');
 			} else {
 				staffAuthState.set('denied');
-				// Sign out non-staff users? Or just deny access?
-				// Let's sign out to prevent confusion
 				await signOut(auth);
 				staffUser.set(null);
 			}
