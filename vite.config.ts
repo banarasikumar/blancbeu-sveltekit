@@ -9,14 +9,13 @@ export default defineConfig({
 		sveltekit(),
 		imagetools(),
 		VitePWA({
+			strategies: 'injectManifest',
+			srcDir: 'src',
+			filename: 'sw.ts',
 			registerType: 'autoUpdate',
 			injectRegister: 'auto',
-			workbox: {
-				cacheId: 'blancbeu-0.0.6',
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif}'],
-				cleanupOutdatedCaches: true,
-				skipWaiting: true,
-				clientsClaim: true
+			injectManifest: {
+				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif,woff,woff2,ttf,mp3,json}']
 			},
 			manifest: false // Multi-scope: Manifests are handled manually in static/
 		})
