@@ -13,7 +13,7 @@
 		upcomingBookings
 	} from '$lib/stores/staffData';
 	import { initTheme, destroyTheme, resolvedTheme } from '$lib/stores/staffTheme';
-	import { soundEnabled, selectedSoundType, customSoundPath, AVAILABLE_SOUNDS } from '$lib/stores/staffNotifications';
+	import { soundEnabled, selectedSoundType, customSoundPath, AVAILABLE_SOUNDS, showListeningNotification, closeListeningNotification } from '$lib/stores/staffNotifications';
 	import { notifications } from '$lib/stores/staffNotificationsList';
 	import { playNotificationChime, playNotificationSound, playSelectedNotificationSound } from '$lib/utils/notificationSound';
 	import StaffNav from '$lib/components/staff/StaffNav.svelte';
@@ -53,39 +53,6 @@
 
 	let unsub: (() => void) | null = null;
 	let unsubFcm: (() => void) | null = null;
-
-	// ── Persistent "Listening for orders" notification ──
-	// Keeps a silent, ongoing notification in the tray so Android is less likely
-	// to kill the browser process when the app is swiped from recents.
-	async function showListeningNotification() {
-		if (!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
-		try {
-			const reg = await navigator.serviceWorker.ready;
-			const existing = await reg.getNotifications({ tag: 'staff-listening' });
-			if (existing.length > 0) return; // Already showing
-			await reg.showNotification('BStaff — Listening for orders', {
-				tag: 'staff-listening',
-				body: 'You will be notified of new bookings',
-				icon: '/staff-icon-192.png',
-				badge: '/staff-icon-192.png',
-				requireInteraction: true,
-				silent: true,
-				data: { type: 'staff-listening' }
-			});
-			console.log('[Staff] Persistent listening notification shown');
-		} catch (e) {
-			console.warn('[Staff] Could not show listening notification:', e);
-		}
-	}
-
-	async function closeListeningNotification() {
-		if (!('serviceWorker' in navigator)) return;
-		try {
-			const reg = await navigator.serviceWorker.ready;
-			const notifs = await reg.getNotifications({ tag: 'staff-listening' });
-			notifs.forEach((n: Notification) => n.close());
-		} catch (e) { /* ignore */ }
-	}
 
 	onMount(() => {
 		initTheme();

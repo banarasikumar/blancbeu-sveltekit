@@ -91,6 +91,40 @@ export type NotificationsState = 'default' | 'granted' | 'denied' | 'unsupported
 
 export const notificationStatus = writable<NotificationsState>('default');
 
+// ── Persistent "Listening for orders" notification ──
+// Keeps a silent ongoing notification in the Android tray so the OS is less
+// likely to kill the browser process when the app is swiped from recents.
+export async function showListeningNotification() {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const existing = await reg.getNotifications({ tag: 'staff-listening' });
+        if (existing.length > 0) return; // Already showing
+        await reg.showNotification('BStaff \u2014 Listening for orders', {
+            tag: 'staff-listening',
+            body: 'You will be notified of new bookings',
+            icon: '/staff-icon-192.png',
+            badge: '/staff-icon-192.png',
+            requireInteraction: true,
+            silent: true,
+            data: { type: 'staff-listening' }
+        });
+        console.log('[Notifications] Persistent listening notification shown');
+    } catch (e) {
+        console.warn('[Notifications] Could not show listening notification:', e);
+    }
+}
+
+export async function closeListeningNotification() {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const notifs = await reg.getNotifications({ tag: 'staff-listening' });
+        notifs.forEach((n: Notification) => n.close());
+    } catch (e) { /* ignore */ }
+}
+
 export function checkNotificationStatus() {
     if (!('Notification' in window)) {
         notificationStatus.set('unsupported');
@@ -137,6 +171,8 @@ export async function requestNotificationPermission(userId: string): Promise<boo
                     fcmTokens: [token],
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
+                // Now that permission is granted, show the persistent notification
+                showListeningNotification();
                 return true;
             } else {
                 console.warn('[Notifications] No registration token available.');
