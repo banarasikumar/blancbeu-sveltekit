@@ -20,7 +20,8 @@
 	import {
 		requestNotificationPermission,
 		notificationStatus,
-		checkNotificationStatus
+		checkNotificationStatus,
+		showListeningNotification
 	} from '$lib/stores/staffNotifications';
 
 	onMount(() => {
@@ -34,6 +35,10 @@
 						showToast('Push Notifications Enabled!', 'success');
 					}
 				});
+			} else if ($notificationStatus === 'granted') {
+				// Permission was already granted (e.g. returning user) — ensure
+				// the persistent listening notification is visible.
+				showListeningNotification();
 			}
 		}, 2000); // Wait 2s for dashboard to settle
 	});

@@ -96,18 +96,25 @@ export const notificationStatus = writable<NotificationsState>('default');
 // likely to kill the browser process when the app is swiped from recents.
 export async function showListeningNotification() {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-    if (Notification.permission !== 'granted') return;
+    if (Notification.permission !== 'granted') {
+        console.log('[Notifications] Skipping persistent notification — permission not granted');
+        return;
+    }
     try {
+        console.log('[Notifications] Waiting for service worker...');
         const reg = await navigator.serviceWorker.ready;
+        console.log('[Notifications] SW ready, checking existing notifications...');
         const existing = await reg.getNotifications({ tag: 'staff-listening' });
-        if (existing.length > 0) return; // Already showing
-        await reg.showNotification('BStaff \u2014 Listening for orders', {
+        if (existing.length > 0) {
+            console.log('[Notifications] Persistent notification already showing');
+            return;
+        }
+        await reg.showNotification('BStaff — Listening for orders', {
             tag: 'staff-listening',
             body: 'You will be notified of new bookings',
             icon: '/staff-icon-192.png',
             badge: '/staff-icon-192.png',
             requireInteraction: true,
-            silent: true,
             data: { type: 'staff-listening' }
         });
         console.log('[Notifications] Persistent listening notification shown');
