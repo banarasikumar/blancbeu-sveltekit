@@ -109,3 +109,25 @@ registerRoute(
 		]
 	})
 );
+
+// ── Persistent "Listening for orders" notification click handler ──
+self.addEventListener('notificationclick', (event) => {
+	const data = event.notification.data;
+
+	// Persistent listening notification — open/focus dashboard, keep notification alive
+	if (data?.type === 'staff-listening') {
+		event.waitUntil(
+			self.clients
+				.matchAll({ type: 'window', includeUncontrolled: true })
+				.then((windowClients) => {
+					for (const client of windowClients) {
+						if (client.url.includes('/staff') && 'focus' in client) {
+							return client.focus();
+						}
+					}
+					return self.clients.openWindow('/staff/dashboard');
+				})
+		);
+		return;
+	}
+});

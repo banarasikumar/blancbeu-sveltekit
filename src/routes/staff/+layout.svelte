@@ -54,18 +54,53 @@
 	let unsub: (() => void) | null = null;
 	let unsubFcm: (() => void) | null = null;
 
+	// ── Persistent "Listening for orders" notification ──
+	// Keeps a silent, ongoing notification in the tray so Android is less likely
+	// to kill the browser process when the app is swiped from recents.
+	async function showListeningNotification() {
+		if (!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
+		try {
+			const reg = await navigator.serviceWorker.ready;
+			const existing = await reg.getNotifications({ tag: 'staff-listening' });
+			if (existing.length > 0) return; // Already showing
+			await reg.showNotification('BStaff — Listening for orders', {
+				tag: 'staff-listening',
+				body: 'You will be notified of new bookings',
+				icon: '/staff-icon-192.png',
+				badge: '/staff-icon-192.png',
+				requireInteraction: true,
+				silent: true,
+				data: { type: 'staff-listening' }
+			});
+			console.log('[Staff] Persistent listening notification shown');
+		} catch (e) {
+			console.warn('[Staff] Could not show listening notification:', e);
+		}
+	}
+
+	async function closeListeningNotification() {
+		if (!('serviceWorker' in navigator)) return;
+		try {
+			const reg = await navigator.serviceWorker.ready;
+			const notifs = await reg.getNotifications({ tag: 'staff-listening' });
+			notifs.forEach((n: Notification) => n.close());
+		} catch (e) { /* ignore */ }
+	}
+
 	onMount(() => {
 		initTheme();
 		initStaffAuth();
 
 		unsub = staffAuthState.subscribe((state) => {
 			if (state === 'unauthenticated' || state === 'denied') {
+				closeListeningNotification();
 				if (!isLoginPage) {
 					goto('/staff/login');
 				}
 			}
 			if (state === 'authorized') {
 				initStaffDataListener();
+				showListeningNotification();
 				if (isLoginPage) {
 					goto('/staff/dashboard');
 				}
