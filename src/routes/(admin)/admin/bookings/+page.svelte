@@ -10,7 +10,10 @@
 		updateBookingStatus,
 		type Booking
 	} from '$lib/stores/adminData';
-	import { Search, Calendar, Check, Ban, ClipboardCheck } from 'lucide-svelte';
+	import { Search, Calendar, Check, Ban, ClipboardCheck, Trash2, SquareCheck, Square, CheckSquare, ArrowUp } from 'lucide-svelte';
+	import { softDeleteBookings, recycledCount, initRecycleBinListener } from '$lib/stores/adminRecycleBin';
+	import { adminUser } from '$lib/stores/adminAuth';
+	import { onMount } from 'svelte';
 
 	// --- State ---
 	let currentTab = $state<'unfinished' | 'finished'>('unfinished');
@@ -27,6 +30,87 @@
 	let processingIds = $state<Record<string, 'processing' | 'vanishing'>>({});
 	let confirmAction = $state<{ id: string; action: string } | null>(null);
 	let confirmTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// --- Manage Mode ---
+	let isManageMode = $state(false);
+	let selectedIds = $state<Set<string>>(new Set());
+	let isDeleting = $state(false);
+
+	function toggleManageMode() {
+		isManageMode = !isManageMode;
+		if (!isManageMode) {
+			selectedIds = new Set();
+		}
+	}
+
+	function toggleSelect(id: string) {
+		const next = new Set(selectedIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedIds = next;
+	}
+
+	function selectAll() {
+		if (selectedIds.size === paginatedBookings.length) {
+			selectedIds = new Set();
+		} else {
+			selectedIds = new Set(paginatedBookings.map((b) => b.id));
+		}
+	}
+
+	async function deleteSelected() {
+		if (selectedIds.size === 0) return;
+		if (!confirm(`Move ${selectedIds.size} booking(s) to Recycle Bin?`)) return;
+		isDeleting = true;
+		try {
+			const toDelete = $allBookings.filter((b) => selectedIds.has(b.id));
+			console.log('[Manage] Deleting', toDelete.length, 'bookings, IDs:', [...selectedIds]);
+			if (toDelete.length === 0) {
+				showToast('No matching bookings found', 'error');
+				isDeleting = false;
+				return;
+			}
+			const result = await softDeleteBookings(toDelete, $adminUser?.uid || 'admin');
+			console.log('[Manage] Result:', result);
+			if (result.deleted > 0) {
+				showToast(`Moved ${result.deleted} booking(s) to Recycle Bin`, 'success');
+			}
+			if (result.errors > 0) {
+				showToast(`${result.errors} failed to delete`, 'error');
+			}
+			selectedIds = new Set();
+			isManageMode = false;
+		} catch (e: any) {
+			console.error('[Manage] Delete failed:', e);
+			showToast('Delete failed: ' + e.message, 'error');
+		} finally {
+			isDeleting = false;
+		}
+	}
+
+	onMount(() => {
+		initRecycleBinListener();
+		document.addEventListener('scroll', handleScroll, { passive: true });
+		window.addEventListener('scroll', handleScroll, { passive: true });
+		// Initial check
+		handleScroll();
+		return () => {
+			document.removeEventListener('scroll', handleScroll);
+			window.removeEventListener('scroll', handleScroll);
+		};
+	});
+
+	// --- Scroll to Top ---
+	let showScrollTop = $state(false);
+
+	function handleScroll() {
+		const scrollTop = document.documentElement.scrollTop || document.body.scrollTop || window.scrollY || 0;
+		showScrollTop = scrollTop > 100;
+	}
+
+	function scrollToTop() {
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
 
 	// --- Filter Chips ---
 	const unfinishedChips = [
@@ -203,14 +287,14 @@
 	}
 
 	const chipColors = [
-		{ bg: 'rgba(212, 175, 55, 0.1)', text: '#D4AF37' }, // Gold
-		{ bg: 'rgba(191, 90, 242, 0.1)', text: '#BF5AF2' }, // Purple
-		{ bg: 'rgba(48, 209, 88, 0.1)', text: '#30D158' }, // Green
-		{ bg: 'rgba(255, 159, 10, 0.1)', text: '#FF9F0A' }, // Orange
-		{ bg: 'rgba(255, 55, 95, 0.1)', text: '#FF375F' }, // Pink
-		{ bg: 'rgba(94, 92, 230, 0.1)', text: '#5E5CE6' }, // Indigo
-		{ bg: 'rgba(100, 210, 255, 0.1)', text: '#64D2FF' }, // Light Blue
-		{ bg: 'rgba(255, 214, 10, 0.1)', text: '#FFD60A' } // Yellow
+		{ bg: 'rgba(212, 175, 55, 0.18)', text: '#b8941e' }, // Gold
+		{ bg: 'rgba(191, 90, 242, 0.18)', text: '#9b40d8' }, // Purple
+		{ bg: 'rgba(48, 209, 88, 0.18)', text: '#1a9e3f' }, // Green
+		{ bg: 'rgba(255, 159, 10, 0.18)', text: '#d97706' }, // Orange
+		{ bg: 'rgba(255, 55, 95, 0.18)', text: '#dc2653' }, // Pink
+		{ bg: 'rgba(94, 92, 230, 0.18)', text: '#4f46e5' }, // Indigo
+		{ bg: 'rgba(100, 210, 255, 0.18)', text: '#0284c7' }, // Light Blue
+		{ bg: 'rgba(255, 214, 10, 0.18)', text: '#a16207' } // Yellow
 	];
 
 	// --- Avatar ---
@@ -293,12 +377,58 @@
 <!-- View Header -->
 <div class="admin-view-header">
 	<h2 class="admin-view-title">Bookings</h2>
-	<select class="admin-sort-select" bind:value={currentSort} aria-label="Sort bookings">
-		<option value="createdAt">Recent</option>
-		<option value="date">Appt. Date</option>
-		<option value="userName">Client Name</option>
-	</select>
+	<div style="display: flex; align-items: center; gap: 8px;">
+		<button
+			class="admin-manage-btn"
+			class:active={isManageMode}
+			onclick={toggleManageMode}
+		>
+			{isManageMode ? 'Cancel' : 'Manage'}
+		</button>
+		<button
+			class="admin-recycle-btn"
+			onclick={() => goto('/admin/recycle-bin')}
+			title="Recycle Bin"
+		>
+			<Trash2 size={16} />
+			{#if $recycledCount > 0}
+				<span class="admin-recycle-badge">{$recycledCount}</span>
+			{/if}
+		</button>
+		<select class="admin-sort-select" bind:value={currentSort} aria-label="Sort bookings">
+			<option value="createdAt">Recent</option>
+			<option value="date">Appt. Date</option>
+			<option value="userName">Client Name</option>
+		</select>
+	</div>
 </div>
+
+<!-- Manage Toolbar -->
+{#if isManageMode}
+	<div class="admin-manage-toolbar">
+		<button class="admin-manage-select-all" onclick={selectAll}>
+			{#if selectedIds.size === paginatedBookings.length && paginatedBookings.length > 0}
+				<CheckSquare size={18} />
+			{:else}
+				<Square size={18} />
+			{/if}
+			<span>
+				{selectedIds.size === paginatedBookings.length && paginatedBookings.length > 0
+					? 'Deselect All'
+					: 'Select All'}
+			</span>
+		</button>
+		<span class="admin-manage-count">{selectedIds.size} selected</span>
+		<button
+			class="admin-manage-delete-btn"
+			disabled={selectedIds.size === 0 || isDeleting}
+			onclick={deleteSelected}
+		>
+			<Trash2 size={16} />
+			{isDeleting ? 'Deleting...' : 'Delete'}
+		</button>
+	</div>
+{/if}
 
 <!-- Segmented Tabs -->
 <div class="admin-segmented">
@@ -421,14 +551,15 @@
 			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 			<div
 				class="admin-swipe-content admin-booking-card {statusClass}"
+				class:admin-card-selected={isManageMode && selectedIds.has(booking.id)}
 				role="region"
 				style="transform: translateX({offset}px); transition: {swipingId === booking.id
 					? 'none'
 					: 'transform 0.3s ease-out'};"
-				ontouchstart={(e) => onTouchStart(e, booking.id)}
-				ontouchmove={(e) => onTouchMove(e, booking.id)}
-				ontouchend={(e) => onTouchEnd(e, booking.id)}
-				onclick={() => closeSwipe(booking.id)}
+				ontouchstart={(e) => !isManageMode && onTouchStart(e, booking.id)}
+				ontouchmove={(e) => !isManageMode && onTouchMove(e, booking.id)}
+				ontouchend={(e) => !isManageMode && onTouchEnd(e, booking.id)}
+				onclick={() => isManageMode ? toggleSelect(booking.id) : closeSwipe(booking.id)}
 			>
 				{#if isProcessing}
 					<div class="admin-processing-overlay">
@@ -439,6 +570,19 @@
 
 				<!-- Header -->
 				<div class="admin-booking-header">
+					{#if isManageMode}
+						<button
+							class="admin-select-checkbox"
+							class:checked={selectedIds.has(booking.id)}
+							onclick={(e) => { e.stopPropagation(); toggleSelect(booking.id); }}
+						>
+							{#if selectedIds.has(booking.id)}
+								<CheckSquare size={20} />
+							{:else}
+								<Square size={20} />
+							{/if}
+						</button>
+					{/if}
 					<span class="admin-booking-id">#{booking.id.slice(0, 8).toUpperCase()}</span>
 					<span class="admin-status-badge {statusClass}">{status}</span>
 				</div>
@@ -448,7 +592,7 @@
 					<!-- Appointment -->
 					<div
 						class="admin-detail-item full-width"
-						style="background: var(--admin-accent-light); border-color: rgba(0,122,255,0.15);"
+						style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.04)); border-color: rgba(99, 102, 241, 0.15);"
 					>
 						<span class="admin-detail-label">
 							<Calendar size={10} /> Appointment
@@ -658,4 +802,11 @@
 			<button class="admin-modal-clear" onclick={clearDate}>Clear Filter</button>
 		</div>
 	</div>
+{/if}
+
+<!-- Scroll to Top Button -->
+{#if showScrollTop}
+	<button class="scroll-to-top-btn" onclick={scrollToTop} aria-label="Scroll to top">
+		<ArrowUp size={20} strokeWidth={2.5} />
+	</button>
 {/if}

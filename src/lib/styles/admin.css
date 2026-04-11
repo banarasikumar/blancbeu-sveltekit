@@ -776,37 +776,47 @@
 	padding: 18px;
 	border: 1px solid var(--admin-border);
 	border-left: 5px solid transparent;
-	box-shadow: var(--admin-shadow-sm);
+	box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 6px 20px rgba(0,0,0,0.04);
 	position: relative;
-	transition: transform 0.2s;
+	transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.admin-booking-card:active {
+	transform: scale(0.985);
 }
 
 .admin-booking-card.pending {
 	border-left-color: var(--admin-orange);
 	background:
-		linear-gradient(90deg, rgba(255, 159, 10, 0.05) 0%, transparent 100%), var(--admin-surface);
+		linear-gradient(135deg, rgba(255, 159, 10, 0.12) 0%, rgba(255, 159, 10, 0.03) 60%, transparent 100%), var(--admin-surface);
+	box-shadow: 0 2px 8px rgba(255, 159, 10, 0.08), 0 6px 20px rgba(0,0,0,0.04);
 }
 
 .admin-booking-card.confirmed {
 	border-left-color: var(--admin-green);
 	background:
-		linear-gradient(90deg, rgba(48, 209, 88, 0.05) 0%, transparent 100%), var(--admin-surface);
+		linear-gradient(135deg, rgba(48, 209, 88, 0.12) 0%, rgba(48, 209, 88, 0.03) 60%, transparent 100%), var(--admin-surface);
+	box-shadow: 0 2px 8px rgba(48, 209, 88, 0.08), 0 6px 20px rgba(0,0,0,0.04);
 }
 
 .admin-booking-card.completed {
 	border-left-color: var(--admin-accent);
 	background:
-		linear-gradient(90deg, rgba(212, 175, 55, 0.05) 0%, transparent 100%), var(--admin-surface);
+		linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(212, 175, 55, 0.03) 60%, transparent 100%), var(--admin-surface);
+	box-shadow: 0 2px 8px rgba(212, 175, 55, 0.08), 0 6px 20px rgba(0,0,0,0.04);
 }
 
 [data-theme='clean'] .admin-booking-card.completed {
 	background:
-		linear-gradient(90deg, rgba(0, 122, 255, 0.05) 0%, transparent 100%), var(--admin-surface);
+		linear-gradient(135deg, rgba(0, 122, 255, 0.12) 0%, rgba(0, 122, 255, 0.03) 60%, transparent 100%), var(--admin-surface);
+	box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08), 0 6px 20px rgba(0,0,0,0.04);
 }
 
 .admin-booking-card.cancelled {
 	border-left-color: var(--admin-red);
-	opacity: 0.8;
+	background:
+		linear-gradient(135deg, rgba(255, 69, 58, 0.08) 0%, rgba(255, 69, 58, 0.02) 60%, transparent 100%), var(--admin-surface);
+	opacity: 0.85;
 }
 
 .admin-booking-header {
@@ -837,31 +847,37 @@
 }
 
 .admin-status-badge.pending {
-	background: var(--admin-orange-light);
-	color: var(--admin-orange);
-	border: 1px solid rgba(255, 159, 10, 0.2);
+	background: linear-gradient(135deg, #FF9F0A, #FF8C00);
+	color: #fff;
+	border: none;
+	box-shadow: 0 2px 6px rgba(255, 159, 10, 0.3);
 }
 
 .admin-status-badge.confirmed {
-	background: var(--admin-green-light);
-	color: var(--admin-green);
-	border: 1px solid rgba(48, 209, 88, 0.2);
+	background: linear-gradient(135deg, #30D158, #28a745);
+	color: #fff;
+	border: none;
+	box-shadow: 0 2px 6px rgba(48, 209, 88, 0.3);
 }
 
 .admin-status-badge.completed {
-	background: var(--admin-accent-light);
-	color: var(--admin-accent);
-	border: 1px solid rgba(212, 175, 55, 0.2);
+	background: linear-gradient(135deg, var(--admin-accent), #b8941e);
+	color: #fff;
+	border: none;
+	box-shadow: 0 2px 6px rgba(212, 175, 55, 0.3);
 }
 
 [data-theme='clean'] .admin-status-badge.completed {
-	border: 1px solid rgba(0, 122, 255, 0.2);
+	background: linear-gradient(135deg, #007AFF, #0056CC);
+	box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3);
+	border: none;
 }
 
 .admin-status-badge.cancelled {
-	background: var(--admin-red-light);
-	color: var(--admin-red);
-	border: 1px solid rgba(255, 69, 58, 0.2);
+	background: linear-gradient(135deg, #FF453A, #dc2626);
+	color: #fff;
+	border: none;
+	box-shadow: 0 2px 6px rgba(255, 69, 58, 0.3);
 }
 
 /* --- Booking Details Grid --- */
@@ -876,10 +892,10 @@
 	display: flex;
 	flex-direction: column;
 	padding: 10px 12px;
-	background: var(--admin-bg);
-	/* Inner card background */
+	background: var(--admin-surface);
 	border-radius: var(--admin-radius-sm);
-	border: 1px solid var(--admin-border);
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .admin-detail-item.full-width {
@@ -1006,25 +1022,27 @@
 
 .admin-card-actions .admin-action-btn.confirm,
 .admin-card-actions .admin-action-btn.complete {
-	background: var(--admin-green);
+	background: linear-gradient(135deg, #30D158 0%, #28a745 100%);
 	color: #fff;
-	box-shadow: 0 3px 10px rgba(48, 209, 88, 0.25);
+	box-shadow: 0 3px 10px rgba(48, 209, 88, 0.3);
 }
 
 .admin-card-actions .admin-action-btn.confirm:hover,
 .admin-card-actions .admin-action-btn.complete:hover {
-	box-shadow: 0 4px 14px rgba(48, 209, 88, 0.35);
+	box-shadow: 0 4px 14px rgba(48, 209, 88, 0.4);
+	transform: translateY(-1px);
 }
 
 .admin-card-actions .admin-action-btn.cancel {
-	background: var(--admin-bg);
-	color: var(--admin-red);
-	border: 1px solid rgba(255, 69, 58, 0.2);
-	box-shadow: none;
+	background: linear-gradient(135deg, #FF453A 0%, #dc2626 100%);
+	color: #fff;
+	border: none;
+	box-shadow: 0 3px 10px rgba(255, 69, 58, 0.25);
 }
 
 .admin-card-actions .admin-action-btn.cancel:hover {
-	background: var(--admin-red-light);
+	box-shadow: 0 4px 14px rgba(255, 69, 58, 0.4);
+	transform: translateY(-1px);
 }
 
 .admin-card-actions .admin-action-btn.confirm.awaiting {
@@ -1298,12 +1316,13 @@
 }
 
 .admin-service-chip {
-	padding: 4px 9px;
-	border-radius: 7px;
+	padding: 4px 10px;
+	border-radius: 8px;
 	font-size: 11px;
 	font-weight: 700;
-	border: 1px solid rgba(0, 0, 0, 0.04);
+	border: none;
 	white-space: nowrap;
+	letter-spacing: 0.02em;
 }
 
 /* --- Countdown Badge --- */
@@ -1311,18 +1330,26 @@
 	font-weight: 700;
 	font-size: 10px;
 	margin-left: 6px;
-	padding: 2px 7px;
-	border-radius: 4px;
+	padding: 3px 8px;
+	border-radius: 6px;
+	letter-spacing: 0.03em;
 }
 
 .admin-countdown.upcoming {
-	color: var(--admin-accent);
-	background: var(--admin-accent-light);
+	color: #fff;
+	background: linear-gradient(135deg, var(--admin-accent), #b8941e);
+	box-shadow: 0 1px 4px rgba(212, 175, 55, 0.3);
+}
+
+[data-theme='clean'] .admin-countdown.upcoming {
+	background: linear-gradient(135deg, #007AFF, #0056CC);
+	box-shadow: 0 1px 4px rgba(0, 122, 255, 0.3);
 }
 
 .admin-countdown.overdue {
-	color: var(--admin-red);
-	background: var(--admin-red-light);
+	color: #fff;
+	background: linear-gradient(135deg, #FF453A, #dc2626);
+	box-shadow: 0 1px 4px rgba(255, 69, 58, 0.3);
 }
 
 /* --- Empty State --- */
@@ -1727,7 +1754,201 @@
 	}
 }
 
+/* ═══════════════════════════════════════════
+   MANAGE MODE & RECYCLE BIN
+   ═══════════════════════════════════════════ */
+
+/* Manage / Cancel button in header */
+.admin-manage-btn {
+	padding: 6px 14px;
+	border-radius: var(--admin-radius-full);
+	font-size: 12px;
+	font-weight: 700;
+	border: 1.5px solid var(--admin-accent);
+	background: transparent;
+	color: var(--admin-accent);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	letter-spacing: 0.3px;
+}
+
+.admin-manage-btn.active {
+	background: var(--admin-red);
+	border-color: var(--admin-red);
+	color: #fff;
+}
+
+/* Recycle Bin icon button */
+.admin-recycle-btn {
+	position: relative;
+	width: 36px;
+	height: 36px;
+	border-radius: var(--admin-radius-md);
+	border: 1px solid var(--admin-border);
+	background: var(--admin-surface);
+	color: var(--admin-text-secondary);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
+}
+
+.admin-recycle-btn:hover {
+	background: var(--admin-bg);
+	color: var(--admin-red);
+}
+
+.admin-recycle-badge {
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	background: var(--admin-red);
+	color: #fff;
+	font-size: 9px;
+	font-weight: 800;
+	min-width: 16px;
+	height: 16px;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 4px;
+}
+
+/* Manage Toolbar */
+.admin-manage-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 14px;
+	background: linear-gradient(135deg, rgba(255, 69, 58, 0.08), rgba(255, 69, 58, 0.03));
+	border: 1px solid rgba(255, 69, 58, 0.15);
+	border-radius: var(--admin-radius-lg);
+	margin-bottom: 8px;
+}
+
+.admin-manage-select-all {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	background: none;
+	border: none;
+	color: var(--admin-text-primary);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	padding: 4px 0;
+}
+
+.admin-manage-count {
+	flex: 1;
+	text-align: center;
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--admin-text-secondary);
+}
+
+.admin-manage-delete-btn {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 7px 14px;
+	border-radius: var(--admin-radius-md);
+	background: linear-gradient(135deg, #FF453A 0%, #dc2626 100%);
+	color: #fff;
+	border: none;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 8px rgba(255, 69, 58, 0.25);
+}
+
+.admin-manage-delete-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+	box-shadow: none;
+}
+
+.admin-manage-delete-btn:not(:disabled):active {
+	transform: scale(0.96);
+}
+
+/* Checkbox in card header */
+.admin-select-checkbox {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	color: var(--admin-text-tertiary);
+	transition: color 0.15s ease;
+}
+
+.admin-select-checkbox.checked {
+	color: var(--admin-accent);
+}
+
+/* Selected card highlight */
+.admin-booking-card.admin-card-selected {
+	border-color: var(--admin-accent) !important;
+	box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2), 0 4px 12px rgba(212, 175, 55, 0.1) !important;
+}
+
+[data-theme='clean'] .admin-booking-card.admin-card-selected {
+	border-color: #007AFF !important;
+	box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2), 0 4px 12px rgba(0, 122, 255, 0.1) !important;
+}
+
 /* Hidden utility */
 .admin-hidden {
 	display: none !important;
+}
+
+/* ═══════════════════════════════════════════
+   SCROLL TO TOP BUTTON
+   ═══════════════════════════════════════════ */
+
+.scroll-to-top-btn {
+	position: fixed !important;
+	bottom: 100px !important;
+	right: 20px !important;
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	background: #FF375F !important;
+	color: #fff !important;
+	border: 3px solid #fff;
+	cursor: pointer;
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8px 24px rgba(255, 55, 95, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+	z-index: 999999 !important;
+	transition: all 0.3s ease;
+	animation: scrollTopIn 0.3s ease-out;
+	pointer-events: auto;
+}
+
+.scroll-to-top-btn:active {
+	transform: scale(0.92);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes scrollTopIn {
+	from {
+		opacity: 0;
+		transform: translateY(20px) scale(0.8);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+[data-theme='clean'] .scroll-to-top-btn {
+	background: #007AFF;
+	border: 2px solid rgba(255, 255, 255, 0.3);
 }

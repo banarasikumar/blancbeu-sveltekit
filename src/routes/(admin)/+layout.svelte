@@ -23,6 +23,11 @@
 		updateBookingStatus,
 		getBookingDateTime
 	} from '$lib/stores/adminData';
+	import {
+		initRecycleBinListener,
+		destroyRecycleBinListener,
+		cleanupExpiredItems
+	} from '$lib/stores/adminRecycleBin';
 	import AdminNav from '$lib/components/admin/AdminNav.svelte';
 	import AdminHeader from '$lib/components/admin/AdminHeader.svelte';
 	import AdminToast from '$lib/components/admin/AdminToast.svelte';
@@ -35,6 +40,8 @@
 	// Derive page title from path
 	let pageTitle = $derived.by(() => {
 		const path = page.url.pathname;
+		if (path.includes('/admin/import-walkins')) return 'Import Walk-ins';
+		if (path.includes('/admin/recycle-bin')) return 'Recycle Bin';
 		if (path.includes('/admin/bookings')) return 'Bookings';
 		if (path.includes('/admin/users')) return 'Users';
 		if (path.includes('/admin/services')) return 'Services';
@@ -93,6 +100,14 @@
 				initBookingListener();
 				initUserListener();
 				initServiceListener();
+				initRecycleBinListener();
+
+				// Auto-cleanup expired recycle bin items (>30 days old)
+				cleanupExpiredItems().then((count) => {
+					if (count > 0) {
+						showToast(`Auto-removed ${count} expired item(s) from Recycle Bin`, 'success');
+					}
+				});
 
 				// If on login page, redirect to dashboard
 				if (page.url.pathname.includes('/admin/login')) {
@@ -108,6 +123,7 @@
 		if (unsubFcm) unsubFcm();
 		destroyAdminAuth();
 		destroyListeners();
+		destroyRecycleBinListener();
 	});
 
 	// --- Auto-Cancel Overdue Logic ---

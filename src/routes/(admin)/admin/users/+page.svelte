@@ -8,7 +8,8 @@
 		type AppUser
 	} from '$lib/stores/adminData';
 	import { showToast } from '$lib/stores/toast';
-	import { Search, UsersRound, MoreVertical, History, Mail, Phone, Copy, X } from 'lucide-svelte';
+	import { Search, UsersRound, MoreVertical, History, Mail, Phone, Copy, X, ArrowUp } from 'lucide-svelte';
+	import { onMount } from 'svelte';
 
 	let searchQuery = $state('');
 	let selectedUser = $state<AppUser | null>(null);
@@ -16,6 +17,23 @@
 	let showMerged = $state(false);
 
 	let sortBy = $state<'name' | 'joined'>('name');
+
+	// --- Scroll to Top ---
+	let showScrollTop = $state(false);
+
+	function handleScroll() {
+		const scrollTop = document.documentElement.scrollTop || document.body.scrollTop || 0;
+		showScrollTop = scrollTop > 200;
+	}
+
+	function scrollToTop() {
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
+
+	onMount(() => {
+		window.addEventListener('scroll', handleScroll, { passive: true });
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
 
 	// Filtered & Sorted users
 	let filteredUsers = $derived.by(() => {
@@ -246,4 +264,11 @@
 			<button class="admin-action-sheet-cancel" onclick={closeSheet}>Cancel</button>
 		</div>
 	</div>
+{/if}
+
+<!-- Scroll to Top Button -->
+{#if showScrollTop}
+	<button class="scroll-to-top-btn" onclick={scrollToTop} aria-label="Scroll to top">
+		<ArrowUp size={20} strokeWidth={2.5} />
+	</button>
 {/if}
