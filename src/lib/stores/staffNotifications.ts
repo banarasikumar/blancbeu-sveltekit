@@ -157,10 +157,10 @@ export async function requestNotificationPermission(userId: string): Promise<boo
 
         if (permission === 'granted') {
             console.log('[Notifications] Permission granted. Getting token...');
-            // Use the main VitePWA SW at / which now includes Firebase messaging.
-            // This ensures the SW controlling the page handles background push.
-            const swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-            console.log('[Notifications] SW registered, scope:', swRegistration.scope);
+            // Use the already-active VitePWA SW — do not re-register manually.
+            // Re-registering sw.js causes getToken to fail on second enable.
+            const swRegistration = await navigator.serviceWorker.ready;
+            console.log('[Notifications] Using active SW, scope:', swRegistration.scope);
             const token = await getToken(messaging, {
                 vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
                 serviceWorkerRegistration: swRegistration
