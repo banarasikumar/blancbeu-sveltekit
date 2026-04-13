@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 
 /**
@@ -25,12 +25,8 @@ export async function requestUserNotificationPermission(userId: string): Promise
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') return false;
 
-        // Register the dedicated Firebase messaging SW at its own scope
-        // (separate from VitePWA's caching SW at /).
-        const swRegistration = await navigator.serviceWorker.register(
-            '/firebase-messaging-sw.js',
-            { scope: '/firebase-cloud-messaging-push-scope' }
-        );
+        // Use the main VitePWA SW at / which now includes Firebase messaging.
+        const swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
         const token = await getToken(msgInstance, {
             vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
             serviceWorkerRegistration: swRegistration
@@ -38,7 +34,7 @@ export async function requestUserNotificationPermission(userId: string): Promise
 
         if (token) {
             await setDoc(doc(db, 'users', userId), {
-                fcmTokens: [token],
+                fcmTokens: arrayUnion(token),
                 updatedAt: new Date().toISOString()
             }, { merge: true });
             console.log('[UserNotifications] Token saved for user', userId);

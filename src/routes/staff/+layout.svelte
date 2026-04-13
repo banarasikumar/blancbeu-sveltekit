@@ -74,15 +74,8 @@
 			}
 		});
 
-		// Ensure the dedicated Firebase messaging SW is always registered.
-		// This runs on every app load so background push keeps working even if
-		// the browser discards the SW between sessions.
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker
-				.register('/firebase-messaging-sw.js', { scope: '/firebase-cloud-messaging-push-scope' })
-				.then((reg) => console.log('[Staff] Firebase SW registered, scope:', reg.scope))
-				.catch((err) => console.warn('[Staff] Firebase SW registration failed:', err));
-		}
+		// The main VitePWA SW (sw.js at /) now includes Firebase messaging.
+		// VitePWA registers it automatically; nothing extra needed here.
 
 		// Foreground FCM: when the staff app is open, Firebase does NOT auto-show
 		// the push notification — we must handle it ourselves here.

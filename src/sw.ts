@@ -7,6 +7,36 @@ import { ExpirationPlugin } from 'workbox-expiration';
 
 declare let self: ServiceWorkerGlobalScope;
 
+// ── Firebase Messaging background handler ────────────────────
+// importScripts works in SW context; compat SDK auto-handles background push
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
+
+(self as any).firebase.initializeApp({
+	apiKey: 'AIzaSyC4jkARU5-Ohb5w71Bi9eXY3A4ozOidyro',
+	authDomain: 'blancbeu-60b2a.firebaseapp.com',
+	projectId: 'blancbeu-60b2a',
+	storageBucket: 'blancbeu-60b2a.firebasestorage.app',
+	messagingSenderId: '344944570615',
+	appId: '1:344944570615:web:fbc270a00f54fc152863f2'
+});
+
+const _messaging = (self as any).firebase.messaging();
+
+_messaging.onBackgroundMessage((payload: any) => {
+	const title = payload.notification?.title || 'New Booking!';
+	const icon = payload.data?.icon || '/staff-icon-192.png';
+	return self.registration.showNotification(title, {
+		body: payload.notification?.body || '',
+		icon,
+		badge: icon,
+		tag: 'booking-notification',
+		renotify: true,
+		vibrate: [200, 100, 200],
+		data: payload.data || {}
+	});
+});
+
 // ── Lifecycle ────────────────────────────────────────────────
 self.skipWaiting();
 self.addEventListener('activate', (event) => {
