@@ -37,6 +37,26 @@ export async function POST({ request }) {
         const message = {
             notification: { title, body: body || '' },
             data: { icon: '/pwa-192x192.png' },
+            android: {
+                priority: 'high' as const,
+                notification: {
+                    channelId: 'bookings',
+                    priority: 'high' as const,
+                    defaultVibrateTimings: true,
+                    defaultSound: true
+                }
+            },
+            webpush: {
+                headers: { Urgency: 'high' },
+                notification: {
+                    icon: '/pwa-192x192.png',
+                    badge: '/pwa-192x192.png',
+                    vibrate: [200, 100, 200],
+                    requireInteraction: true,
+                    tag: 'user-notification',
+                    renotify: true
+                }
+            },
             tokens
         };
 

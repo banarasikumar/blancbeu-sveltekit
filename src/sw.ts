@@ -4,36 +4,38 @@ import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
+import { initializeApp } from 'firebase/app';
+import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
 declare let self: ServiceWorkerGlobalScope;
 
-// ── FCM background push handler ─────────────────────────────
-// Handles push events when the app tab is closed or the PWA is killed.
-// We parse the FCM payload manually — no Firebase SDK needed in the SW.
-self.addEventListener('push', (event) => {
-	let payload: any = {};
-	try { payload = event.data?.json() ?? {}; } catch { /* ignore */ }
+// ── Firebase Messaging — background push handler ──────────────────────
+// firebase/messaging/sw is the correct SW entry point for Firebase v9+ modular SDK.
+// It intercepts the push event internally and routes background messages here.
+const firebaseApp = initializeApp({
+	apiKey: 'AIzaSyC4jkARU5-Ohb5w71Bi9eXY3A4ozOidyro',
+	authDomain: 'blancbeu-60b2a.firebaseapp.com',
+	projectId: 'blancbeu-60b2a',
+	storageBucket: 'blancbeu-60b2a.firebasestorage.app',
+	messagingSenderId: '344944570615',
+	appId: '1:344944570615:web:fbc270a00f54fc152863f2'
+});
 
-	// FCM wraps the message under notification + data keys
-	const title = payload.notification?.title
-		?? payload.data?.title
-		?? 'New Booking!';
-	const body = payload.notification?.body
-		?? payload.data?.body
-		?? '';
-	const icon = payload.data?.icon ?? '/staff-icon-192.png';
+const swMessaging = getMessaging(firebaseApp);
 
-	event.waitUntil(
-		self.registration.showNotification(title, {
-			body,
-			icon,
-			badge: icon,
-			tag: 'booking-notification',
-			renotify: true,
-			vibrate: [200, 100, 200],
-			data: payload.data ?? {}
-		} as NotificationOptions)
-	);
+onBackgroundMessage(swMessaging, (payload) => {
+	const title = payload.notification?.title ?? 'New Booking!';
+	const body = payload.notification?.body ?? '';
+	const icon = (payload.data?.['icon'] as string | undefined) ?? '/staff-icon-192.png';
+	self.registration.showNotification(title, {
+		body,
+		icon,
+		badge: icon,
+		tag: 'booking-notification',
+		renotify: true,
+		vibrate: [200, 100, 200],
+		data: payload.data ?? {}
+	} as NotificationOptions);
 });
 
 // ── Lifecycle ────────────────────────────────────────────────

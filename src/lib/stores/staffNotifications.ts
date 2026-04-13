@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { getToken, deleteToken, getMessaging, isSupported } from 'firebase/messaging';
+import { getToken, getMessaging, isSupported } from 'firebase/messaging';
 import { doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 import { browser } from '$app/environment';
@@ -166,10 +166,6 @@ export async function requestNotificationPermission(userId: string): Promise<boo
             console.log('[Notifications] Permission granted. Getting token...');
             const swRegistration = await navigator.serviceWorker.ready;
             console.log('[Notifications] Using active SW, scope:', swRegistration.scope);
-
-            // Delete any cached token so Firebase creates a fresh push subscription
-            // tied to the current SW — avoids stale tokens pointing to old SWs.
-            try { await deleteToken(msgInstance); } catch { /* no token yet, fine */ }
 
             const token = await getToken(msgInstance, {
                 vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,

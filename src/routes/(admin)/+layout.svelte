@@ -69,20 +69,30 @@
 			console.error('[AdminLayout] Failed to initialize auth:', err);
 		});
 
+		// Unregister the old Firebase SW at the custom scope if still present
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.getRegistrations().then((regs) => {
+				for (const reg of regs) {
+					if (reg.scope.includes('firebase-cloud-messaging-push-scope')) {
+						reg.unregister();
+						console.log('[Admin] Unregistered old Firebase SW at', reg.scope);
+					}
+				}
+			});
+		}
+
 		// Foreground FCM handler — fires when admin app is open
-		import('firebase/messaging').then(({ onMessage, isSupported }) => {
+		import('firebase/messaging').then(({ onMessage, isSupported, getMessaging }) => {
 			isSupported().then((supported) => {
 				if (!supported) return;
 				import('$lib/firebase').then(({ app }) => {
 					if (!app) return;
-					import('firebase/messaging').then(({ getMessaging }) => {
-						const msgInstance = getMessaging(app);
-						unsubFcm = onMessage(msgInstance, (payload) => {
-							const title = payload.notification?.title ?? 'New Booking!';
-							const body = payload.notification?.body ?? '';
-							if (get(soundEnabled)) playNotificationChime();
-							showToast(body ? `${title}: ${body}` : title, 'success');
-						});
+					const msgInstance = getMessaging(app);
+					unsubFcm = onMessage(msgInstance, (payload) => {
+						const title = payload.notification?.title ?? 'New Booking!';
+						const body = payload.notification?.body ?? '';
+						if (get(soundEnabled)) playNotificationChime();
+						showToast(body ? `${title}: ${body}` : title, 'success');
 					});
 				});
 			});
