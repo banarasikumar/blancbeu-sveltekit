@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { getToken, type Messaging } from 'firebase/messaging';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { db, messaging } from '$lib/firebase';
 import { browser } from '$app/environment';
 
@@ -175,7 +175,7 @@ export async function requestNotificationPermission(userId: string): Promise<boo
                 const userRef = doc(db, 'users', userId);
                 // We store it as an array to support multiple devices in the future if needed
                 await setDoc(userRef, {
-                    fcmTokens: [token],
+                    fcmTokens: arrayUnion(token),
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
                 // Now that permission is granted, show the persistent notification

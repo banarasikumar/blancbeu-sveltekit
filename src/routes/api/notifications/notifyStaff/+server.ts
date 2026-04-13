@@ -94,14 +94,36 @@ export async function POST({ request }) {
         const allFailedTokens: string[] = [];
 
         for (const [role, tokens] of Object.entries(roleTokenMap)) {
+            const roleIcon = ROLE_ICONS[role] || '/pwa-192x192.png';
             const message = {
                 notification: {
                     title,
-                    body,
-                    image: iconUrl || undefined
+                    body
                 },
                 data: {
-                    icon: ROLE_ICONS[role] || '/pwa-192x192.png'
+                    icon: roleIcon
+                },
+                android: {
+                    priority: 'high' as const,
+                    notification: {
+                        channelId: 'bookings',
+                        priority: 'high' as const,
+                        defaultVibrateTimings: true,
+                        defaultSound: true
+                    }
+                },
+                webpush: {
+                    headers: {
+                        Urgency: 'high'
+                    },
+                    notification: {
+                        icon: roleIcon,
+                        badge: roleIcon,
+                        vibrate: [200, 100, 200],
+                        requireInteraction: true,
+                        tag: 'booking-notification',
+                        renotify: true
+                    }
                 },
                 tokens
             };
