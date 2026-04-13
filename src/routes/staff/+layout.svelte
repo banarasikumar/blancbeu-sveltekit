@@ -74,32 +74,37 @@
 			}
 		});
 
-		// The main VitePWA SW (sw.js at /) now includes Firebase messaging.
-		// VitePWA registers it automatically; nothing extra needed here.
+		// Unregister the old Firebase SW at the custom scope — it conflicts with
+		// the new setup where sw.js at / handles all push events.
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.getRegistrations().then((regs) => {
+				for (const reg of regs) {
+					if (reg.scope.includes('firebase-cloud-messaging-push-scope')) {
+						reg.unregister();
+						console.log('[Staff] Unregistered old Firebase SW at', reg.scope);
+					}
+				}
+			});
+		}
 
 		// Foreground FCM: when the staff app is open, Firebase does NOT auto-show
 		// the push notification — we must handle it ourselves here.
-		import('firebase/messaging').then(({ onMessage, isSupported }) => {
+		import('firebase/messaging').then(({ onMessage, isSupported, getMessaging }) => {
 			isSupported().then((supported) => {
 				if (!supported) return;
 				import('$lib/firebase').then(({ app }) => {
 					if (!app) return;
-					import('firebase/messaging').then(({ getMessaging }) => {
-						const msgInstance = getMessaging(app);
-						unsubFcm = onMessage(msgInstance, (payload) => {
-							const title = payload.notification?.title ?? 'New Booking!';
-							const body = payload.notification?.body ?? '';
-							// Play the user's selected notification sound (with automatic fallback)
-							playSelectedNotificationSound(0.7);
-							// Show in-app toast (body included if available)
-							showToast(body ? `${title}: ${body}` : title, 'success');
-							// Add to notifications list
-							notifications.add({
-								type: 'booking',
-								title,
-								message: body,
-								data: payload.data
-							});
+					const msgInstance = getMessaging(app);
+					unsubFcm = onMessage(msgInstance, (payload) => {
+						const title = payload.notification?.title ?? 'New Booking!';
+						const body = payload.notification?.body ?? '';
+						playSelectedNotificationSound(0.7);
+						showToast(body ? `${title}: ${body}` : title, 'success');
+						notifications.add({
+							type: 'booking',
+							title,
+							message: body,
+							data: payload.data
 						});
 					});
 				});

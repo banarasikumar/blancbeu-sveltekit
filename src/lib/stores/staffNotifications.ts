@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
-import { getToken, type Messaging } from 'firebase/messaging';
+import { getToken, deleteToken, getMessaging, isSupported } from 'firebase/messaging';
 import { doc, setDoc, arrayUnion } from 'firebase/firestore';
-import { db, messaging } from '$lib/firebase';
+import { db } from '$lib/firebase';
 import { browser } from '$app/environment';
 
 // ---------------------------------------------------------------------------
@@ -147,21 +147,31 @@ export async function requestNotificationPermission(userId: string): Promise<boo
     }
 
     try {
-        if (!messaging) {
-            console.warn('[Notifications] Messaging not supported or initialized');
+        // Initialize messaging here directly — the module-level export is set
+        // asynchronously and may still be null when this function is called.
+        const supported = await isSupported();
+        if (!supported) {
+            console.warn('[Notifications] Messaging not supported in this browser');
             return false;
         }
+        const { app } = await import('$lib/firebase');
+        if (!app) return false;
+        const msgInstance = getMessaging(app);
+
         console.log('[Notifications] Requesting permission...');
         const permission = await Notification.requestPermission();
         notificationStatus.set(permission as NotificationsState);
 
         if (permission === 'granted') {
             console.log('[Notifications] Permission granted. Getting token...');
-            // Use the already-active VitePWA SW — do not re-register manually.
-            // Re-registering sw.js causes getToken to fail on second enable.
             const swRegistration = await navigator.serviceWorker.ready;
             console.log('[Notifications] Using active SW, scope:', swRegistration.scope);
-            const token = await getToken(messaging, {
+
+            // Delete any cached token so Firebase creates a fresh push subscription
+            // tied to the current SW — avoids stale tokens pointing to old SWs.
+            try { await deleteToken(msgInstance); } catch { /* no token yet, fine */ }
+
+            const token = await getToken(msgInstance, {
                 vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
                 serviceWorkerRegistration: swRegistration
             });
