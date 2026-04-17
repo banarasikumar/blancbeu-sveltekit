@@ -119,7 +119,15 @@
 					try {
 						const url = new URL(data.url);
 						const path = url.pathname + url.search;
-						if (path.startsWith('/staff')) goto(path);
+						
+						// If URL domain is our native staff domain, map relative paths strictly into /staff
+						if (url.hostname.includes('staff.blancbeu.in')) {
+							const routedPath = path.startsWith('/staff') ? path : `/staff${path === '/' ? '' : path}`;
+							goto(routedPath);
+						} else if (path.startsWith('/staff')) {
+							// For vercel.app domains which inherently have the /staff prefix
+							goto(path);
+						}
 					} catch {
 						console.warn('[Staff] Invalid deep-link URL:', data.url);
 					}

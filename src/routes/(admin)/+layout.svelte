@@ -104,7 +104,15 @@
 					try {
 						const url = new URL(data.url);
 						const path = url.pathname + url.search;
-						if (path.startsWith('/admin')) goto(path);
+						
+						// If URL domain is our native admin domain, map relative paths strictly into /admin
+						if (url.hostname.includes('admin.blancbeu.in')) {
+							const routedPath = path.startsWith('/admin') ? path : `/admin${path === '/' ? '' : path}`;
+							goto(routedPath);
+						} else if (path.startsWith('/admin')) {
+							// For vercel.app domains which inherently have the /admin prefix
+							goto(path);
+						}
 					} catch {
 						console.warn('[Admin] Invalid deep-link URL:', data.url);
 					}
