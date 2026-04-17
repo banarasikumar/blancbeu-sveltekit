@@ -3,21 +3,26 @@
 	import { handleWhatsAppLogin, checkMagicLink } from '$lib/services/authService';
 	import { MessageCircle } from 'lucide-svelte';
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 
 	let loading = $state(false);
 	let error = $state('');
 	let denied = $state(false);
 
-	onMount(async () => {
-		// Check for magic link token in URL on load
-		await checkMagicLink('admin');
+	onMount(() => {
+		// Component mounted
 	});
 
-	// Watch for denied state
+	// Watch for denied state and magic links
 	$effect(() => {
 		if ($adminAuthState === 'denied') {
 			denied = true;
 			loading = false;
+		}
+		
+		// Reactively check for magic links when the URL parameters update (Deep Link fix)
+		if (page.url.searchParams.has('token')) {
+			checkMagicLink('admin');
 		}
 	});
 

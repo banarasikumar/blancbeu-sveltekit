@@ -3,6 +3,7 @@
 	import { handleWhatsAppLogin, checkMagicLink } from '$lib/services/authService';
 	import { MessageCircle } from 'lucide-svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { page } from '$app/state';
 
 	let isLoading = $state(false);
 	let error = $state<string | null>(null);
@@ -10,10 +11,7 @@
 
 	let stateUnsub: (() => void) | null = null;
 
-	onMount(async () => {
-		// Check for magic link token in URL on load
-		await checkMagicLink('staff');
-
+	onMount(() => {
 		// React to auth state changes to surface denial errors in the UI
 		stateUnsub = staffAuthState.subscribe((state) => {
 			if (state === 'denied') {
@@ -29,6 +27,13 @@
 
 	onDestroy(() => {
 		if (stateUnsub) stateUnsub();
+	});
+
+	$effect(() => {
+		// Reactively check for magic links when the URL parameters update (Deep Link fix)
+		if (page.url.searchParams.has('token')) {
+			checkMagicLink('staff');
+		}
 	});
 
 	async function handleLogin() {
