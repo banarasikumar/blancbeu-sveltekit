@@ -1591,19 +1591,37 @@
 	}
 
 	:global([data-theme='clean']) .role-section {
-		background: rgba(255, 255, 255, 0.85);
+		background: rgba(255, 255, 255, 0.88);
 		border-color: rgba(0, 0, 0, 0.07);
-		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+	}
+
+	:global([data-theme='clean']) .role-section-head > span {
+		background: rgba(0, 0, 0, 0.06);
+		border-color: rgba(0, 0, 0, 0.1);
 	}
 
 	:global([data-theme='clean']) .role-card {
-		background: rgba(255, 255, 255, 0.9);
-		border-color: rgba(0, 0, 0, 0.07);
+		background: #ffffff;
+		border-color: rgba(0, 0, 0, 0.08);
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 	}
 
 	:global([data-theme='clean']) .role-card:hover {
-		background: #ffffff;
-		box-shadow: 0 16px 32px rgba(0, 0, 0, 0.09);
+		background: #fafafa;
+		box-shadow: 0 10px 28px rgba(0, 0, 0, 0.09);
+	}
+
+	:global([data-theme='clean']) .role-card::before {
+		background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08), transparent);
+	}
+
+	:global([data-theme='clean']) .role-card.admin-card {
+		border-color: rgba(180, 140, 20, 0.3);
+	}
+
+	:global([data-theme='clean']) .role-card.staff-card {
+		border-color: rgba(30, 170, 60, 0.25);
 	}
 
 	:global([data-theme='clean']) .role-editor {
@@ -1615,11 +1633,24 @@
 	:global([data-theme='clean']) .staff-form-group input {
 		background: rgba(0, 0, 0, 0.04);
 		border-color: rgba(0, 0, 0, 0.12);
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='clean']) .role-editor-grid input:focus,
+	:global([data-theme='clean']) .staff-form-group input:focus {
+		background: #ffffff;
+		border-color: var(--admin-accent);
+		box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 	}
 
 	:global([data-theme='clean']) .role-btn-secondary {
 		background: rgba(0, 0, 0, 0.05);
 		border-color: rgba(0, 0, 0, 0.12);
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='clean']) .role-btn-secondary:hover:not(:disabled) {
+		background: rgba(0, 0, 0, 0.09);
 	}
 
 	:global([data-theme='clean']) .role-pill.neutral,
@@ -1629,17 +1660,42 @@
 	:global([data-theme='clean']) .role-selected-user {
 		background: rgba(0, 0, 0, 0.05);
 		border-color: rgba(0, 0, 0, 0.1);
+		color: var(--admin-text-secondary);
 	}
 
 	:global([data-theme='clean']) .role-result {
 		background: rgba(0, 0, 0, 0.03);
 		border-color: rgba(0, 0, 0, 0.07);
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='clean']) .role-result:hover {
+		background: rgba(0, 0, 0, 0.06);
+		border-color: rgba(0, 0, 0, 0.14);
+	}
+
+	:global([data-theme='clean']) .role-empty-inline {
+		border-color: rgba(0, 0, 0, 0.12);
+		color: var(--admin-text-secondary);
+	}
+
+	:global([data-theme='clean']) .role-note,
+	:global([data-theme='clean']) .role-helper {
+		color: var(--admin-text-secondary);
+	}
+
+	:global([data-theme='clean']) .role-info-overlay {
+		background: rgba(200, 200, 210, 0.7);
+	}
+
+	:global([data-theme='clean']) .role-confirm-overlay {
+		background: rgba(0, 0, 0, 0.35);
 	}
 
 	:global([data-theme='clean']) .role-info-modal,
 	:global([data-theme='clean']) .role-confirm-modal {
 		background: linear-gradient(160deg, #ffffff, #f5f5f7);
-		box-shadow: 0 32px 80px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+		box-shadow: 0 32px 80px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 		border-color: rgba(0, 0, 0, 0.07);
 	}
 
@@ -1652,9 +1708,157 @@
 	:global([data-theme='clean']) .role-info-close {
 		background: rgba(0, 0, 0, 0.05);
 		border-color: rgba(0, 0, 0, 0.1);
+		color: var(--admin-text-secondary);
 	}
 
-	:global([data-theme='clean']) .role-confirm-modal h3 {
+	:global([data-theme='clean']) .role-info-close:hover {
+		background: rgba(0, 0, 0, 0.1);
 		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='clean']) .role-confirm-modal h3,
+	:global([data-theme='clean']) .role-confirm-modal p {
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='clean']) .role-confirm-modal p {
+		color: var(--admin-text-secondary);
+	}
+
+	:global([data-theme='clean']) .role-info-btn {
+		border-color: rgba(0, 122, 255, 0.25);
+		background: rgba(0, 122, 255, 0.08);
+	}
+
+	:global([data-theme='clean']) .role-info-btn:hover {
+		background: rgba(0, 122, 255, 0.15);
+	}
+
+	:global([data-theme='clean']) .scroll-to-top-btn {
+		background: rgba(255, 255, 255, 0.9);
+		border-color: rgba(0, 0, 0, 0.1);
+		color: var(--admin-text-primary);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+	}
+
+	/* ── Glitch Theme Overrides ──────────────────────────────── */
+	:global([data-theme='glitch']) .role-section {
+		background: rgba(255, 255, 255, 0.75);
+		border-color: rgba(108, 93, 211, 0.2);
+		box-shadow: 6px 6px 0 rgba(108, 93, 211, 0.12);
+	}
+
+	:global([data-theme='glitch']) .role-section-head > span {
+		background: rgba(108, 93, 211, 0.1);
+		border-color: rgba(108, 93, 211, 0.3);
+		color: #6c5dd3;
+	}
+
+	:global([data-theme='glitch']) .role-card {
+		background: rgba(255, 255, 255, 0.85);
+		border-color: rgba(108, 93, 211, 0.2);
+	}
+
+	:global([data-theme='glitch']) .role-card:hover {
+		background: #ffffff;
+		box-shadow: 6px 6px 0 rgba(108, 93, 211, 0.18);
+	}
+
+	:global([data-theme='glitch']) .role-card.admin-card {
+		border-color: rgba(180, 140, 20, 0.35);
+	}
+
+	:global([data-theme='glitch']) .role-card.staff-card {
+		border-color: rgba(0, 180, 80, 0.3);
+	}
+
+	:global([data-theme='glitch']) .role-btn-secondary {
+		background: rgba(108, 93, 211, 0.07);
+		border-color: rgba(108, 93, 211, 0.25);
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='glitch']) .role-btn-secondary:hover:not(:disabled) {
+		background: rgba(108, 93, 211, 0.14);
+	}
+
+	:global([data-theme='glitch']) .role-pill.neutral,
+	:global([data-theme='glitch']) .role-meta span,
+	:global([data-theme='glitch']) .role-link,
+	:global([data-theme='glitch']) .role-pick,
+	:global([data-theme='glitch']) .role-selected-user {
+		background: rgba(108, 93, 211, 0.07);
+		border-color: rgba(108, 93, 211, 0.2);
+		color: var(--admin-text-secondary);
+	}
+
+	:global([data-theme='glitch']) .role-editor {
+		background: rgba(108, 93, 211, 0.04);
+		border-color: rgba(108, 93, 211, 0.2);
+	}
+
+	:global([data-theme='glitch']) .role-editor-grid input,
+	:global([data-theme='glitch']) .staff-form-group input {
+		background: rgba(255, 255, 255, 0.7);
+		border-color: rgba(108, 93, 211, 0.25);
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='glitch']) .role-result {
+		background: rgba(108, 93, 211, 0.04);
+		border-color: rgba(108, 93, 211, 0.15);
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='glitch']) .role-empty-inline {
+		border-color: rgba(108, 93, 211, 0.2);
+		color: var(--admin-text-secondary);
+	}
+
+	:global([data-theme='glitch']) .role-info-modal,
+	:global([data-theme='glitch']) .role-confirm-modal {
+		background: linear-gradient(160deg, #ffffff, #f0f0ff);
+		border-color: rgba(108, 93, 211, 0.2);
+		box-shadow: 8px 8px 0 rgba(108, 93, 211, 0.15);
+	}
+
+	:global([data-theme='glitch']) .role-info-card,
+	:global([data-theme='glitch']) .role-info-block {
+		background: rgba(108, 93, 211, 0.05);
+		border-color: rgba(108, 93, 211, 0.15);
+	}
+
+	:global([data-theme='glitch']) .role-info-close {
+		background: rgba(108, 93, 211, 0.08);
+		border-color: rgba(108, 93, 211, 0.2);
+		color: var(--admin-text-secondary);
+	}
+
+	:global([data-theme='glitch']) .role-confirm-modal h3 {
+		color: var(--admin-text-primary);
+	}
+
+	:global([data-theme='glitch']) .role-confirm-modal p {
+		color: var(--admin-text-secondary);
+	}
+
+	:global([data-theme='glitch']) .role-info-btn {
+		border-color: rgba(108, 93, 211, 0.35);
+		background: rgba(108, 93, 211, 0.1);
+		color: #6c5dd3;
+	}
+
+	:global([data-theme='glitch']) .role-info-btn:hover {
+		background: rgba(108, 93, 211, 0.18);
+	}
+
+	:global([data-theme='glitch']) .role-confirm-overlay {
+		background: rgba(0, 0, 0, 0.4);
+	}
+
+	:global([data-theme='glitch']) .role-info-overlay {
+		background: rgba(108, 93, 211, 0.25);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
 	}
 </style>
