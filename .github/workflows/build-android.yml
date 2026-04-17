@@ -1,0 +1,80 @@
+name: Build Native Android Apps
+
+# Trigger the workflow on pushes to the main branch 
+# or manually via the GitHub Actions tab.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: ☕ Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 📦 Install NPM Dependencies
+        run: npm ci
+
+      - name: 🏗️ Create Dummy Build Directory
+        # Capacitor CLI requires the webDir to physically exist during sync 
+        # even if it's set to use a live server URL.
+        run: |
+          mkdir -p build
+          echo "<html><body>Loading...</body></html>" > build/index.html
+
+      - name: 🔐 Inject Firebase Services (Staff App)
+        # GitHub action will create the google-services.json file using the base64 encoded string stored in GitHub Secrets.
+        # You MUST configure a GitHub Secret named FIREBASE_STAFF_SERVICES_B64 containing the Base64 of the google-services.json file.
+        run: |
+          mkdir -p apps/staff-app/android/app
+          echo "${{ secrets.FIREBASE_STAFF_SERVICES_B64 }}" | base64 --decode > apps/staff-app/android/app/google-services.json
+        continue-on-error: true # Continues even if secret is missing (build will succeed, but push will fail on device)
+
+      - name: 🔐 Inject Firebase Services (Admin App)
+        # You MUST configure a GitHub Secret named FIREBASE_ADMIN_SERVICES_B64 containing the Base64 of the google-services.json file.
+        run: |
+          mkdir -p apps/admin-app/android/app
+          echo "${{ secrets.FIREBASE_ADMIN_SERVICES_B64 }}" | base64 --decode > apps/admin-app/android/app/google-services.json
+        continue-on-error: true
+
+      - name: 🔄 Sync Capacitor Shells
+        run: |
+          npm run cap:sync:staff
+          npm run cap:sync:admin
+
+      - name: 📱 Build Staff APK
+        run: |
+          cd apps/staff-app/android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: 📱 Build Admin APK
+        run: |
+          cd apps/admin-app/android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: 📤 Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Blancbeu-Native-APKs
+          path: |
+            apps/staff-app/android/app/build/outputs/apk/debug/app-debug.apk
+            apps/admin-app/android/app/build/outputs/apk/debug/app-debug.apk
