@@ -88,8 +88,8 @@ jobs:
             export KS="blancbeu.keystore"
           fi
           
-          # Output the SHA-1 for Firebase Configuration
-          keytool -list -v -keystore $KS -alias blancbeu -storepass "blancbeu123" | grep "SHA1: " > sha1.txt
+          # Output the SHA-1 and SHA-256 for Firebase & Deep-Link Configuration
+          keytool -list -v -keystore $KS -alias blancbeu -storepass "blancbeu123" | grep -E "SHA1:|SHA256:" > sha_fingerprints.txt
           
           # Sign the Staff APK
           $APKSIGNER sign --ks $KS --ks-pass pass:blancbeu123 --key-pass pass:blancbeu123 --out apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk apps/staff-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
@@ -105,4 +105,4 @@ jobs:
             apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk
             apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk
             blancbeu.keystore
-            sha1.txt
+            sha_fingerprints.txt
