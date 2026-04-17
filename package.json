@@ -14,9 +14,13 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"cap:sync:staff": "cd apps/staff-app && npx cap sync android",
+		"cap:sync:admin": "cd apps/admin-app && npx cap sync android",
+		"cap:build": "npm run build && npm run cap:sync:staff && npm run cap:sync:admin"
 	},
 	"devDependencies": {
+		"@capacitor/cli": "^8.3.1",
 		"@eslint/compat": "^2.0.1",
 		"@eslint/js": "^9.39.2",
 		"@playwright/test": "^1.58.0",
@@ -43,6 +47,10 @@
 		"vitest-browser-svelte": "^2.0.2"
 	},
 	"dependencies": {
+		"@capacitor/android": "^8.3.1",
+		"@capacitor/app": "^8.1.0",
+		"@capacitor/core": "^8.3.1",
+		"@capacitor/push-notifications": "^8.0.3",
 		"date-fns": "^4.1.0",
 		"dotenv": "^17.3.1",
 		"firebase": "^12.12.0",

@@ -40,6 +40,16 @@ async function hasActiveAppClient(): Promise<boolean> {
 }
 
 onBackgroundMessage(swMessaging, async (payload) => {
+	// Guard: if running inside the Capacitor native APK, the OS handles push
+	// delivery via Google Play Services. We must not duplicate it here.
+	// Capacitor injects the global object into the WebView at runtime.
+	try {
+		// @ts-ignore
+		if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) return;
+	} catch {
+		// Not in Capacitor — continue normally
+	}
+
 	// If an app tab is already open, do not spam system notifications.
 	// The UI can handle real-time updates/toasts in-app.
 	if (await hasActiveAppClient()) return;
@@ -57,6 +67,7 @@ onBackgroundMessage(swMessaging, async (payload) => {
 		data: payload.data ?? {}
 	} as NotificationOptions);
 });
+
 
 // ── Lifecycle ────────────────────────────────────────────────
 self.skipWaiting();

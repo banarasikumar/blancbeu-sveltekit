@@ -21,6 +21,7 @@
 	import StaffBgAnimation from '$lib/components/staff/StaffBgAnimation.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
+	import { initPush, isNative } from '$lib/capacitor/pushService';
 
 	let { children } = $props();
 
@@ -52,13 +53,15 @@
 	let metaThemeColor = $derived($resolvedTheme === 'dark' ? '#16161d' : '#ffffff');
 
 	let unsub: (() => void) | null = null;
-	let unsubFcm: (() => void) | null = null;
+	let unsubPush: (() => void) | null = null;
+	// Deep-link listener handle (native only)
+	let appUrlListener: { remove: () => void } | null = null;
 
 	onMount(() => {
 		initTheme();
 		initStaffAuth();
 
-		unsub = staffAuthState.subscribe((state) => {
+		unsub = staffAuthState.subscribe(async (state) => {
 			if (state === 'unauthenticated' || state === 'denied') {
 				closeListeningNotification();
 				if (!isLoginPage) {
@@ -71,12 +74,32 @@
 				if (isLoginPage) {
 					goto('/staff/dashboard');
 				}
+
+				// ── Push notifications ──────────────────────────────────────
+				// Get the authenticated user's UID to store the FCM token.
+				import('$lib/firebase').then(async ({ auth }) => {
+					const uid = auth?.currentUser?.uid;
+					if (!uid) return;
+
+					// initPush picks the right path automatically:
+					//   native APK → Capacitor + FCM via GPS (reliable)
+					//   browser PWA → firebase/messaging (existing behaviour)
+					unsubPush = await initPush(uid, (msg) => {
+						playSelectedNotificationSound(0.7);
+						showToast(msg.body ? `${msg.title}: ${msg.body}` : msg.title, 'success');
+						notifications.add({
+							type: 'booking',
+							title: msg.title,
+							message: msg.body,
+							data: msg.data
+						});
+					});
+				});
 			}
 		});
 
-		// Unregister the old Firebase SW at the custom scope — it conflicts with
-		// the new setup where sw.js at / handles all push events.
-		if ('serviceWorker' in navigator) {
+		// ── Old Firebase SW cleanup (browser only) ──────────────────────
+		if (!isNative() && 'serviceWorker' in navigator) {
 			navigator.serviceWorker.getRegistrations().then((regs) => {
 				for (const reg of regs) {
 					if (reg.scope.includes('firebase-cloud-messaging-push-scope')) {
@@ -87,34 +110,32 @@
 			});
 		}
 
-		// Foreground FCM: when the staff app is open, Firebase does NOT auto-show
-		// the push notification — we must handle it ourselves here.
-		import('firebase/messaging').then(({ onMessage, isSupported, getMessaging }) => {
-			isSupported().then((supported) => {
-				if (!supported) return;
-				import('$lib/firebase').then(({ app }) => {
-					if (!app) return;
-					const msgInstance = getMessaging(app);
-					unsubFcm = onMessage(msgInstance, (payload) => {
-						const title = payload.notification?.title ?? 'New Booking!';
-						const body = payload.notification?.body ?? '';
-						playSelectedNotificationSound(0.7);
-						showToast(body ? `${title}: ${body}` : title, 'success');
-						notifications.add({
-							type: 'booking',
-							title,
-							message: body,
-							data: payload.data
-						});
-					});
+		// ── Deep-link handler (native APK only) ─────────────────────────
+		// When a push notification is tapped, Capacitor fires appUrlOpen.
+		// We parse the URL and navigate within the SvelteKit router.
+		if (isNative()) {
+			import('@capacitor/app').then(({ App }) => {
+				App.addListener('appUrlOpen', (data) => {
+					try {
+						const url = new URL(data.url);
+						const path = url.pathname + url.search;
+						if (path.startsWith('/staff')) goto(path);
+					} catch {
+						console.warn('[Staff] Invalid deep-link URL:', data.url);
+					}
+				}).then((handle) => {
+					appUrlListener = handle;
 				});
 			});
-		});
+		}
 	});
 
 	onDestroy(() => {
 		if (unsub) unsub();
-		if (unsubFcm) unsubFcm();
+		// Stop push listener (works for both native and web paths)
+		if (unsubPush) unsubPush();
+		// Remove native deep-link listener if it was registered
+		if (appUrlListener) appUrlListener.remove();
 		destroyStaffAuth();
 		destroyStaffDataListeners();
 		destroyTheme();

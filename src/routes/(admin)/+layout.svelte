@@ -30,6 +30,7 @@
 	import AdminHeader from '$lib/components/admin/AdminHeader.svelte';
 	import AdminToast from '$lib/components/admin/AdminToast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
+	import { initPush, isNative } from '$lib/capacitor/pushService';
 
 	import { theme } from '$lib/stores/theme';
 
@@ -59,7 +60,9 @@
 		return '#1C1C1E'; // Admin Surface Color (Gold Theme Header) or #000000
 	});
 
-	let unsubFcm: (() => void) | null = null;
+	let unsubPush: (() => void) | null = null;
+	// Deep-link listener handle (native only)
+	let appUrlListener: { remove: () => void } | null = null;
 
 	onMount(() => {
 		// Initialize auth - this is async but we don't need to await it
@@ -69,7 +72,7 @@
 		});
 
 		// Unregister the old Firebase SW at the custom scope if still present
-		if ('serviceWorker' in navigator) {
+		if (!isNative() && 'serviceWorker' in navigator) {
 			navigator.serviceWorker.getRegistrations().then((regs) => {
 				for (const reg of regs) {
 					if (reg.scope.includes('firebase-cloud-messaging-push-scope')) {
@@ -94,26 +97,22 @@
 				});
 		}
 
-		// Foreground FCM handler — fires when admin app is open
-		import('firebase/messaging').then(({ onMessage, isSupported, getMessaging }) => {
-			isSupported().then((supported) => {
-				if (!supported) return;
-				import('$lib/firebase').then(({ app }) => {
-					if (!app) return;
-					const msgInstance = getMessaging(app);
-					unsubFcm = onMessage(msgInstance, (payload) => {
-						const title = payload.notification?.title ?? 'New Booking!';
-						const body = payload.notification?.body ?? '';
-						adminNotifications.add({
-							type: 'new_booking',
-							title,
-							message: body || 'New update received',
-							data: payload.data ?? {}
-						});
-					});
+		// Deep-link handler (native APK only)
+		if (isNative()) {
+			import('@capacitor/app').then(({ App }) => {
+				App.addListener('appUrlOpen', (data) => {
+					try {
+						const url = new URL(data.url);
+						const path = url.pathname + url.search;
+						if (path.startsWith('/admin')) goto(path);
+					} catch {
+						console.warn('[Admin] Invalid deep-link URL:', data.url);
+					}
+				}).then((handle) => {
+					appUrlListener = handle;
 				});
 			});
-		});
+		}
 
 		// Watch auth state and redirect accordingly
 		const unsub = adminAuthState.subscribe((state) => {
@@ -140,6 +139,21 @@
 				if (page.url.pathname.includes('/admin/login')) {
 					goto('/admin');
 				}
+
+				// Initialize Push Notifications
+				import('$lib/firebase').then(async ({ auth }) => {
+					const uid = auth?.currentUser?.uid;
+					if (!uid) return;
+
+					unsubPush = await initPush(uid, (msg) => {
+						adminNotifications.add({
+							type: 'new_booking',
+							title: msg.title,
+							message: msg.body || 'New update received',
+							data: msg.data ?? {}
+						});
+					});
+				});
 			}
 		});
 
@@ -147,7 +161,8 @@
 	});
 
 	onDestroy(() => {
-		if (unsubFcm) unsubFcm();
+		if (unsubPush) unsubPush();
+		if (appUrlListener) appUrlListener.remove();
 		destroyAdminAuth();
 		destroyListeners();
 		destroyRecycleBinListener();
