@@ -26,3 +26,8 @@ vite.config.ts.timestamp-*
 
 # Logs
 *.log
+
+# Keystores (SECURITY)
+*.keystore
+keystore_base64.txt
+keystore_file/

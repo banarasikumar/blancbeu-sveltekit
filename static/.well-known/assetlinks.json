@@ -1,21 +1,25 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "in.blancbeu.staff",
       "sha256_cert_fingerprints": [
-        "ENTER_YOUR_SHA256_FINGERPRINT_HERE_LATER"
+        "5F:84:BC:B2:1C:55:A5:BE:DB:9E:9A:0E:82:BD:CD:43:03:48:1B:DC:F2:46:20:7E:E3:2A:B1:3F:82:9D:3E:C0"
       ]
     }
   },
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "in.blancbeu.admin",
       "sha256_cert_fingerprints": [
-        "ENTER_YOUR_SHA256_FINGERPRINT_HERE_LATER"
+        "5F:84:BC:B2:1C:55:A5:BE:DB:9E:9A:0E:82:BD:CD:43:03:48:1B:DC:F2:46:20:7E:E3:2A:B1:3F:82:9D:3E:C0"
       ]
     }
   }
