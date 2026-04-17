@@ -24,10 +24,15 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .env*.local
 
-# Logs
-*.log
-
-# Keystores (SECURITY)
+# Keystore & Secrets (DO NOT COMMIT)
 *.keystore
 keystore_base64.txt
 keystore_file/
+sha_fingerprints.txt
+
+# Logs
+*.log
+*.txt
+!README.md
+!package.json
+!package-lock.json
