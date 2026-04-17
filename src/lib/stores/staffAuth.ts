@@ -1,5 +1,7 @@
 import { writable, derived } from 'svelte/store';
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, signInWithCredential } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '$lib/firebase';
 import type { User } from 'firebase/auth';
@@ -138,7 +140,21 @@ export async function initStaffAuth() {
 export async function staffSignIn(): Promise<void> {
 	const provider = new GoogleAuthProvider();
 	try {
-		await signInWithPopup(auth, provider);
+		if (Capacitor.isNativePlatform()) {
+			console.log('[StaffAuth] Triggering Native Android Google Sign-In...');
+			const result = await FirebaseAuthentication.signInWithGoogle();
+			const idToken = result.credential?.idToken;
+			if (idToken) {
+				const credential = GoogleAuthProvider.credential(idToken);
+				await signInWithCredential(auth, credential);
+				return;
+			} else {
+				throw new Error('Native authentication returned empty ID token.');
+			}
+		} else {
+			console.log('[StaffAuth] Triggering Desktop Web Google Sign-In...');
+			await signInWithPopup(auth, provider);
+		}
 	} catch (error: any) {
 		if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
 			console.warn('[StaffAuth] Popup blocked or closed, falling back to redirect...');

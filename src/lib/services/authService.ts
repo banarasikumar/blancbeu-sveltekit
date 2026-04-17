@@ -11,6 +11,8 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { showToast } from '$lib/stores/toast';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 const WHATSAPP_NUMBER = '919297602833';
 const WHATSAPP_MESSAGE = '*Hi BlancBeu, please help me log in.*';
@@ -26,8 +28,26 @@ export async function handleGoogleLogin(): Promise<boolean> {
 	const provider = new GoogleAuthProvider();
 
 	try {
-		const result = await signInWithPopup(auth, provider);
-		await handleLoginSuccess(result.user);
+		let resultUser: any;
+		
+		if (Capacitor.isNativePlatform()) {
+			console.log('Triggering Native Android Google Sign-In...');
+			const result = await FirebaseAuthentication.signInWithGoogle();
+			const idToken = result.credential?.idToken;
+			if (idToken) {
+				const credential = GoogleAuthProvider.credential(idToken);
+				const credResult = await signInWithCredential(auth, credential);
+				resultUser = credResult.user;
+			} else {
+				throw new Error('Native authentication returned empty ID token.');
+			}
+		} else {
+			console.log('Triggering Desktop Web Google Sign-In...');
+			const result = await signInWithPopup(auth, provider);
+			resultUser = result.user;
+		}
+		
+		await handleLoginSuccess(resultUser);
 		return true;
 	} catch (error: any) {
 		console.error('Google Login Error:', error);

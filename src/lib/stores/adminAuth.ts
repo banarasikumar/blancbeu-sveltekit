@@ -1,5 +1,7 @@
 import { writable, derived } from 'svelte/store';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithCredential } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '$lib/firebase';
 import type { User } from 'firebase/auth';
@@ -149,7 +151,20 @@ export async function initAdminAuth() {
 export async function adminSignIn(): Promise<void> {
 	const provider = new GoogleAuthProvider();
 	try {
-		await signInWithPopup(auth, provider);
+		if (Capacitor.isNativePlatform()) {
+			console.log('[AdminAuth] Triggering Native Android Google Sign-In...');
+			const result = await FirebaseAuthentication.signInWithGoogle();
+			const idToken = result.credential?.idToken;
+			if (idToken) {
+				const credential = GoogleAuthProvider.credential(idToken);
+				await signInWithCredential(auth, credential);
+			} else {
+				throw new Error('Native authentication returned empty ID token.');
+			}
+		} else {
+			console.log('[AdminAuth] Triggering Desktop Web Google Sign-In...');
+			await signInWithPopup(auth, provider);
+		}
 		// Auth state change will handle the rest
 	} catch (error: any) {
 		console.error('[AdminAuth] Login failed:', error);
