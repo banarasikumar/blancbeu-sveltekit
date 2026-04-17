@@ -13,6 +13,7 @@ import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { Browser } from '@capacitor/browser';
 
 const WHATSAPP_NUMBER = '919297602833';
 const WHATSAPP_MESSAGE = '*Hi BlancBeu, please help me log in.*';
@@ -136,7 +137,11 @@ export async function handleWhatsAppLogin(
 	const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
 	// Open WhatsApp
-	window.open(url, '_blank');
+	if (Capacitor.isNativePlatform()) {
+		await Browser.open({ url });
+	} else {
+		window.open(url, '_blank');
+	}
 
 	// Show notification
 	showToast('Check WhatsApp for your login link! 📱', 'success');

@@ -26,9 +26,16 @@ const config: CapacitorConfig = {
 		},
 		LocalNotifications: {
 			smallIcon: 'ic_stat_notification',
-			iconColor: '#eab308' // Gold theme accent
+			iconColor: '#7c3aed'
 		}
-	}
+	},
+
+	includePlugins: [
+		'@capacitor-firebase/authentication',
+		'@capacitor/push-notifications',
+		'@capacitor/app',
+		'@capacitor/browser'
+	]
 };
 
 export default config;
