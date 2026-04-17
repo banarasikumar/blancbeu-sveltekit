@@ -30,7 +30,7 @@ jobs:
           java-version: '17'
 
       - name: 📦 Install NPM Dependencies
-        run: npm ci
+        run: npm install
 
       - name: 🏗️ Create Dummy Build Directory
         # Capacitor CLI requires the webDir to physically exist during sync 
