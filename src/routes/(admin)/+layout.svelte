@@ -1,7 +1,6 @@
 <script lang="ts">
 	import '$lib/styles/admin.css';
 	import { onMount, onDestroy } from 'svelte';
-	import { get } from 'svelte/store';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { showToast } from '$lib/stores/toast';
@@ -11,8 +10,7 @@
 		initAdminAuth,
 		destroyAdminAuth
 	} from '$lib/stores/adminAuth';
-	import { soundEnabled } from '$lib/stores/staffNotifications';
-	import { playNotificationChime } from '$lib/utils/notificationSound';
+	import { adminNotifications } from '$lib/stores/adminNotificationsList';
 	import {
 		initBookingListener,
 		initUserListener,
@@ -80,6 +78,20 @@
 					}
 				}
 			});
+
+			// Admin view should be silent: clear any stale system notifications on app open.
+			navigator.serviceWorker.ready
+				.then((reg) => reg.getNotifications())
+				.then((notifications) => {
+					for (const n of notifications) {
+						const tag = (n as Notification).tag || '';
+						if (tag === 'staff-listening') continue;
+						(n as Notification).close();
+					}
+				})
+				.catch(() => {
+					// ignore
+				});
 		}
 
 		// Foreground FCM handler — fires when admin app is open
@@ -92,8 +104,12 @@
 					unsubFcm = onMessage(msgInstance, (payload) => {
 						const title = payload.notification?.title ?? 'New Booking!';
 						const body = payload.notification?.body ?? '';
-						if (get(soundEnabled)) playNotificationChime();
-						showToast(body ? `${title}: ${body}` : title, 'success');
+						adminNotifications.add({
+							type: 'new_booking',
+							title,
+							message: body || 'New update received',
+							data: payload.data ?? {}
+						});
 					});
 				});
 			});

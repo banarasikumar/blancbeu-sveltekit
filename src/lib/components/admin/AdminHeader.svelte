@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { Menu, Moon, Sun } from 'lucide-svelte';
+	import { Bell, Menu, Moon, Sun } from 'lucide-svelte';
+	import { goto } from '$app/navigation';
 	import { theme, toggleTheme } from '$lib/stores/theme';
 	import { isOnline } from '$lib/stores/networkStatus';
+	import { adminUnreadCount } from '$lib/stores/adminNotificationsList';
 
 	let { title = 'Dashboard' }: { title?: string } = $props();
 </script>
@@ -9,6 +11,12 @@
 <header class="admin-header">
 	<div class="admin-header-title">{title}</div>
 	<div style="display: flex; gap: 8px;">
+		<button class="admin-header-btn admin-header-bell" onclick={() => goto('/admin/notify')} aria-label="Notifications">
+			<Bell size={22} />
+			{#if $adminUnreadCount > 0}
+				<span class="admin-header-badge">{$adminUnreadCount > 99 ? '99+' : $adminUnreadCount}</span>
+			{/if}
+		</button>
 		<button class="admin-header-btn" onclick={toggleTheme} aria-label="Toggle Theme">
 			{#if $theme === 'clean'}
 				<Moon size={22} />
@@ -72,5 +80,25 @@
 		50% {
 			opacity: 0.4;
 		}
+	}
+
+	.admin-header-bell {
+		position: relative;
+	}
+
+	.admin-header-badge {
+		position: absolute;
+		top: -5px;
+		right: -5px;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		border-radius: 999px;
+		background: #ff3b30;
+		color: #fff;
+		font-size: 10px;
+		font-weight: 700;
+		line-height: 18px;
+		text-align: center;
 	}
 </style>

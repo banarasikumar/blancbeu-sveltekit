@@ -4,8 +4,6 @@ import { db } from '$lib/firebase';
 import { adminNotifications } from './adminNotificationsList';
 import { adminNotificationPrefs } from './adminNotificationPreferences';
 import { get } from 'svelte/store';
-import { showToast } from './toast';
-import { playNotificationSound } from '$lib/utils/notificationSound';
 
 // --- Types ---
 export interface Booking {
@@ -94,21 +92,6 @@ let previousUserCount = 0;
 let isBookingsInitialLoad = true;
 let isUsersInitialLoad = true;
 
-// Helper to play notification sound
-async function playAdminNotification() {
-	const prefs = get(adminNotificationPrefs);
-	if (!prefs.soundEnabled) return;
-	
-	try {
-		const soundPath = prefs.selectedSoundType === 'custom' 
-			? prefs.customSoundPath 
-			: '/sounds/chime.mp3';
-		await playNotificationSound(soundPath, 0.6);
-	} catch (err) {
-		console.warn('[AdminNotification] Failed to play sound:', err);
-	}
-}
-
 export function initBookingListener() {
 	if (bookingsUnsub) return;
 	console.log('[AdminData] Starting booking listener');
@@ -156,13 +139,7 @@ export function initBookingListener() {
 							source: isWalkIn ? 'staff_walkin' : 'user'
 						});
 						
-						// Show toast and play sound
-						const title = isWalkIn ? '🚶 Walk-in Order' : '📅 New Booking';
-						showToast(
-							`${title}: ${booking.userName || 'Guest'} - ${booking.serviceName || 'Service'}`,
-							'success'
-						);
-						playAdminNotification();
+						// Silent update: in-app notification list only.
 					}
 				} else if (prevBooking.status !== booking.status) {
 					// Status changed
@@ -182,13 +159,6 @@ export function initBookingListener() {
 							serviceName: booking.serviceName || booking.services,
 							totalAmount: booking.totalAmount
 						});
-						
-						showToast(
-							`Status: ${booking.userName || 'Guest'} → ${booking.status}`,
-							booking.status === 'completed' ? 'success' : 
-							booking.status === 'cancelled' ? 'error' : 'info'
-						);
-						playAdminNotification();
 					}
 				}
 			}
@@ -230,7 +200,6 @@ export function initUserListener() {
 				const prefs = get(adminNotificationPrefs);
 				if (prefs.newUsers) {
 					// Find the new user(s)
-					const currentIds = new Set(users.map(u => u.id));
 					// Get the most recent user (last in array since we don't track by ID)
 					const newUser = users[users.length - 1];
 					
@@ -245,16 +214,10 @@ export function initUserListener() {
 							adminNotifications.addNewUserNotification({
 								id: newUser.id,
 								name: getUserDisplayName(newUser),
-								phone: getUserPhone(newUser),
+								phone: getUserPhone(newUser) ?? undefined,
 								email: newUser.email,
 								signupMethod: newUser.providerId as any || 'phone'
 							});
-							
-							showToast(
-								`👤 New User: ${getUserDisplayName(newUser)}`,
-								'success'
-							);
-							playAdminNotification();
 						}
 					}
 				}

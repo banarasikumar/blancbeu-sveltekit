@@ -23,7 +23,27 @@ const firebaseApp = initializeApp({
 
 const swMessaging = getMessaging(firebaseApp);
 
-onBackgroundMessage(swMessaging, (payload) => {
+async function hasActiveAppClient(): Promise<boolean> {
+	const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+	return clients.some((client) => {
+		try {
+			const url = new URL(client.url);
+			return (
+				url.pathname.startsWith('/admin') ||
+				url.pathname.startsWith('/staff') ||
+				url.pathname.startsWith('/you')
+			);
+		} catch {
+			return false;
+		}
+	});
+}
+
+onBackgroundMessage(swMessaging, async (payload) => {
+	// If an app tab is already open, do not spam system notifications.
+	// The UI can handle real-time updates/toasts in-app.
+	if (await hasActiveAppClient()) return;
+
 	const title = payload.notification?.title ?? 'New Booking!';
 	const body = payload.notification?.body ?? '';
 	const icon = (payload.data?.['icon'] as string | undefined) ?? '/staff-icon-192.png';

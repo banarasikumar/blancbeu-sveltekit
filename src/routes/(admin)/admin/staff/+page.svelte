@@ -11,7 +11,6 @@
 	import {
 		AlertTriangle,
 		ArrowUp,
-		Briefcase,
 		Clock,
 		Copy,
 		Crown,
@@ -26,9 +25,7 @@
 		ShieldX,
 		Trash2,
 		User,
-		UserCog,
-		UserPlus,
-		Users
+		UserPlus
 	} from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { addDoc, collection, deleteField, doc, setDoc } from 'firebase/firestore';
@@ -53,6 +50,7 @@
 	let roleFilter = $state<RoleFilter>('all');
 	let addMethod = $state<AddMethod>('existing');
 	let showConfirmModal = $state(false);
+	let showRoleInfoModal = $state(false);
 	let confirmAction = $state<ConfirmAction | null>(null);
 	let isProcessing = $state(false);
 
@@ -77,11 +75,7 @@
 				(user.role === 'admin' || user.role === 'staff') && user.accountStatus !== 'merged'
 		)
 	);
-	const admins = $derived(managedUsers.filter((user) => user.role === 'admin'));
-	const staffUsers = $derived(managedUsers.filter((user) => user.role === 'staff'));
-	const adminCount = $derived(admins.length);
-	const staffCount = $derived(staffUsers.length);
-	const loneAdmin = $derived(adminCount === 1 ? admins[0] : null);
+	const adminCount = $derived(managedUsers.filter((user) => user.role === 'admin').length);
 	const eligibleUsers = $derived(
 		$allUsers.filter(
 			(user) =>
@@ -364,73 +358,16 @@
 	}
 </script>
 
-<section class="admin-hero role-hero">
-	<div class="role-hero-copy">
-		<span class="admin-hero-badge">TEAM ACCESS</span>
-		<h1>Role Management</h1>
-		<p>Manage admin and staff access from one place with a protected fallback admin always in place.</p>
+<div class="role-header-row">
+	<div class="admin-segmented role-tabs">
+		<button class="admin-segment-btn" class:active={activeTab === 'directory'} onclick={() => (activeTab = 'directory')}>
+			<Shield size={15} />
+			Team Roles
+		</button>
 	</div>
-	<div class="role-hero-aside">
-		<div class="role-hero-count">
-			<Crown size={20} />
-			<div>
-				<strong>{adminCount}</strong>
-				<span>active admin{adminCount !== 1 ? 's' : ''}</span>
-			</div>
-		</div>
-		<div class="role-hero-note" class:warning={adminCount === 1}>
-			{#if loneAdmin}
-				At least one admin must remain. {getUserDisplayName(loneAdmin)} is currently protected.
-			{:else}
-				Admin coverage is healthy. You can reassign access while keeping one admin alive.
-			{/if}
-		</div>
-	</div>
-</section>
-
-<div class="role-overview">
-	<div class="role-stat-card">
-		<div class="role-stat-icon accent"><Crown size={18} /></div>
-		<strong>{adminCount}</strong>
-		<span>Admins</span>
-		<small>Full admin + staff access</small>
-	</div>
-	<div class="role-stat-card">
-		<div class="role-stat-icon green"><UserCog size={18} /></div>
-		<strong>{staffCount}</strong>
-		<span>Staff</span>
-		<small>Operational access only</small>
-	</div>
-	<div class="role-stat-card">
-		<div class="role-stat-icon purple"><Briefcase size={18} /></div>
-		<strong>{managedUsers.length}</strong>
-		<span>Managed Roles</span>
-		<small>Admins and staff combined</small>
-	</div>
-	<div class="role-stat-card">
-		<div class="role-stat-icon blue"><Users size={18} /></div>
-		<strong>{eligibleUsers.length}</strong>
-		<span>Eligible Users</span>
-		<small>Ready for role assignment</small>
-	</div>
-</div>
-
-<div class="role-safety-banner" class:warning={adminCount === 1}>
-	<AlertTriangle size={18} />
-	<div>
-		<strong>Safety rule</strong>
-		<p>The last admin cannot be removed or downgraded. Staff members can all be removed if needed.</p>
-	</div>
-</div>
-
-<div class="admin-segmented role-tabs">
-	<button class="admin-segment-btn" class:active={activeTab === 'directory'} onclick={() => (activeTab = 'directory')}>
-		<Shield size={15} />
-		Team Roles
-	</button>
-	<button class="admin-segment-btn" class:active={activeTab === 'add'} onclick={() => (activeTab = 'add')}>
-		<UserPlus size={15} />
-		Add Member
+	<button class="role-info-btn" onclick={() => (showRoleInfoModal = true)}>
+		<Info size={16} />
+		Role Info
 	</button>
 </div>
 
@@ -450,6 +387,10 @@
 			<button class="admin-filter-chip" class:active={roleFilter === 'all'} onclick={() => (roleFilter = 'all')}>All</button>
 			<button class="admin-filter-chip" class:active={roleFilter === 'admin'} onclick={() => (roleFilter = 'admin')}>Admins</button>
 			<button class="admin-filter-chip" class:active={roleFilter === 'staff'} onclick={() => (roleFilter = 'staff')}>Staff</button>
+			<button class="role-add-member-btn" onclick={() => (activeTab = 'add')}>
+				<UserPlus size={14} />
+				Add Member
+			</button>
 		</div>
 	</div>
 
@@ -645,10 +586,6 @@
 					<button class="role-pick" class:active={existingRole === 'admin'} onclick={() => (existingRole = 'admin')}><Crown size={15} /> Admin</button>
 					<button class="role-pick" class:active={existingRole === 'staff'} onclick={() => (existingRole = 'staff')}><ShieldCheck size={15} /> Staff</button>
 				</div>
-				<div class="role-inline-note">
-					<Info size={14} />
-					<span>{existingRole === 'admin' ? 'Admin gets access to both apps.' : 'Staff gets access only to the staff app.'}</span>
-				</div>
 				<div class="staff-form-group">
 					<label for="eligible-user-search">Search eligible users</label>
 					<div style="position: relative;">
@@ -700,34 +637,59 @@
 			{/if}
 		</section>
 
-		<section class="role-section">
-			<div class="role-section-head slim">
-				<div>
-					<h3>Access Guide</h3>
-					<p>Quick reference for when to assign each role.</p>
+	</div>
+{/if}
+
+{#if showRoleInfoModal}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div class="role-info-overlay" onclick={() => (showRoleInfoModal = false)} role="dialog" tabindex="-1">
+		<div class="role-info-modal" onclick={(event) => event.stopPropagation()} role="document">
+			<div class="role-info-head">
+				<div class="role-info-title">
+					<div class="role-info-icon"><Info size={18} /></div>
+					<div>
+						<h3>Role Info</h3>
+						<p>Quick access guide.</p>
+					</div>
+				</div>
+				<button class="role-info-close" onclick={() => (showRoleInfoModal = false)} aria-label="Close role info">
+					✕
+				</button>
+			</div>
+
+			<div class="role-info-grid">
+				<div class="role-info-card">
+					<h4><Crown size={15} /> Admin Role</h4>
+					<ul>
+						<li>Full access.</li>
+						<li>Admin + Staff apps.</li>
+						<li>Use for core leads.</li>
+					</ul>
+				</div>
+				<div class="role-info-card">
+					<h4><ShieldCheck size={15} /> Staff Role</h4>
+					<ul>
+						<li>Staff app only.</li>
+						<li>Handles daily operations.</li>
+						<li>No admin controls.</li>
+					</ul>
 				</div>
 			</div>
-			<div class="role-guide-card">
-				<div class="role-guide-badge admin"><Crown size={14} /> Admin</div>
-				<ul>
-					<li>Can open the admin dashboard.</li>
-					<li>Can also use the staff app.</li>
-					<li>Can manage roles and operations.</li>
-				</ul>
+
+			<div class="role-info-block">
+				<h4><Shield size={15} /> How to Assign</h4>
+				<ol>
+					<li>Pick or create a member.</li>
+					<li>Set `Staff` for normal work.</li>
+					<li>Set `Admin` for full control.</li>
+				</ol>
 			</div>
-			<div class="role-guide-card">
-				<div class="role-guide-badge staff"><ShieldCheck size={14} /> Staff</div>
-				<ul>
-					<li>Can use the staff app only.</li>
-					<li>Can handle bookings and services.</li>
-					<li>Can all be removed if needed.</li>
-				</ul>
+
+			<div class="role-info-footer">
+				<button class="role-btn role-btn-secondary" onclick={() => (showRoleInfoModal = false)}>Got it</button>
 			</div>
-			<div class="role-inline-note warning">
-				<AlertTriangle size={14} />
-				<span>The last admin is always protected from removal.</span>
-			</div>
-		</section>
+		</div>
 	</div>
 {/if}
 
@@ -784,8 +746,6 @@
 	}
 
 	.role-hero-count,
-	.role-hero-note,
-	.role-safety-banner,
 	.role-inline-note {
 		display: flex;
 		align-items: flex-start;
@@ -813,18 +773,36 @@
 	}
 
 	.role-hero-count > :global(svg),
-	.role-safety-banner > :global(svg),
 	.role-inline-note > :global(svg) {
 		flex-shrink: 0;
 		color: var(--admin-accent);
 		margin-top: 1px;
 	}
 
-	.role-hero-note.warning,
-	.role-safety-banner.warning,
 	.role-inline-note.warning {
 		background: var(--admin-orange-light);
 		border-color: rgba(255, 159, 10, 0.24);
+	}
+
+	.role-info-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 42px;
+		padding: 0 14px;
+		border-radius: var(--admin-radius-md);
+		border: 1px solid rgba(94, 92, 230, 0.26);
+		background: rgba(94, 92, 230, 0.13);
+		color: var(--admin-indigo);
+		font-size: 13px;
+		font-weight: 700;
+		font-family: var(--admin-font);
+		cursor: pointer;
+	}
+
+	.role-info-btn:hover {
+		filter: brightness(1.05);
 	}
 
 	.role-overview {
@@ -896,6 +874,12 @@
 
 	.role-tabs {
 		margin-bottom: 18px;
+	}
+
+	.role-topbar {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: 12px;
 	}
 
 	.role-tabs .admin-segment-btn {
@@ -1262,6 +1246,116 @@
 		backdrop-filter: blur(4px);
 	}
 
+	.role-info-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 210;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 18px;
+		background: rgba(9, 11, 20, 0.72);
+		backdrop-filter: blur(6px);
+	}
+
+	.role-info-modal {
+		width: 100%;
+		max-width: 560px;
+		max-height: 86vh;
+		overflow: auto;
+		padding: 18px;
+		border-radius: 18px;
+		border: 1px solid var(--admin-border);
+		background: linear-gradient(180deg, var(--admin-surface), var(--admin-bg));
+		box-shadow: 0 22px 56px rgba(0, 0, 0, 0.35);
+	}
+
+	.role-info-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 16px;
+	}
+
+	.role-info-title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.role-info-icon {
+		width: 34px;
+		height: 34px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10px;
+		background: rgba(94, 92, 230, 0.16);
+		color: var(--admin-indigo);
+	}
+
+	.role-info-title h3 {
+		font-size: 18px;
+		font-weight: 800;
+		color: var(--admin-text-primary);
+	}
+
+	.role-info-title p {
+		margin-top: 2px;
+		font-size: 12px;
+		color: var(--admin-text-secondary);
+	}
+
+	.role-info-close {
+		width: 30px;
+		height: 30px;
+		border-radius: 10px;
+		border: 1px solid var(--admin-border);
+		background: var(--admin-surface);
+		color: var(--admin-text-secondary);
+		cursor: pointer;
+	}
+
+	.role-info-grid {
+		display: grid;
+		gap: 12px;
+		margin-bottom: 12px;
+	}
+
+	.role-info-card,
+	.role-info-block {
+		padding: 14px;
+		border-radius: 14px;
+		border: 1px solid var(--admin-border);
+		background: var(--admin-surface);
+	}
+
+	.role-info-card h4,
+	.role-info-block h4 {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--admin-text-primary);
+		margin-bottom: 8px;
+	}
+
+	.role-info-card ul,
+	.role-info-block ol {
+		padding-left: 18px;
+		color: var(--admin-text-secondary);
+		font-size: 12px;
+		line-height: 1.7;
+	}
+
+	.role-info-footer {
+		margin-top: 14px;
+		display: flex;
+		justify-content: flex-end;
+	}
+
 	.role-confirm-modal {
 		width: 100%;
 		max-width: 360px;
@@ -1310,6 +1404,10 @@
 		.role-add-layout,
 		.role-confirm-actions,
 		.role-editor-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.role-info-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
