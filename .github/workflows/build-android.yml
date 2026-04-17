@@ -61,27 +61,48 @@ jobs:
           npm run cap:sync:staff
           npm run cap:sync:admin
 
-      - name: 📱 Build Staff APK
+      - name: 📱 Build Staff APK (Release)
         run: |
           cd apps/staff-app/android
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
-      - name: 📱 Build Admin APK
+      - name: 📱 Build Admin APK (Release)
         run: |
           cd apps/admin-app/android
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
-      - name: 📛 Rename APKs
+      - name: 🔐 Sign Release APKs
         run: |
-          mv apps/staff-app/android/app/build/outputs/apk/debug/app-debug.apk apps/staff-app/android/app/build/outputs/apk/debug/Blancbeu-Stylist.apk
-          mv apps/admin-app/android/app/build/outputs/apk/debug/app-debug.apk apps/admin-app/android/app/build/outputs/apk/debug/Blancbeu-Admin.apk
+          # Use Android Build Tools from GitHub Runner
+          export APKSIGNER=$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner
 
-      - name: 📤 Upload APK Artifacts
+          if [ -z "${{ secrets.APP_KEYSTORE_B64 }}" ]; then
+            echo "🚀 Generating a brand new Production Keystore since one wasn't provided in Secrets..."
+            keytool -genkey -v -keystore blancbeu.keystore -alias blancbeu -keyalg RSA -keysize 2048 -validity 10000 -storepass "blancbeu123" -keypass "blancbeu123" -dname "CN=Blancbeu, OU=App, O=Blancbeu, C=IN"
+            export KS="blancbeu.keystore"
+          else
+            echo "✅ Using permanent secure Keystore found in GitHub Secrets!"
+            echo "${{ secrets.APP_KEYSTORE_B64 }}" | base64 --decode > blancbeu.keystore
+            export KS="blancbeu.keystore"
+          fi
+          
+          # Output the SHA-1 for Firebase Configuration
+          keytool -list -v -keystore $KS -alias blancbeu -storepass "blancbeu123" | grep "SHA1: " > sha1.txt
+          
+          # Sign the Staff APK
+          $APKSIGNER sign --ks $KS --ks-pass pass:blancbeu123 --key-pass pass:blancbeu123 --out apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk apps/staff-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          
+          # Sign the Admin APK
+          $APKSIGNER sign --ks $KS --ks-pass pass:blancbeu123 --key-pass pass:blancbeu123 --out apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk apps/admin-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: 📤 Upload Production APKs and Keystore
         uses: actions/upload-artifact@v4
         with:
-          name: Blancbeu-Native-APKs
+          name: Blancbeu-Production-Releases
           path: |
-            apps/staff-app/android/app/build/outputs/apk/debug/Blancbeu-Stylist.apk
-            apps/admin-app/android/app/build/outputs/apk/debug/Blancbeu-Admin.apk
+            apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk
+            apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk
+            blancbeu.keystore
+            sha1.txt

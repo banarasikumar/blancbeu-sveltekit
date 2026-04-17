@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.blancbeu.staff",
+      "sha256_cert_fingerprints": [
+        "ENTER_YOUR_SHA256_FINGERPRINT_HERE_LATER"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.blancbeu.admin",
+      "sha256_cert_fingerprints": [
+        "ENTER_YOUR_SHA256_FINGERPRINT_HERE_LATER"
+      ]
+    }
+  }
+]
