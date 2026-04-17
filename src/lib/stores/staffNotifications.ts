@@ -140,61 +140,100 @@ export function checkNotificationStatus() {
     notificationStatus.set(Notification.permission as NotificationsState);
 }
 
-export async function requestNotificationPermission(userId: string): Promise<boolean> {
+export interface StaffNotificationResult {
+    success: boolean;
+    token?: string;
+    error?: string;
+    step?: string;
+}
+
+export async function requestNotificationPermission(userId: string): Promise<StaffNotificationResult> {
+    console.log('[StaffNotifications] Starting permission request for user:', userId);
+
+    if (!browser) {
+        console.warn('[StaffNotifications] Not in browser environment');
+        return { success: false, error: 'Not in browser', step: 'browser_check' };
+    }
+
     if (!('Notification' in window)) {
-        console.warn('[Notifications] This browser does not support desktop notifications');
-        return false;
+        console.warn('[StaffNotifications] This browser does not support desktop notifications');
+        return { success: false, error: 'Browser does not support notifications', step: 'api_check' };
     }
 
     try {
         // Initialize messaging here directly — the module-level export is set
         // asynchronously and may still be null when this function is called.
+        console.log('[StaffNotifications] Checking messaging support...');
         const supported = await isSupported();
         if (!supported) {
-            console.warn('[Notifications] Messaging not supported in this browser');
-            return false;
+            console.warn('[StaffNotifications] Messaging not supported in this browser');
+            return { success: false, error: 'Messaging not supported', step: 'messaging_support' };
         }
-        const { app } = await import('$lib/firebase');
-        if (!app) return false;
-        const msgInstance = getMessaging(app);
+        console.log('[StaffNotifications] Messaging is supported');
 
-        console.log('[Notifications] Requesting permission...');
+        const { app } = await import('$lib/firebase');
+        if (!app) {
+            console.error('[StaffNotifications] Firebase app not initialized');
+            return { success: false, error: 'Firebase not initialized', step: 'firebase_app' };
+        }
+        console.log('[StaffNotifications] Firebase app obtained');
+
+        const msgInstance = getMessaging(app);
+        console.log('[StaffNotifications] Messaging instance created');
+
+        console.log('[StaffNotifications] Requesting permission...');
         const permission = await Notification.requestPermission();
         notificationStatus.set(permission as NotificationsState);
+        console.log('[StaffNotifications] Permission result:', permission);
 
-        if (permission === 'granted') {
-            console.log('[Notifications] Permission granted. Getting token...');
-            const swRegistration = await navigator.serviceWorker.ready;
-            console.log('[Notifications] Using active SW, scope:', swRegistration.scope);
-
-            const token = await getToken(msgInstance, {
-                vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
-                serviceWorkerRegistration: swRegistration
-            });
-
-            if (token) {
-                console.log('[Notifications] Token received, saving to user profile');
-                // Save token to user profile
-                const userRef = doc(db, 'users', userId);
-                // We store it as an array to support multiple devices in the future if needed
-                await setDoc(userRef, {
-                    fcmTokens: arrayUnion(token),
-                    updatedAt: new Date().toISOString()
-                }, { merge: true });
-                // Now that permission is granted, show the persistent notification
-                showListeningNotification();
-                return true;
-            } else {
-                console.warn('[Notifications] No registration token available.');
-                return false;
-            }
-        } else {
-            console.log('[Notifications] Permission not granted:', permission);
-            return false;
+        if (permission !== 'granted') {
+            console.warn('[StaffNotifications] Permission not granted:', permission);
+            return { success: false, error: `Permission ${permission}`, step: 'permission_request' };
         }
-    } catch (error) {
-        console.error('[Notifications] Error requesting permission:', error);
-        return false;
+
+        console.log('[StaffNotifications] Permission granted. Getting token...');
+        const swRegistration = await navigator.serviceWorker.ready;
+        console.log('[StaffNotifications] Using active SW, scope:', swRegistration.scope);
+
+        // Get VAPID key
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        if (!vapidKey) {
+            console.error('[StaffNotifications] VITE_FIREBASE_VAPID_KEY not configured');
+            return { success: false, error: 'VAPID key not configured', step: 'vapid_key' };
+        }
+        console.log('[StaffNotifications] VAPID key available');
+
+        const token = await getToken(msgInstance, {
+            vapidKey: vapidKey,
+            serviceWorkerRegistration: swRegistration
+        });
+
+        if (!token) {
+            console.warn('[StaffNotifications] No registration token available from getToken');
+            return { success: false, error: 'Failed to get FCM token', step: 'get_token' };
+        }
+
+        console.log('[StaffNotifications] Token received (first 20 chars):', token.substring(0, 20) + '...');
+        console.log('[StaffNotifications] Saving token to user profile for user:', userId);
+
+        // Save token to user profile
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+            fcmTokens: arrayUnion(token),
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        console.log('[StaffNotifications] SUCCESS: Token saved for user', userId);
+
+        // Now that permission is granted, show the persistent notification
+        showListeningNotification();
+
+        return { success: true, token: token, step: 'complete' };
+
+    } catch (error: any) {
+        console.error('[StaffNotifications] Error requesting permission:', error);
+        console.error('[StaffNotifications] Error stack:', error.stack);
+        return { success: false, error: error.message || 'Unknown error', step: 'exception' };
     }
 }
 

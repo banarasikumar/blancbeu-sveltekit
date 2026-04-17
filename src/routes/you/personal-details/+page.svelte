@@ -116,11 +116,11 @@
 <div class="page-container" in:fade={{ duration: 300 }}>
 	<!-- HEADER -->
 	<header class="page-header">
-		<button class="icon-btn" on:click={handleBack}>
+		<button class="icon-btn" onclick={handleBack}>
 			<ChevronLeft size={24} />
 		</button>
 		<h1 class="page-title">Personal Details</h1>
-		<button class="text-btn" on:click={toggleEdit}>
+		<button class="text-btn" onclick={toggleEdit}>
 			{isEditing ? 'Cancel' : 'Edit'}
 		</button>
 	</header>
@@ -146,7 +146,7 @@
 							class="camera-btn"
 							disabled={!isEditing}
 							class:hidden={!isEditing}
-							on:click={() => alert('Photo upload coming soon!')}
+							onclick={() => alert('Photo upload coming soon!')}
 						>
 							<Camera size={16} />
 						</button>
@@ -156,7 +156,7 @@
 				</div>
 
 				<!-- FORM SECTION -->
-				<form class="details-form" on:submit|preventDefault={saveDetails}>
+				<form class="details-form" onsubmit={(e) => { e.preventDefault(); saveDetails(); }}>
 					<!-- Full Name -->
 					<div class="form-group">
 						<label for="name" class="input-label">

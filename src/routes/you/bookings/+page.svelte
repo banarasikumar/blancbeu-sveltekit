@@ -286,7 +286,7 @@
 <div class="page-container">
 	<!-- HEADER -->
 	<header class="page-header" in:slide={{ duration: 400, axis: 'y' }}>
-		<button class="back-btn" on:click={() => goto('/you')}>
+		<button class="back-btn" onclick={() => goto('/you')}>
 			<ChevronLeft size={28} strokeWidth={1.5} />
 		</button>
 		<h1>My Bookings</h1>
@@ -298,25 +298,25 @@
 		<div class="filter-bar">
 			<button
 				class="filter-chip {currentFilter === 'all' ? 'active' : ''}"
-				on:click={() => applyFilter('all')}
+				onclick={() => applyFilter('all')}
 			>
 				All <span class="count">{counts.all}</span>
 			</button>
 			<button
 				class="filter-chip {currentFilter === 'upcoming' ? 'active' : ''}"
-				on:click={() => applyFilter('upcoming')}
+				onclick={() => applyFilter('upcoming')}
 			>
 				Upcoming <span class="count">{counts.upcoming}</span>
 			</button>
 			<button
 				class="filter-chip {currentFilter === 'confirmed' ? 'active' : ''}"
-				on:click={() => applyFilter('confirmed')}
+				onclick={() => applyFilter('confirmed')}
 			>
 				Confirmed <span class="count">{counts.confirmed}</span>
 			</button>
 			<button
 				class="filter-chip {currentFilter === 'previous' ? 'active' : ''}"
-				on:click={() => applyFilter('previous')}
+				onclick={() => applyFilter('previous')}
 			>
 				History <span class="count">{counts.previous}</span>
 			</button>
@@ -443,7 +443,7 @@
 			{:else}
 				<div class="empty-upcoming-card">
 					<p>You have no upcoming appointments.</p>
-					<button class="book-new-btn" on:click={() => goto('/booking')}>
+					<button class="book-new-btn" onclick={() => goto('/booking')}>
 						Book New Appointment ✨
 					</button>
 				</div>

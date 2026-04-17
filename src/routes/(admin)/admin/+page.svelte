@@ -13,7 +13,7 @@
 		Users,
 		Clock,
 		Plus,
-		UserPlus,
+		Shield,
 		Megaphone,
 		BarChart3,
 		FileText,
@@ -79,16 +79,16 @@
 			handler: () => goto('/admin/services')
 		},
 		{
-			label: 'Staff',
-			icon: UserPlus,
+			label: 'Roles',
+			icon: Shield,
 			bg: 'var(--admin-green)',
-			handler: () => showToast('Add Staff — coming soon!', 'success')
+			handler: () => goto('/admin/staff')
 		},
 		{
 			label: 'Notify',
 			icon: Megaphone,
 			bg: 'var(--admin-indigo)',
-			handler: () => showToast('Notifications — coming soon!', 'success')
+			handler: () => goto('/admin/notify')
 		},
 		{
 			label: 'Reports',

@@ -171,7 +171,7 @@
 <div class="page-container" in:fade={{ duration: 300 }}>
 	<!-- HEADER -->
 	<header class="page-header">
-		<button class="icon-btn" on:click={handleBack}>
+		<button class="icon-btn" onclick={handleBack}>
 			<ChevronLeft size={24} />
 		</button>
 		<h1 class="page-title">Addresses</h1>
@@ -191,7 +191,7 @@
 				</div>
 				<h3>No Addresses Found</h3>
 				<p>Add an address to speed up your bookings.</p>
-				<button class="cta-btn" on:click={openAddModal}>
+				<button class="cta-btn" onclick={openAddModal}>
 					<Plus size={20} /> Add New Address
 				</button>
 			</div>
@@ -219,17 +219,17 @@
 							<p class="addr-sub">{addr.city}, {addr.zipCode}</p>
 						</div>
 						<div class="card-actions">
-							<button class="action-btn edit" on:click={() => openEditModal(addr)}>
+							<button class="action-btn edit" onclick={() => openEditModal(addr)}>
 								<Edit2 size={16} />
 							</button>
-							<button class="action-btn delete" on:click={() => deleteAddress(addr.id)}>
+							<button class="action-btn delete" onclick={() => deleteAddress(addr.id)}>
 								<Trash2 size={16} />
 							</button>
 						</div>
 					</div>
 				{/each}
 
-				<button class="add-fab" on:click={openAddModal}>
+				<button class="add-fab" onclick={openAddModal}>
 					<Plus size={24} />
 				</button>
 			</div>
@@ -240,13 +240,15 @@
 	{#if showAddModal}
 		<div
 			class="modal-overlay"
+			role="none"
 			transition:fade={{ duration: 200 }}
-			on:click={() => (showAddModal = false)}
+			onclick={() => (showAddModal = false)}
+			onkeydown={(e) => e.key === 'Escape' && (showAddModal = false)}
 		>
-			<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} on:click|stopPropagation>
+			<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} onclick={(e) => e.stopPropagation()}>
 				<div class="modal-header">
 					<h2>{isEditing ? 'Edit Address' : 'New Address'}</h2>
-					<button class="close-btn" on:click={() => (showAddModal = false)}>
+					<button class="close-btn" onclick={() => (showAddModal = false)}>
 						<X size={20} />
 					</button>
 				</div>
@@ -258,7 +260,7 @@
 							<button
 								class="choice-chip"
 								class:active={formData.label === lbl}
-								on:click={() => (formData.label = lbl)}
+								onclick={() => (formData.label = lbl)}
 							>
 								{lbl}
 							</button>
@@ -292,7 +294,7 @@
 						<span class="checkbox-text">Set as default address</span>
 					</label>
 
-					<button class="save-btn-modal" on:click={saveAddress} disabled={saving}>
+					<button class="save-btn-modal" onclick={saveAddress} disabled={saving}>
 						{saving ? 'Saving...' : 'Save Address'}
 					</button>
 				</div>

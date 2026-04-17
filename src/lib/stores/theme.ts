@@ -9,24 +9,46 @@ export const THEME_COLORS: Record<Theme, string> = {
 	clean: '#F9F9F9'
 };
 
+const THEME_KEY = 'theme';
+const THEME_TOGGLED_AT_KEY = 'theme_toggled_at';
+const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+
+/** Returns time-based theme: clean (light) for day, gold (dark) for night */
+function getTimeBasedTheme(): Theme {
+	const hour = new Date().getHours();
+	// Daytime: 6 AM to 6 PM -> light theme
+	return (hour >= 6 && hour < 18) ? 'clean' : 'gold';
+}
+
 const getInitialTheme = (): Theme => {
-	if (browser) {
-		const hour = new Date().getHours();
-		// Daytime: 6 AM to 6 PM -> light theme
-		if (hour >= 6 && hour < 18) {
-			return 'clean';
-		}
-		// Evening or Nighttime -> dark theme
-		return 'gold';
+	if (!browser) return 'gold';
+
+	const savedTheme = localStorage.getItem(THEME_KEY) as Theme | null;
+	const toggledAtStr = localStorage.getItem(THEME_TOGGLED_AT_KEY);
+
+	// No previous manual toggle — use time-based auto theme
+	if (!toggledAtStr || !savedTheme) {
+		return getTimeBasedTheme();
 	}
-	return 'gold';
+
+	const toggledAt = parseInt(toggledAtStr, 10);
+	const elapsed = Date.now() - toggledAt;
+
+	// If last manual toggle was more than 12 hours ago, revert to auto
+	if (elapsed > TWELVE_HOURS_MS) {
+		localStorage.removeItem(THEME_TOGGLED_AT_KEY);
+		return getTimeBasedTheme();
+	}
+
+	// Last toggle was within 12 hours — keep user's choice
+	return savedTheme;
 };
 
 export const theme = writable<Theme>(getInitialTheme());
 
 if (browser) {
 	theme.subscribe((value) => {
-		localStorage.setItem('theme', value);
+		localStorage.setItem(THEME_KEY, value);
 
 		// Remove old themes
 		document.documentElement.removeAttribute('data-theme');
@@ -36,8 +58,6 @@ if (browser) {
 			document.documentElement.setAttribute('data-theme', value);
 		}
 	});
-
-	// Handle system preference or manual toggles if needed in future
 }
 
 export const toggleTheme = () => {
@@ -46,4 +66,9 @@ export const toggleTheme = () => {
 		if (current === 'glitch') return 'clean';
 		return 'gold';
 	});
+
+	// Save the toggle timestamp so the manual choice persists for 12 hours
+	if (browser) {
+		localStorage.setItem(THEME_TOGGLED_AT_KEY, Date.now().toString());
+	}
 };

@@ -90,6 +90,10 @@ let servicesUnsub: (() => void) | null = null;
 let previousBookings: Map<string, Booking> = new Map();
 let previousUserCount = 0;
 
+// Flags to skip notifications on initial snapshot load
+let isBookingsInitialLoad = true;
+let isUsersInitialLoad = true;
+
 // Helper to play notification sound
 async function playAdminNotification() {
 	const prefs = get(adminNotificationPrefs);
@@ -118,15 +122,25 @@ export function initBookingListener() {
 				...d.data()
 			})) as Booking[];
 			
-			const prefs = get(adminNotificationPrefs);
 			const newBookingsMap = new Map(bookings.map(b => [b.id, b]));
 			
-			// Check for new bookings and status changes
+			// On initial load, just populate the map — no toasts or notifications
+			if (isBookingsInitialLoad) {
+				console.log('[AdminData] Initial bookings load:', bookings.length, 'bookings (no toasts)');
+				isBookingsInitialLoad = false;
+				previousBookings = newBookingsMap;
+				allBookings.set(bookings);
+				return;
+			}
+			
+			const prefs = get(adminNotificationPrefs);
+			
+			// Check for new bookings and status changes (real-time only)
 			for (const booking of bookings) {
 				const prevBooking = previousBookings.get(booking.id);
 				
 				if (!prevBooking) {
-					// This is a new booking
+					// This is a genuinely new booking (arrived in real-time)
 					const isWalkIn = booking.accountType === 'walkin' || booking.createdBy?.startsWith('staff_');
 					
 					if ((isWalkIn && prefs.walkInOrders) || (!isWalkIn && prefs.newBookings)) {
@@ -202,8 +216,17 @@ export function initUserListener() {
 				...d.data()
 			})) as AppUser[];
 			
-			// Check for new users
-			if (previousUserCount > 0 && users.length > previousUserCount) {
+			// On initial load, just set data — no toasts
+			if (isUsersInitialLoad) {
+				console.log('[AdminData] Initial users load:', users.length, 'users (no toasts)');
+				isUsersInitialLoad = false;
+				previousUserCount = users.length;
+				allUsers.set(users);
+				return;
+			}
+			
+			// Check for new users (real-time only)
+			if (users.length > previousUserCount) {
 				const prefs = get(adminNotificationPrefs);
 				if (prefs.newUsers) {
 					// Find the new user(s)
@@ -279,6 +302,11 @@ export function destroyListeners() {
 		servicesUnsub();
 		servicesUnsub = null;
 	}
+	// Reset flags so next init skips toasts on initial load again
+	isBookingsInitialLoad = true;
+	isUsersInitialLoad = true;
+	previousBookings = new Map();
+	previousUserCount = 0;
 }
 
 // --- Status Update ---

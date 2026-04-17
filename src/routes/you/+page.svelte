@@ -241,7 +241,7 @@
 								{user.displayName ? user.displayName[0].toUpperCase() : 'U'}
 							</div>
 						{/if}
-						<button class="edit-btn-mini" on:click={() => alert('Change photo coming soon!')}>
+						<button class="edit-btn-mini" onclick={() => alert('Change photo coming soon!')}>
 							<Camera size={12} color="#000" />
 						</button>
 					</div>
@@ -250,7 +250,7 @@
 				<div class="profile-text-compact">
 					<h1 class="profile-name-small">
 						{user.displayName || 'Valued Member'}
-						<button class="edit-icon" on:click={editProfile}>✎</button>
+						<button class="edit-icon" onclick={editProfile}>✎</button>
 					</h1>
 					<p class="profile-email-small">{user.email}</p>
 					<!-- Tier Pill removed to reduce visual clutter and redundancy with the main card -->
@@ -273,7 +273,7 @@
 				<h2 class="section-title">Upcoming Appointment</h2>
 
 				{#if latestBooking}
-					<div class="ticket-widget" on:click={() => goto('/you/bookings')}>
+					<div class="ticket-widget" onclick={() => goto('/you/bookings')} onkeydown={(e) => e.key === 'Enter' && goto('/you/bookings')} role="button" tabindex="0">
 						<div class="ticket-content">
 							<!-- Top Row: Date & Status -->
 							<div class="ticket-header">
@@ -339,12 +339,12 @@
 					<div class="logout-confirmation" in:fade>
 						<p class="confirm-text">Are you sure you want to sign out?</p>
 						<div class="confirm-actions">
-							<button class="cancel-btn" on:click={cancelLogout}>Cancel</button>
-							<button class="confirm-btn" on:click={confirmLogout}>Yes, Sign Out</button>
+							<button class="cancel-btn" onclick={cancelLogout}>Cancel</button>
+							<button class="confirm-btn" onclick={confirmLogout}>Yes, Sign Out</button>
 						</div>
 					</div>
 				{:else}
-					<button class="logout-btn" on:click={handleLogout}>
+					<button class="logout-btn" onclick={handleLogout}>
 						<LogOut size={18} />
 						<span>Sign Out</span>
 					</button>

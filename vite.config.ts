@@ -1,13 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { imagetools } from 'vite-imagetools';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
 	plugins: [
 		sveltekit(),
-		imagetools(),
 		VitePWA({
 			strategies: 'injectManifest',
 			srcDir: 'src',
@@ -15,7 +13,8 @@ export default defineConfig({
 			registerType: 'autoUpdate',
 			injectRegister: 'auto',
 			injectManifest: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif,woff,woff2,ttf,mp3,json}']
+				globPatterns: ['**/*.{js,css,html,ico,woff,woff2,ttf,json}'],
+				globIgnores: ['**/node_modules/**', '**/dev-dist/**']
 			},
 			manifest: false // Multi-scope: Manifests are handled manually in static/
 		})
@@ -24,9 +23,17 @@ export default defineConfig({
 		host: true,
 		allowedHosts: ['staff.blancbeu.in', 'admin.blancbeu.in', 'www.blancbeu.in', 'blancbeu.in']
 	},
+	optimizeDeps: {
+		include: ['jspdf-autotable']
+	},
+	ssr: {
+		noExternal: ['jspdf-autotable'],
+		external: ['firebase-admin']
+	},
 	build: {
 		target: 'esnext',
 		minify: 'esbuild',
+		cssCodeSplit: true,
 		rollupOptions: {
 			output: {
 				manualChunks: (id) => {

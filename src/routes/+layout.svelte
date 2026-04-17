@@ -172,7 +172,7 @@
 	</div>
 {:else if isDesktop}
 	{#if SimulatorComponent}
-		<svelte:component this={SimulatorComponent}>
+		<SimulatorComponent>
 			<div id="app-root">
 				<Header />
 				<main class="app-content" class:immersive={isHomePage}>
@@ -182,7 +182,7 @@
 				<InstallPrompt />
 				<Toast />
 			</div>
-		</svelte:component>
+		</SimulatorComponent>
 	{/if}
 {:else}
 	<div id="app-root">

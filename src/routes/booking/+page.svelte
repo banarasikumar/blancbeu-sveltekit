@@ -529,7 +529,19 @@
 
 			// Request notification permission so the user receives booking status updates
 			if (auth.currentUser) {
-				requestUserNotificationPermission(auth.currentUser.uid).catch(() => {});
+				console.log('[Booking] Requesting notification permission for user:', auth.currentUser.uid);
+				requestUserNotificationPermission(auth.currentUser.uid)
+					.then((result) => {
+						console.log('[Booking] Notification permission result:', result);
+						if (result.success) {
+							console.log('[Booking] Successfully subscribed to notifications');
+						} else {
+							console.warn('[Booking] Failed to subscribe:', result.error, 'at step:', result.step);
+						}
+					})
+					.catch((err) => {
+						console.error('[Booking] Unexpected error requesting notification permission:', err);
+					});
 			}
 
 			// Trigger Confetti
