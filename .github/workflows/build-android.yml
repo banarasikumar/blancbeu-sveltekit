@@ -73,10 +73,15 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
+      - name: 📛 Rename APKs
+        run: |
+          mv apps/staff-app/android/app/build/outputs/apk/debug/app-debug.apk apps/staff-app/android/app/build/outputs/apk/debug/Blancbeu-Stylist.apk
+          mv apps/admin-app/android/app/build/outputs/apk/debug/app-debug.apk apps/admin-app/android/app/build/outputs/apk/debug/Blancbeu-Admin.apk
+
       - name: 📤 Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Blancbeu-Native-APKs
           path: |
-            apps/staff-app/android/app/build/outputs/apk/debug/app-debug.apk
-            apps/admin-app/android/app/build/outputs/apk/debug/app-debug.apk
+            apps/staff-app/android/app/build/outputs/apk/debug/Blancbeu-Stylist.apk
+            apps/admin-app/android/app/build/outputs/apk/debug/Blancbeu-Admin.apk
