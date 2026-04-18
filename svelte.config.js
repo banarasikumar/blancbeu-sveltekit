@@ -11,7 +11,8 @@ const config = {
 		// Ignore API endpoint rendering since they rely on literal node processes and cannot be physically baked into an APK
 		prerender: {
 			entries: isAndroidBuild ? [] : ['*']
-		}
+		},
+		appDir: isAndroidBuild ? 'app' : '_app'
 	}
 };
 
