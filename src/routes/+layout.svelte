@@ -6,7 +6,7 @@
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 	import SplashScreen from '$lib/components/layout/SplashScreen.svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { onNavigate, afterNavigate } from '$app/navigation';
+	import { onNavigate, afterNavigate, goto } from '$app/navigation';
 	import { initAuth } from '$lib/stores/auth';
 	import { playNotificationChime } from '$lib/utils/notificationSound';
 	import { page } from '$app/state';
@@ -35,6 +35,19 @@
 	let appleStatusBarStyle = $derived($theme === 'gold' ? 'black-translucent' : 'default');
 
 	onMount(async () => {
+		// Capacitor Native Soft Routing 
+		// Instead of triggering hard HTTP reloads via window.location.replace which instantly breaks offline SPA architectures,
+		// we securely push the application down the internal Svelte client routes exactly upon boot!
+		if (typeof window !== 'undefined' && window.location.pathname === '/') {
+			if (navigator.userAgent.includes('BlancbeuStaffNative')) {
+				goto('/staff', { replaceState: true });
+				return;
+			} else if (navigator.userAgent.includes('BlancbeuAdminNative')) {
+				goto('/admin', { replaceState: true });
+				return;
+			}
+		}
+
 		// Only init global user-app services if NOT on an admin or staff route.
 		// Admin and Staff layouts initialize their own dedicated Auth and Data listeners.
 		if (!isAdminRoute && !isStaffRoute) {

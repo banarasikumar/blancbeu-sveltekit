@@ -10,19 +10,7 @@
 			rel="stylesheet"
 		/>
 		%sveltekit.head%
-		<script>
-			// Capacitor Multi-App Magic Router
-			// By default, the WebView opens the root path '/'.
-			// We check the custom User-Agent from capacitor.config.ts
-			// and redirect to the correct portal instantly.
-			if (window.location.pathname === '/') {
-				if (navigator.userAgent.includes('BlancbeuStaffNative')) {
-					window.location.replace('/staff');
-				} else if (navigator.userAgent.includes('BlancbeuAdminNative')) {
-					window.location.replace('/admin');
-				}
-			}
-		</script>
+
 	</head>
 
 
