@@ -380,7 +380,11 @@
 			}
 
 			const idToken = await auth.currentUser.getIdToken();
-			const res = await fetch('/api/notifications/broadcast', {
+			const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
+				? 'https://blancbeu-sveltekit.vercel.app/api/notifications/broadcast' 
+				: '/api/notifications/broadcast';
+			
+			const res = await fetch(apiUrl, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

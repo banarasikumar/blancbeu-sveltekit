@@ -464,7 +464,11 @@
 		if (!msg) return;
 		try {
 			const idToken = await auth.currentUser.getIdToken();
-			fetch('/api/notifications/notifyUser', {
+			const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
+			? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyUser' 
+			: '/api/notifications/notifyUser';
+		
+		fetch(apiUrl, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
 				body: JSON.stringify({ userId, title: msg.title, body: msg.body(booking) })

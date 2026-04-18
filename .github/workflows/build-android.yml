@@ -34,12 +34,10 @@ jobs:
       - name: 📦 Install NPM Dependencies
         run: npm install
 
-      - name: 🏗️ Create Dummy Build Directory
-        # Capacitor CLI requires the webDir to physically exist during sync 
-        # even if it's set to use a live server URL.
+      - name: 🏗️ Compile Native Static Dist
         run: |
-          mkdir -p build
-          echo "<html><body>Loading...</body></html>" > build/index.html
+          export ANDROID_BUILD="true"
+          npm run build
 
       - name: 🔐 Inject Firebase Services (Staff App)
         # GitHub action will create the google-services.json file using the base64 encoded string stored in GitHub Secrets.

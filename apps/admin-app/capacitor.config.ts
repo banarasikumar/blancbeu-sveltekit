@@ -8,11 +8,7 @@ const config: CapacitorConfig = {
 	appName: 'Blancbeu Admin',
 	webDir: '../../build',
 
-	// The Live Wrapper Configuration
-	server: {
-		url: process.env.CAPACITOR_SERVER_URL || 'https://blancbeu-sveltekit.vercel.app',
-		cleartext: true
-	},
+
 
 	android: {
 		allowMixedContent: false,

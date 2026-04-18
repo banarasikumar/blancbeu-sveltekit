@@ -505,7 +505,11 @@
 				if (auth.currentUser) {
 					const idToken = await auth.currentUser.getIdToken();
 					const serviceNames = $cart.map((s) => s.name).join(', ');
-					const notifyRes = await fetch('/api/notifications/notifyStaff', {
+					const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
+						? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyStaff' 
+						: '/api/notifications/notifyStaff';
+					
+					const notifyRes = await fetch(apiUrl, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',

@@ -238,7 +238,11 @@
 				// Send targeted push notification to Admin
 				try {
 					const idToken = await currentUser.getIdToken();
-					await fetch('/api/notifications/notifyStaff', {
+					const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
+						? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyStaff' 
+						: '/api/notifications/notifyStaff';
+					
+					await fetch(apiUrl, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
