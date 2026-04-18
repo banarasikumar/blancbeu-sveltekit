@@ -77,7 +77,22 @@ async function initNativePush(userId: string, onMessage: ForegroundHandler): Pro
 		return () => {};
 	}
 
-	// 2. Register with FCM — triggers the 'registration' event below
+	// 2. Create the explicit Android Notification Channel for background OS handling
+	try {
+		await PushNotifications.createChannel({
+			id: 'bookings',
+			name: 'Bookings',
+			description: 'General booking updates and notifications',
+			importance: 5, // 5 = MAXIMUM (High priority, shows on screen)
+			visibility: 1, // 1 = PUBLIC (Show on lockscreen)
+			vibration: true
+		});
+		console.log('[PushService] Android Notification Channel "bookings" verified.');
+	} catch (e) {
+		console.warn('[PushService] Could not create explicit notification channel:', e);
+	}
+
+	// 3. Register with FCM — triggers the 'registration' event below
 	await PushNotifications.register();
 
 	// 3. Persist the FCM device token when we receive it
