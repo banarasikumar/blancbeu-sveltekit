@@ -31,7 +31,6 @@ export default defineConfig({
 		external: ['firebase-admin']
 	},
 	build: {
-		target: 'esnext',
 		minify: 'esbuild',
 		cssCodeSplit: true,
 		rollupOptions: {
