@@ -7,8 +7,9 @@ const config: CapacitorConfig = {
 	appId: 'in.blancbeu.staff',
 	appName: 'Blancbeu Stylist',
 	// The Live Wrapper Configuration
+	webDir: 'www',
 	server: {
-		url: process.env.CAPACITOR_SERVER_URL || 'https://blancbeu-sveltekit.vercel.app',
+		url: process.env.CAPACITOR_SERVER_URL || 'https://blancbeu-sveltekit.vercel.app/staff',
 		cleartext: true,
 		errorPath: 'offline.html'
 	},
