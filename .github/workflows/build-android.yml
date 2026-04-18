@@ -37,7 +37,7 @@ jobs:
       - name: 🏗️ Compile Native Static Dist
         run: |
           export ANDROID_BUILD="true"
-          echo -e "export const ssr = false;\nexport const prerender = true;" > src/routes/+layout.ts
+          echo "export const ssr = false;" > src/routes/+layout.ts
           npm run build
 
       - name: 🔐 Inject Firebase Services (Staff App)
