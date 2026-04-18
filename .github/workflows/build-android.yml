@@ -38,6 +38,9 @@ jobs:
         run: |
           mkdir -p build
           cp -r static/* build/
+          touch build/index.html
+          mkdir -p apps/staff-app/android/app/src/main/assets
+          mkdir -p apps/admin-app/android/app/src/main/assets
 
       - name: 🔐 Inject Firebase Services (Staff App)
         # GitHub action will create the google-services.json file using the base64 encoded string stored in GitHub Secrets.
