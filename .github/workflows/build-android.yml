@@ -34,11 +34,10 @@ jobs:
       - name: 📦 Install NPM Dependencies
         run: npm install
 
-      - name: 🏗️ Compile Native Static Dist
+      - name: 🏗️ Setup Native Offline Fallbacks
         run: |
-          export ANDROID_BUILD="true"
-          echo "export const ssr = false;" > src/routes/+layout.ts
-          npm run build
+          mkdir -p build
+          cp -r static/* build/
 
       - name: 🔐 Inject Firebase Services (Staff App)
         # GitHub action will create the google-services.json file using the base64 encoded string stored in GitHub Secrets.

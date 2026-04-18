@@ -6,9 +6,12 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
 	appId: 'in.blancbeu.staff',
 	appName: 'Blancbeu Stylist',
-	webDir: '../../build',
-
-
+	// The Live Wrapper Configuration
+	server: {
+		url: process.env.CAPACITOR_SERVER_URL || 'https://blancbeu-sveltekit.vercel.app',
+		cleartext: true,
+		errorPath: 'offline.html'
+	},
 
 	android: {
 		allowMixedContent: false,
