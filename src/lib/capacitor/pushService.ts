@@ -48,17 +48,18 @@ async function saveToken(
 	token: string,
 	platform: 'web' | 'android'
 ): Promise<void> {
-	const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+	const { doc, setDoc, arrayUnion } = await import('firebase/firestore');
 	const { db } = await import('$lib/firebase');
 
-	const tokenRef = doc(db, 'users', userId, 'fcmTokens', token);
+	// Store the token in the same fcmTokens array field on the user document
+	// that notifyStaff/+server.ts and broadcast/+server.ts read from.
+	const userRef = doc(db, 'users', userId);
 	await setDoc(
-		tokenRef,
+		userRef,
 		{
-			token,
-			platform,
-			updatedAt: serverTimestamp(),
-			active: true
+			fcmTokens: arrayUnion(token),
+			fcmPlatform: platform,
+			updatedAt: new Date().toISOString()
 		},
 		{ merge: true }
 	);
