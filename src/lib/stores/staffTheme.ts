@@ -60,6 +60,21 @@ function applyTheme(mode: ThemeMode) {
 		el.classList.remove('light', 'dark');
 		el.classList.add(resolved);
 	}
+
+	// Dynamically update Capacitor Status Bar natively
+	import('@capacitor/core').then(({ Capacitor }) => {
+		if (Capacitor.isNativePlatform()) {
+			import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+				const bgColor = resolved === 'dark' ? '#121212' : '#f8fafc';
+				StatusBar.setBackgroundColor({ color: bgColor }).catch(console.warn);
+				
+				// 'dark' mode -> dark background -> light text/icons (Style.Dark)
+				// 'light' mode -> light background -> dark text/icons (Style.Light)
+				const style = resolved === 'dark' ? Style.Dark : Style.Light;
+				StatusBar.setStyle({ style }).catch(console.warn);
+			}).catch(console.warn);
+		}
+	}).catch(() => {});
 }
 
 export function setTheme(mode: ThemeMode) {

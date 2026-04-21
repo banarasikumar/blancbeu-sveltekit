@@ -29,11 +29,11 @@
 	});
 
 	const filters = [
-		{ key: 'upcoming', label: '📅 Today', emoji: '📅' },
+		{ key: 'upcoming', label: '📅 Upcoming', emoji: '📅' },
 		{ key: 'pending', label: '⏳ Pending', emoji: '⏳' },
 		{ key: 'completed', label: '✅ Done', emoji: '✅' },
-		{ key: 'cancelled', label: '❌ Cancelled', emoji: '❌' },
-		{ key: 'all', label: '📋 All', emoji: '📋' }
+		{ key: 'all', label: '📋 All', emoji: '📋' },
+		{ key: 'cancelled', label: '❌ Cancelled', emoji: '❌' }
 	];
 
 	let filteredBookings = $derived(() => {
@@ -230,7 +230,29 @@
 		return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0])); // newest-first for all other filters
 	});
 
-	let pendingBadge = $derived($staffBookings.filter((b) => b.status === 'pending').length);
+	let filterCounts = $derived(() => {
+		const today = new Date().toISOString().split('T')[0];
+		const counts: Record<string, number> = {
+			upcoming: 0,
+			pending: 0,
+			completed: 0,
+			cancelled: 0,
+			all: $staffBookings.length
+		};
+		
+		for (const b of $staffBookings) {
+			if (b.status === 'pending') counts.pending++;
+			if (b.status === 'completed') counts.completed++;
+			if (b.status === 'cancelled') counts.cancelled++;
+			
+			if (b.date === today) {
+				counts.upcoming++;
+			} else if (b.date > today && b.status !== 'completed' && b.status !== 'cancelled') {
+				counts.upcoming++;
+			}
+		}
+		return counts;
+	});
 </script>
 
 <div class="bookings-page">
@@ -274,8 +296,8 @@
 				}}
 			>
 				{filter.label}
-				{#if filter.key === 'upcoming' && pendingBadge > 0}
-					<span class="pill-badge">{pendingBadge}</span>
+				{#if filterCounts()[filter.key] > 0}
+					<span class="pill-badge">{filterCounts()[filter.key]}</span>
 				{/if}
 			</button>
 		{/each}
@@ -288,16 +310,28 @@
 
 	<!-- Grouped Bookings -->
 	{#if filteredBookings().length === 0}
-		<EmptyState
-			icon="🔍"
-			title="No bookings found"
-			description={searchQuery ? 'Try a different search' : 'No bookings match this filter'}
-			actionLabel="Clear Filters"
-			onAction={() => {
-				searchQuery = '';
-				activeFilter = 'all';
-			}}
-		/>
+		{#if activeFilter === 'upcoming'}
+			<EmptyState
+				icon="📅"
+				title="No bookings for today"
+				description={searchQuery ? 'Try a different search' : 'No upcoming bookings'}
+				actionLabel={searchQuery ? "Clear Filters" : ""}
+				onAction={() => {
+					searchQuery = '';
+				}}
+			/>
+		{:else}
+			<EmptyState
+				icon="🔍"
+				title="No bookings found"
+				description={searchQuery ? 'Try a different search' : 'No bookings match this filter'}
+				actionLabel="Clear Filters"
+				onAction={() => {
+					searchQuery = '';
+					activeFilter = 'all';
+				}}
+			/>
+		{/if}
 	{:else}
 		<div class="bookings-list s-stagger">
 			{#if activeFilter === 'upcoming'}

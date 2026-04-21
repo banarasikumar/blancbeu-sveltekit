@@ -44,7 +44,7 @@
 	type OrderItem = {
 		id: string; // 'custom' or serviceId
 		name: string;
-		price: number;
+		price: number | '';
 		duration?: number;
 	};
 
@@ -185,10 +185,16 @@
 			...selectedServices,
 			{
 				id: `custom_${Date.now()}`,
-				name: 'Custom Service',
-				price: 0
+				name: '',
+				price: ''
 			}
 		];
+		setTimeout(() => {
+			const inputs = document.querySelectorAll('.name-input');
+			if (inputs.length > 0) {
+				(inputs[inputs.length - 1] as HTMLInputElement).focus();
+			}
+		}, 0);
 	}
 
 	function getNextAvailableSlot(): { date: string; time: string } {
@@ -783,7 +789,17 @@
 											type="text"
 											bind:value={item.name}
 											class="name-input"
-											placeholder="Service Name"
+											placeholder="Type service name..."
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													const row = e.currentTarget.closest('.s-info');
+													if (row) {
+														const priceInput = row.querySelector('.price-input');
+														if (priceInput) (priceInput as HTMLInputElement).focus();
+													}
+												}
+											}}
 										/>
 										<div class="s-price-edit">
 											<span>₹</span>
@@ -1130,38 +1146,38 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
-		background: rgba(0, 0, 0, 0.5);
+		background: var(--s-bg-primary);
 		display: flex;
 		justify-content: center;
-		align-items: flex-end;
+		align-items: stretch;
 		z-index: 9999;
-		backdrop-filter: blur(6px);
 	}
 
 	@media (min-width: 768px) {
 		.modal-backdrop {
-			align-items: center;
+			align-items: stretch;
 		}
 	}
 
 	/* Modal Content */
 	.modal-content {
-		background: var(--s-bg, #f8f9fa);
+		background: var(--s-bg-primary);
 		width: 100%;
-		max-width: 500px;
-		border-radius: var(--s-radius-2xl, 24px) var(--s-radius-2xl, 24px) 0 0;
-		max-height: 92vh;
+		max-width: 100%;
+		height: 100%;
+		max-height: 100vh;
+		border-radius: 0;
 		display: flex;
 		flex-direction: column;
 		animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-		box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
+		box-shadow: none;
 		overflow: hidden;
 	}
 
 	@media (min-width: 768px) {
 		.modal-content {
-			border-radius: var(--s-radius-2xl, 20px);
-			animation: fadeIn 0.3s ease-out;
+			border-radius: 0;
+			animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 		}
 	}
 
@@ -1454,14 +1470,19 @@
 		margin: 0;
 	}
 
+	:global(.staff-app.dark) .ov-notes {
+		background: rgba(245, 158, 11, 0.15); /* Warning/yellow background */
+		color: #fbbf24;
+	}
+
 	.ov-notes.ov-notes-empty {
 		background: var(--s-bg-tertiary, #f3f4f6);
 		color: var(--s-text-tertiary, #9ca3af);
 		font-weight: 400;
 	}
 	:global(.staff-app.dark) .ov-notes.ov-notes-empty {
-		background: rgba(255, 255, 255, 0.04);
-		color: rgba(255, 255, 255, 0.35);
+		background: var(--s-bg-tertiary);
+		color: var(--s-text-tertiary);
 	}
 
 	/* Payment Section in Overview */
@@ -1628,7 +1649,7 @@
 		border: 1px solid var(--s-border, #e5e7eb);
 		border-radius: var(--s-radius-md, 10px);
 		font-size: 0.95rem;
-		background: var(--s-bg, #f8f9fa);
+		background: var(--s-bg-tertiary);
 		font-family: inherit;
 		color: var(--s-text-primary, #1a1a2e);
 		transition:
@@ -1914,7 +1935,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 12px 14px;
-		background: var(--s-bg, #f8f9fa);
+		background: var(--s-bg-tertiary);
 		border: 1px solid var(--s-border, #e5e7eb);
 		border-radius: var(--s-radius-md, 10px);
 		font-size: 0.95rem;
