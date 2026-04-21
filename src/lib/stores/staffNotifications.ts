@@ -298,8 +298,10 @@ export async function requestNotificationPermission(userId: string, appType: 'st
                     console.log('[StaffNotifications] Native push registration success, token:', token.value);
                     try {
                         const userRef = doc(db, 'users', userId);
+                        const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
                         await setDoc(userRef, {
                             fcmTokens: arrayUnion(token.value),
+                            [tokenField]: arrayUnion(token.value),
                             updatedAt: new Date().toISOString()
                         }, { merge: true });
                         // Also mark push as enabled for this app in Firestore
@@ -400,8 +402,10 @@ export async function requestNotificationPermission(userId: string, appType: 'st
 
         // Save token to user profile
         const userRef = doc(db, 'users', userId);
+        const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
         await setDoc(userRef, {
             fcmTokens: arrayUnion(token),
+            [tokenField]: arrayUnion(token),
             updatedAt: new Date().toISOString()
         }, { merge: true });
 

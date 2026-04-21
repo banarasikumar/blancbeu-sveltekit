@@ -79,7 +79,15 @@ export async function POST({ request }) {
                     }
                 }
 
-                if (data.fcmTokens && Array.isArray(data.fcmTokens) && data.fcmTokens.length > 0) {
+                // Determine which token array to use based on the role we are currently notifying
+                let tokensToUse: string[] = [];
+                if (role === 'admin' && data.adminPushEnabled !== false && Array.isArray(data.adminFcmTokens)) {
+                    tokensToUse = data.adminFcmTokens;
+                } else if (role === 'staff' && data.staffPushEnabled !== false && Array.isArray(data.staffFcmTokens)) {
+                    tokensToUse = data.staffFcmTokens;
+                }
+
+                if (tokensToUse.length > 0) {
                     const sound = data.preferredSound || 'default';
                     const finalSound = sound === 'custom' ? 'default' : sound;
                     
@@ -87,7 +95,7 @@ export async function POST({ request }) {
                     if (!batches[batchKey]) {
                         batches[batchKey] = { tokens: [], role, sound: finalSound };
                     }
-                    batches[batchKey].tokens.push(...data.fcmTokens);
+                    batches[batchKey].tokens.push(...tokensToUse);
                 }
             });
         }

@@ -153,7 +153,7 @@
 					const uid = auth?.currentUser?.uid;
 					if (!uid) return;
 
-					unsubPush = await initPush(uid, (msg) => {
+					unsubPush = await initPush(uid, 'admin', (msg) => {
 						adminNotifications.add({
 							type: 'new_booking',
 							title: msg.title,

@@ -84,7 +84,7 @@
 					// initPush picks the right path automatically:
 					//   native APK → Capacitor + FCM via GPS (reliable)
 					//   browser PWA → firebase/messaging (existing behaviour)
-					unsubPush = await initPush(uid, (msg) => {
+					unsubPush = await initPush(uid, 'staff', (msg) => {
 						playSelectedNotificationSound(0.7);
 						showToast(msg.body ? `${msg.title}: ${msg.body}` : msg.title, 'success');
 						notifications.add({

@@ -46,18 +46,21 @@ type Unsubscribe = () => void;
 async function saveToken(
 	userId: string,
 	token: string,
-	platform: 'web' | 'android'
+	platform: 'web' | 'android',
+	appType: 'staff' | 'admin'
 ): Promise<void> {
 	const { doc, setDoc, arrayUnion } = await import('firebase/firestore');
 	const { db } = await import('$lib/firebase');
 
-	// Store the token in the same fcmTokens array field on the user document
-	// that notifyStaff/+server.ts and broadcast/+server.ts read from.
+	const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
 	const userRef = doc(db, 'users', userId);
+	
+	// Also save to legacy fcmTokens to ensure backward compatibility with broadcast/+server.ts
 	await setDoc(
 		userRef,
 		{
 			fcmTokens: arrayUnion(token),
+			[tokenField]: arrayUnion(token),
 			fcmPlatform: platform,
 			updatedAt: new Date().toISOString()
 		},
@@ -67,7 +70,7 @@ async function saveToken(
 
 // ─── Native path (Capacitor + FCM via Google Play Services) ──────────────────
 
-async function initNativePush(userId: string, onMessage: ForegroundHandler): Promise<Unsubscribe> {
+async function initNativePush(userId: string, appType: 'staff' | 'admin', onMessage: ForegroundHandler): Promise<Unsubscribe> {
 	// Dynamic import — this package only exists in the native build context.
 	const { PushNotifications } = await import('@capacitor/push-notifications');
 
@@ -139,7 +142,7 @@ async function initNativePush(userId: string, onMessage: ForegroundHandler): Pro
 	// 3. Persist the FCM device token when we receive it
 	const regListener = await PushNotifications.addListener('registration', async (token) => {
 		console.log('[PushService] Native FCM token:', token.value);
-		await saveToken(userId, token.value, 'android');
+		await saveToken(userId, token.value, 'android', appType);
 	});
 
 	// 4. Handle token errors
@@ -198,7 +201,7 @@ async function initNativePush(userId: string, onMessage: ForegroundHandler): Pro
 
 // ─── Web / PWA path (Firebase Messaging via browser push API) ─────────────────
 
-async function initWebPush(userId: string, onMessage: ForegroundHandler): Promise<Unsubscribe> {
+async function initWebPush(userId: string, appType: 'staff' | 'admin', onMessage: ForegroundHandler): Promise<Unsubscribe> {
 	const { isSupported, getMessaging, getToken, onMessage: onFCMMessage } = await import(
 		'firebase/messaging'
 	);
@@ -220,7 +223,7 @@ async function initWebPush(userId: string, onMessage: ForegroundHandler): Promis
 			serviceWorkerRegistration: await navigator.serviceWorker.ready
 		});
 		if (token) {
-			await saveToken(userId, token, 'web');
+			await saveToken(userId, token, 'web', appType);
 		}
 	} catch (err) {
 		console.error('[PushService] Web token error:', err);
@@ -244,16 +247,17 @@ async function initWebPush(userId: string, onMessage: ForegroundHandler): Promis
  * Initialize push notifications for the given user.
  *
  * @param userId  - Firebase Auth UID
+ * @param appType - 'staff' or 'admin'
  * @param onMessage - Callback for foreground messages (show toast / sound)
  * @returns Unsubscribe function — call in onDestroy()
  */
-export async function initPush(userId: string, onMessage: ForegroundHandler): Promise<Unsubscribe> {
+export async function initPush(userId: string, appType: 'staff' | 'admin', onMessage: ForegroundHandler): Promise<Unsubscribe> {
 	if (isNative()) {
 		console.log('[PushService] Running in native Capacitor shell → using FCM native path');
-		return initNativePush(userId, onMessage);
+		return initNativePush(userId, appType, onMessage);
 	} else {
 		console.log('[PushService] Running in browser → using FCM web push path');
-		return initWebPush(userId, onMessage);
+		return initWebPush(userId, appType, onMessage);
 	}
 }
 
