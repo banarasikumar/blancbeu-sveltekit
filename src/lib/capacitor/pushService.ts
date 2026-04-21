@@ -156,9 +156,9 @@ async function initNativePush(userId: string, onMessage: ForegroundHandler): Pro
 		(notification) => {
 			const timeSinceResume = Date.now() - lastResumedAt;
 
-			// If the app is not in foreground, or just resumed within 2 seconds,
+			// If the app is not in foreground, or just resumed within 6 seconds,
 			// this is a background-delivered notification being re-fired — suppress it.
-			if (!isAppInForeground || timeSinceResume < 2000) {
+			if (!isAppInForeground || timeSinceResume < 6000) {
 				console.log(
 					'[PushService] Suppressing duplicate foreground handler (bg→fg transition)',
 					{ isAppInForeground, timeSinceResume }
