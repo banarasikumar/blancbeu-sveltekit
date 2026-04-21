@@ -167,5 +167,9 @@ export {
 	requestNotificationPermission,
 	disableNotifications,
 	notificationStatus,
-	checkNotificationStatus
+	checkNotificationStatus,
+	loadPushEnabled,
+	savePushEnabled,
+	adminPushEnabled,
+	staffPushEnabled
 } from './staffNotifications';

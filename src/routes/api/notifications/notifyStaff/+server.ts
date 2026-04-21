@@ -55,6 +55,15 @@ export async function POST({ request }) {
             usersSnapshot.forEach((doc) => {
                 const data = doc.data();
 
+                // Check per-app push enabled flag — if user has explicitly disabled
+                // push for this app role, skip them entirely (Bug #2 fix)
+                if (role === 'admin' && data.adminPushEnabled === false) {
+                    return; // Admin has disabled push notifications for admin app
+                }
+                if (role === 'staff' && data.staffPushEnabled === false) {
+                    return; // Staff has disabled push notifications for staff app
+                }
+
                 // If a notification type was specified, check if the user has explicitly disabled it
                 if (notificationType && data.notificationPreferences) {
                     if (data.notificationPreferences[notificationType] === false) {

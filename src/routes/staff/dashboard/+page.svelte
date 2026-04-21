@@ -24,13 +24,18 @@
 		showListeningNotification
 	} from '$lib/stores/staffNotifications';
 
-	onMount(() => {
-		checkNotificationStatus();
+	onMount(async () => {
+		// Load push enabled state from Firestore for staff app
+		if ($staffUser) {
+			await checkNotificationStatus($staffUser.uid, 'staff');
+		} else {
+			checkNotificationStatus();
+		}
 
 		// Auto-prompt to enable push notifications if not decided yet
 		setTimeout(() => {
 			if ($notificationStatus === 'default' && $staffUser) {
-				requestNotificationPermission($staffUser.uid).then((success) => {
+				requestNotificationPermission($staffUser.uid, 'staff').then((success) => {
 					if (success) {
 						showToast('Push Notifications Enabled!', 'success');
 					}

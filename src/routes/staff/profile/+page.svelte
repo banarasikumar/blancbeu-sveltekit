@@ -46,8 +46,13 @@
 
 	let isAvailable = $state(true);
 
-	onMount(() => {
-		checkNotificationStatus();
+	onMount(async () => {
+		// Load push enabled state from Firestore for staff app
+		if ($staffUser) {
+			await checkNotificationStatus($staffUser.uid, 'staff');
+		} else {
+			checkNotificationStatus();
+		}
 	});
 
 	let showDeniedModal = $state(false);
@@ -61,11 +66,8 @@
 		if ($notificationStatus === 'granted') {
 			// Disable
 			if (!$staffUser) return;
-			const success = await disableNotifications($staffUser.uid);
+			const success = await disableNotifications($staffUser.uid, 'staff');
 			if (success) {
-				// Manually update local state to reflect it's effectively "off" for this app
-				// even if browser permission is still granted
-				$notificationStatus = 'default' as any;
 				showToast('Push Notifications Disabled', 'success');
 			} else {
 				showToast('Failed to disable notifications', 'error');
@@ -75,7 +77,7 @@
 
 		// Enable
 		if (!$staffUser) return;
-		const success = await requestNotificationPermission($staffUser.uid);
+		const success = await requestNotificationPermission($staffUser.uid, 'staff');
 		if (success) {
 			showToast('Push Notifications Enabled!', 'success');
 		} else if (Notification.permission === 'denied') {

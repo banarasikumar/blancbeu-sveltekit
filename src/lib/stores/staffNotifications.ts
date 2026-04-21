@@ -1,10 +1,75 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { getToken, getMessaging, isSupported } from 'firebase/messaging';
-import { doc, setDoc, arrayUnion } from 'firebase/firestore';
+import { doc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 import { browser } from '$app/environment';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+
+// ---------------------------------------------------------------------------
+// Per-app push enabled state — persisted in Firestore at account level
+// ---------------------------------------------------------------------------
+// These flags are stored on the user document as `staffPushEnabled` / `adminPushEnabled`.
+// They allow each app to independently enable/disable push notifications without
+// affecting the other app, even when both apps share the same Firebase user.
+
+export const staffPushEnabled = writable<boolean>(true);
+export const adminPushEnabled = writable<boolean>(true);
+
+// Track which app context we're in, set during loadPushEnabled
+let _currentAppContext: 'staff' | 'admin' = 'staff';
+
+/**
+ * Load the push enabled state for a specific app from Firestore.
+ * Call this on mount in the respective app's settings/profile page.
+ */
+export async function loadPushEnabled(userId: string, appType: 'staff' | 'admin'): Promise<boolean> {
+    _currentAppContext = appType;
+    try {
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            const fieldName = appType === 'admin' ? 'adminPushEnabled' : 'staffPushEnabled';
+            // Default to true if field doesn't exist (backwards compat)
+            const enabled = data[fieldName] !== false;
+            if (appType === 'admin') {
+                adminPushEnabled.set(enabled);
+            } else {
+                staffPushEnabled.set(enabled);
+            }
+            return enabled;
+        }
+    } catch (e) {
+        console.error(`[Notifications] Failed to load ${appType} push enabled state:`, e);
+    }
+    return true; // default to enabled
+}
+
+/**
+ * Save the push enabled state for a specific app to Firestore.
+ */
+export async function savePushEnabled(userId: string, appType: 'staff' | 'admin', enabled: boolean): Promise<boolean> {
+    try {
+        const userRef = doc(db, 'users', userId);
+        const fieldName = appType === 'admin' ? 'adminPushEnabled' : 'staffPushEnabled';
+        await setDoc(userRef, {
+            [fieldName]: enabled,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        
+        if (appType === 'admin') {
+            adminPushEnabled.set(enabled);
+        } else {
+            staffPushEnabled.set(enabled);
+        }
+        console.log(`[Notifications] Saved ${appType} push enabled = ${enabled}`);
+        return true;
+    } catch (e) {
+        console.error(`[Notifications] Failed to save ${appType} push enabled:`, e);
+        return false;
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Sound preference — persisted in localStorage
@@ -156,7 +221,22 @@ export async function closeListeningNotification() {
     } catch (e) { /* ignore */ }
 }
 
-export async function checkNotificationStatus() {
+/**
+ * Check notification status, combining OS permission with per-app Firestore flag.
+ * If the user has opted out at the app level (Firestore flag = false), we report
+ * 'default' (i.e. "off") even if the OS permission is 'granted'.
+ */
+export async function checkNotificationStatus(userId?: string, appType?: 'staff' | 'admin') {
+    // If userId and appType provided, load the Firestore push enabled state
+    if (userId && appType) {
+        const enabled = await loadPushEnabled(userId, appType);
+        if (!enabled) {
+            // User has explicitly disabled push for this app — show as "off"
+            notificationStatus.set('default');
+            return;
+        }
+    }
+
     if (Capacitor.isNativePlatform()) {
         try {
             await ensureNotificationChannels();
@@ -188,8 +268,9 @@ export interface StaffNotificationResult {
     step?: string;
 }
 
-export async function requestNotificationPermission(userId: string): Promise<StaffNotificationResult> {
-    console.log('[StaffNotifications] Starting permission request for user:', userId);
+export async function requestNotificationPermission(userId: string, appType: 'staff' | 'admin' = _currentAppContext): Promise<StaffNotificationResult> {
+    console.log(`[StaffNotifications] Starting permission request for user: ${userId} (app: ${appType})`);
+    _currentAppContext = appType;
 
     if (Capacitor.isNativePlatform()) {
         try {
@@ -221,6 +302,8 @@ export async function requestNotificationPermission(userId: string): Promise<Sta
                             fcmTokens: arrayUnion(token.value),
                             updatedAt: new Date().toISOString()
                         }, { merge: true });
+                        // Also mark push as enabled for this app in Firestore
+                        await savePushEnabled(userId, appType, true);
                         resolve({ success: true, token: token.value, step: 'complete' });
                     } catch (err: any) {
                         resolve({ success: false, error: err.message, step: 'save_token' });
@@ -322,6 +405,9 @@ export async function requestNotificationPermission(userId: string): Promise<Sta
             updatedAt: new Date().toISOString()
         }, { merge: true });
 
+        // Also mark push as enabled for this app in Firestore
+        await savePushEnabled(userId, appType, true);
+
         console.log('[StaffNotifications] SUCCESS: Token saved for user', userId);
 
         // Now that permission is granted, show the persistent notification
@@ -336,20 +422,19 @@ export async function requestNotificationPermission(userId: string): Promise<Sta
     }
 }
 
-export async function disableNotifications(userId: string): Promise<boolean> {
+/**
+ * Disable notifications for a specific app. Instead of wiping fcmTokens (which
+ * would kill notifications for ALL apps), we set a per-app flag in Firestore.
+ * The server-side notifyStaff endpoint checks these flags before sending.
+ */
+export async function disableNotifications(userId: string, appType: 'staff' | 'admin' = _currentAppContext): Promise<boolean> {
     try {
-        console.log('[Notifications] Disabling notifications for device...');
-        const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, {
-            fcmTokens: [],
-            updatedAt: new Date().toISOString()
-        }, { merge: true });
+        console.log(`[Notifications] Disabling ${appType} notifications for user ${userId}...`);
+        const success = await savePushEnabled(userId, appType, false);
+        if (!success) return false;
         
-        if (Capacitor.isNativePlatform()) {
-            await PushNotifications.removeAllListeners();
-        }
-        
-        console.log('[Notifications] Tokens cleared. Notifications disabled.');
+        notificationStatus.set('default');
+        console.log(`[Notifications] ${appType} notifications disabled (tokens preserved).`);
         return true;
     } catch (error) {
         console.error('[Notifications] Error disabling notifications:', error);

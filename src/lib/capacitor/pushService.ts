@@ -71,6 +71,38 @@ async function initNativePush(userId: string, onMessage: ForegroundHandler): Pro
 	// Dynamic import — this package only exists in the native build context.
 	const { PushNotifications } = await import('@capacitor/push-notifications');
 
+	// ── Track app foreground/background state ──────────────────────────
+	// When the app is in the background, the OS handles push display via
+	// Google Play Services (with system sound). When the app comes back to
+	// foreground, Capacitor may fire pushNotificationReceived for the same
+	// message. We suppress the duplicate by tracking state transitions.
+	let isAppInForeground = true;
+	let lastResumedAt = Date.now();
+	let appStateListener: { remove: () => void } | null = null;
+
+	try {
+		const { App } = await import('@capacitor/app');
+		const state = await App.getState();
+		isAppInForeground = state.isActive;
+		lastResumedAt = Date.now();
+
+		const handle = await App.addListener('appStateChange', (state) => {
+			if (state.isActive) {
+				// App just came to foreground — mark the time so we can
+				// ignore push events that arrive within a brief window
+				// (these are OS-delivered background notifications being
+				// re-delivered to the WebView).
+				lastResumedAt = Date.now();
+				isAppInForeground = true;
+			} else {
+				isAppInForeground = false;
+			}
+		});
+		appStateListener = handle;
+	} catch (e) {
+		console.warn('[PushService] Could not track app state:', e);
+	}
+
 	// 1. Request OS-level permission
 	const permResult = await PushNotifications.requestPermissions();
 	if (permResult.receive !== 'granted') {
@@ -116,9 +148,24 @@ async function initNativePush(userId: string, onMessage: ForegroundHandler): Pro
 	});
 
 	// 5. Handle foreground push messages (app is open)
+	//    IMPORTANT: Only fire onMessage if the app was genuinely in the foreground
+	//    when the push arrived. If the app just resumed from background (within
+	//    the last 2 seconds), suppress the handler to avoid duplicate sounds.
 	const fgListener = await PushNotifications.addListener(
 		'pushNotificationReceived',
 		(notification) => {
+			const timeSinceResume = Date.now() - lastResumedAt;
+
+			// If the app is not in foreground, or just resumed within 2 seconds,
+			// this is a background-delivered notification being re-fired — suppress it.
+			if (!isAppInForeground || timeSinceResume < 2000) {
+				console.log(
+					'[PushService] Suppressing duplicate foreground handler (bg→fg transition)',
+					{ isAppInForeground, timeSinceResume }
+				);
+				return;
+			}
+
 			onMessage({
 				title: notification.title ?? 'New Booking!',
 				body: notification.body ?? '',
@@ -145,6 +192,7 @@ async function initNativePush(userId: string, onMessage: ForegroundHandler): Pro
 		errListener.remove();
 		fgListener.remove();
 		tapListener.remove();
+		if (appStateListener) appStateListener.remove();
 	};
 }
 

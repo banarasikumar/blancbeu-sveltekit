@@ -26,7 +26,10 @@ const config: CapacitorConfig = {
 			providers: ['google.com']
 		},
 		PushNotifications: {
-			presentationOptions: ['badge', 'sound', 'alert']
+			// Don't include 'sound' — we play our own in-app notification sound
+			// in the pushNotificationReceived handler. Including 'sound' here
+			// causes the OS to also play system sound, leading to duplicate sounds.
+			presentationOptions: ['badge', 'alert']
 		},
 		LocalNotifications: {
 			smallIcon: 'ic_stat_notification',

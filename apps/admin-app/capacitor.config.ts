@@ -26,7 +26,9 @@ const config: CapacitorConfig = {
 			providers: ['google.com']
 		},
 		PushNotifications: {
-			presentationOptions: ['badge', 'sound', 'alert']
+			// Don't include 'sound' — we handle in-app notification sound ourselves.
+			// Including 'sound' here causes the OS to also play system sound.
+			presentationOptions: ['badge', 'alert']
 		},
 		LocalNotifications: {
 			smallIcon: 'ic_stat_notification',

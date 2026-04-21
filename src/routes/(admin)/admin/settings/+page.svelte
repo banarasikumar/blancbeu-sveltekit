@@ -54,7 +54,12 @@
 	} from '$lib/stores/adminNotificationPreferences';
 
 	onMount(async () => {
-		checkNotificationStatus();
+		// Load push enabled state from Firestore for admin app
+		if ($adminUser) {
+			await checkNotificationStatus($adminUser.uid, 'admin');
+		} else {
+			checkNotificationStatus();
+		}
 	});
 
 	let showDeniedModal = $state(false);
@@ -67,9 +72,8 @@
 
 		if ($notificationStatus === 'granted') {
 			if (!$adminUser) return;
-			const success = await disableNotifications($adminUser.uid);
+			const success = await disableNotifications($adminUser.uid, 'admin');
 			if (success) {
-				$notificationStatus = 'default' as any;
 				showToast('Push Notifications Disabled', 'success');
 			} else {
 				showToast('Failed to disable notifications', 'error');
@@ -79,7 +83,7 @@
 
 		// Enable
 		if (!$adminUser) return;
-		const success = await requestNotificationPermission($adminUser.uid);
+		const success = await requestNotificationPermission($adminUser.uid, 'admin');
 		if (success) {
 			showToast('Push Notifications Enabled!', 'success');
 		} else if (Notification.permission === 'denied') {
