@@ -4,6 +4,9 @@ name: Build Native Android Apps
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
     name: Build Android APKs
@@ -94,12 +97,33 @@ jobs:
           # Sign the Admin APK
           $APKSIGNER sign --ks $KS --ks-pass pass:blancbeu123 --key-pass pass:blancbeu123 --out apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk apps/admin-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
 
-      - name: 📤 Upload Production APKs and Keystore
+      - name: 📤 Upload Staff APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Blancbeu-Production-Releases
+          name: Blancbeu-Stylist-APK
+          path: apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk
+
+      - name: 📤 Upload Admin APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Blancbeu-Admin-APK
+          path: apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk
+
+      - name: 📤 Upload Keystore Details
+        uses: actions/upload-artifact@v4
+        with:
+          name: Blancbeu-Keystore-Details
           path: |
-            apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk
-            apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk
             blancbeu.keystore
             sha_fingerprints.txt
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Blancbeu Release v1.0.${{ github.run_number }}"
+          body: "Automated build release containing standalone APKs."
+          prerelease: true
+          files: |
+            apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk
+            apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk
