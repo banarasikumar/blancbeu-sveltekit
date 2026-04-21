@@ -5,7 +5,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
 	appId: 'in.blancbeu.staff',
-	appName: 'Blancbeu Stylist',
+	appName: 'BStaff',
 	// The Live Wrapper Configuration
 	webDir: 'www',
 	server: {

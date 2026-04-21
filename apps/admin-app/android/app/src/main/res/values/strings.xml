@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">BAdmin</string>
-    <string name="title_activity_main">Blancbeu Admin</string>
+    <string name="title_activity_main">BAdmin</string>
     <string name="package_name">in.blancbeu.admin</string>
     <string name="custom_url_scheme">in.blancbeu.admin</string>
 </resources>

@@ -5,7 +5,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
 	appId: 'in.blancbeu.admin',
-	appName: 'Blancbeu Admin',
+	appName: 'BAdmin',
 	// The Live Wrapper Configuration
 	webDir: 'www',
 	server: {
