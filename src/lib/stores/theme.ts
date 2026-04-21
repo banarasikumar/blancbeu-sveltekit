@@ -57,6 +57,22 @@ if (browser) {
 		if (value !== 'gold') {
 			document.documentElement.setAttribute('data-theme', value);
 		}
+
+		// Dynamically update Capacitor Status Bar natively
+		import('@capacitor/core').then(({ Capacitor }) => {
+			if (Capacitor.isNativePlatform()) {
+				import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+					StatusBar.setBackgroundColor({ color: THEME_COLORS[value] }).catch(console.warn);
+					
+					// 'gold' is dark mode -> light text (Style.Dark)
+					// others are light mode -> dark text (Style.Light)
+					const style = value === 'gold' ? Style.Dark : Style.Light;
+					StatusBar.setStyle({ style }).catch(console.warn);
+				}).catch(console.warn);
+			}
+		}).catch(() => {
+			// @capacitor/core might not be installed or bundled in some environments
+		});
 	});
 }
 
