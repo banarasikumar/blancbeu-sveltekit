@@ -1,235 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Blancbeu Admin - Offline</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        :root {
-            --bg-color: #09090b;
-            --text-primary: #fafafa;
-            --text-secondary: #a1a1aa;
-            --accent: #2563eb; /* Blue for Admin instead of Purple */
-            --accent-glow: rgba(37, 99, 235, 0.4);
-            --card-glass: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-        }
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<title>Blancbeu Admin - Offline</title>
+	<style>
+		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+		/* LIGHT MODE (Clean Theme) */
+		:root {
+			--admin-bg: #f5f5f7;
+			--admin-text-primary: #1c1c1e;
+			--admin-text-secondary: #8e8e93;
+			--admin-accent: #007aff;
+			--admin-red-light: rgba(255, 59, 48, 0.12);
+			--admin-red: #ff3b30;
+		}
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(37, 99, 235, 0.15), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.15), transparent 25%);
-        }
+		/* DARK MODE (Gold & Noir Theme) */
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--admin-bg: #121212;
+				--admin-text-primary: #ffffff;
+				--admin-text-secondary: #ebebf5;
+				--admin-accent: #d4af37;
+				--admin-red-light: rgba(255, 69, 58, 0.15);
+				--admin-red: #ff453a;
+			}
+		}
 
-        /* Animated Background Gradients layer */
-        .glass-orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.5;
-            animation: float 10s infinite ease-in-out alternate;
-            z-index: 0;
-        }
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		
+		body {
+			font-family: 'Inter', -apple-system, sans-serif;
+			background: var(--admin-bg);
+			color: var(--admin-text-primary);
+			-webkit-font-smoothing: antialiased;
+			height: 100vh;
+			width: 100vw;
+			overflow: hidden;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			position: relative;
+			transition: background 0.3s ease, color 0.3s ease;
+		}
 
-        .orb-1 {
-            width: 300px;
-            height: 300px;
-            background: var(--accent);
-            top: -100px;
-            left: -50px;
-        }
+		.splash-container {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+			padding: 2rem;
+			z-index: 10;
+			width: 100%;
+			max-width: 400px;
+		}
 
-        .orb-2 {
-            width: 250px;
-            height: 250px;
-            background: #38bdf8;
-            bottom: -50px;
-            right: -50px;
-            animation-delay: -5s;
-        }
+		.brand-mark {
+			position: relative;
+			width: 84px;
+			height: 84px;
+			border-radius: 50%;
+			background: transparent;
+			border: 2px solid var(--admin-accent);
+			box-shadow: 0 0 24px rgba(212, 175, 55, 0.3);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 2.5rem;
+			animation: float 3s ease-in-out infinite;
+		}
 
-        @keyframes float {
-            0% { transform: translateY(0) scale(1); }
-            100% { transform: translateY(20px) scale(1.1); }
-        }
+		.brand-mark-letter {
+			font-family: 'Outfit', sans-serif;
+			font-size: 2.5rem;
+			font-weight: 800;
+			color: var(--admin-accent);
+		}
 
-        .container {
-            position: relative;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 2.5rem;
-            width: 90%;
-            max-width: 400px;
-            background: var(--card-glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255,255,255,0.1);
-        }
+		.offline-icon-wrap {
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			background: var(--admin-red-light);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 1.5rem;
+			animation: pulse 2s infinite;
+		}
+		
+		.offline-icon-wrap svg {
+			width: 44px;
+			height: 44px;
+			stroke: var(--admin-red);
+		}
 
-        .icon-wrapper {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            position: relative;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
+		@keyframes pulse {
+			0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4); }
+			70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(255, 69, 58, 0); }
+			100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); }
+		}
 
-        .icon-wrapper svg {
-            width: 40px;
-            height: 40px;
-            stroke: var(--text-primary);
-            filter: drop-shadow(0 0 8px rgba(255,255,255,0.5));
-        }
+		@keyframes float {
+			0%, 100% { transform: translateY(0px); }
+			50% { transform: translateY(-8px); }
+		}
 
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.75rem;
-            letter-spacing: -0.025em;
-        }
+		h1 {
+			font-family: 'Outfit', sans-serif;
+			font-size: 1.75rem;
+			font-weight: 800;
+			margin-bottom: 0.5rem;
+			letter-spacing: -0.02em;
+		}
 
-        p {
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin-bottom: 2rem;
-        }
+		p {
+			font-size: 0.95rem;
+			color: var(--admin-text-secondary);
+			line-height: 1.5;
+			margin-bottom: 2.5rem;
+		}
 
-        .retry-btn {
-            background: linear-gradient(135deg, var(--accent), #1d4ed8);
-            color: white;
-            border: none;
-            padding: 0.875rem 2rem;
-            border-radius: 999px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px var(--accent-glow);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
+		.status-indicator {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 12px 24px;
+			background: rgba(255, 255, 255, 0.05);
+			border-radius: 99px;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+		}
 
-        .retry-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: 0.5s;
-        }
+		@media (prefers-color-scheme: light) {
+			.status-indicator {
+				background: rgba(0, 0, 0, 0.03);
+				border-color: rgba(0, 0, 0, 0.06);
+			}
+		}
 
-        .retry-btn:hover::before {
-            left: 100%;
-        }
+		.spinner {
+			width: 16px;
+			height: 16px;
+			border: 2px solid var(--admin-text-secondary);
+			border-top-color: transparent;
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+		}
 
-        .retry-btn:active {
-            transform: scale(0.97);
-        }
+		@keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .retry-btn svg {
-            width: 18px;
-            height: 18px;
-            transition: transform 0.4s ease;
-        }
+		.status-text {
+			font-size: 0.9rem;
+			color: var(--admin-text-secondary);
+			font-weight: 500;
+		}
 
-        .retry-btn.loading svg {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-    </style>
+		/* Decorative ambient glow behind logo */
+		.glass-orb {
+			position: absolute;
+			top: 20%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 250px;
+			height: 250px;
+			border-radius: 50%;
+			background: radial-gradient(circle, var(--admin-accent), transparent 70%);
+			filter: blur(50px);
+			opacity: 0.15;
+			z-index: 0;
+			pointer-events: none;
+		}
+	</style>
 </head>
 <body>
+	<div class="glass-orb"></div>
 
-    <div class="glass-orb orb-1"></div>
-    <div class="glass-orb orb-2"></div>
+	<div class="splash-container">
+		<div class="brand-mark">
+			<span class="brand-mark-letter">B</span>
+		</div>
 
-    <div class="container">
-        <div class="icon-wrapper">
-            <!-- Offline/Cloud crossed out icon -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m2 2 20 20"/>
-                <path d="M8.35 2.69A10 10 0 0 1 21.5 9v.5a5.5 5.5 0 0 1 1.09 10.36"/>
-                <path d="M12.23 17.5a5.5 5.5 0 0 1-10.73-2.5V15a10 10 0 0 1 2.27-5.59"/>
-            </svg>
-        </div>
-        
-        <h1>System Offline</h1>
-        <p>You appear to be offline. A stable connection is required to manage the Blancbeu Admin Dashboard.</p>
-        
-        <button class="retry-btn" id="retryBtn" onclick="retryConnection()">
-            <svg id="retryIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                <path d="M3 3v5h5"/>
-            </svg>
-            Reconnect
-        </button>
-    </div>
+		<div class="offline-icon-wrap">
+			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="m2 2 20 20"/>
+				<path d="M8.35 2.69A10 10 0 0 1 21.5 9v.5a5.5 5.5 0 0 1 1.09 10.36"/>
+				<path d="M12.23 17.5a5.5 5.5 0 0 1-10.73-2.5V15a10 10 0 0 1 2.27-5.59"/>
+			</svg>
+		</div>
+		
+		<h1>No Connection</h1>
+		<p>You are currently offline. Please check your internet connection to access the Blancbeu Admin App.</p>
+		
+		<div class="status-indicator">
+			<div class="spinner"></div>
+			<span class="status-text">Waiting for network...</span>
+		</div>
+	</div>
 
-    <script>
-        function retryConnection() {
-            const btn = document.getElementById('retryBtn');
-            btn.classList.add('loading');
-            btn.innerText = 'Connecting...';
-            
-            // Add icon back since innerText overwrites it
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
-            btn.innerHTML = svg + ' Connecting...';
+	<script>
+		// --- Sync Status Bar Color with System Theme ---
+		function updateThemeMeta() {
+			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+			let metaThemeColor = document.querySelector("meta[name=theme-color]");
+			if (!metaThemeColor) {
+				metaThemeColor = document.createElement("meta");
+				metaThemeColor.name = "theme-color";
+				document.head.appendChild(metaThemeColor);
+			}
+			metaThemeColor.content = isDark ? "#121212" : "#f5f5f7";
+		}
+		
+		// Run on initial load
+		updateThemeMeta();
+		
+		// Listen for system theme changes while on the offline page
+		if (window.matchMedia) {
+			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeMeta);
+		}
 
-            setTimeout(() => {
-                if(navigator.onLine) {
-                    window.location.reload();
-                } else {
-                    btn.classList.remove('loading');
-                    btn.innerHTML = svg + ' Reconnect';
-                }
-            }, 800);
-        }
+		// --- Auto-Reconnect Logic ---
+		if (navigator.onLine) {
+			reconnect();
+		}
 
-        // Auto reload when connection is restored
-        window.addEventListener('online', () => {
-            window.location.reload();
-        });
-    </script>
+		window.addEventListener('online', reconnect);
+
+		setInterval(() => {
+			if (navigator.onLine) {
+				fetch('https://www.google.com/favicon.ico', { mode: 'no-cors', cache: 'no-store' })
+					.then(() => reconnect())
+					.catch(() => { /* Still offline */ });
+			}
+		}, 5000);
+
+		function reconnect() {
+			const text = document.querySelector('.status-text');
+			const icon = document.querySelector('.offline-icon-wrap');
+			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+			
+			const greenBg = isDark ? 'rgba(48, 209, 88, 0.15)' : 'rgba(52, 199, 89, 0.12)';
+			const greenText = isDark ? '#30d158' : '#34c759';
+			
+			if (text) text.innerText = 'Reconnecting...';
+			if (icon) {
+				icon.style.background = greenBg;
+				icon.style.borderColor = greenBg;
+				icon.style.boxShadow = `0 0 30px ${greenBg}`;
+				icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${greenText}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`;
+			}
+
+			setTimeout(() => {
+				window.location.reload();
+			}, 800);
+		}
+	</script>
 </body>
 </html>
