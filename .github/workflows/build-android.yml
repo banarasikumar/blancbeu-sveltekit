@@ -1,11 +1,7 @@
 name: Build Native Android Apps
 
-# Trigger the workflow on pushes to the main branch 
-# or manually via the GitHub Actions tab.
+# Trigger the workflow manually via the GitHub Actions tab.
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:

@@ -3,33 +3,45 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-	<title>Blancbeu Staff - Offline</title>
+	<title>Blancbeu - Offline</title>
 	<style>
-		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
 		/* LIGHT MODE (Default) */
 		:root {
-			--s-bg-primary: #f4f2ff;
-			--s-bg-secondary: #fdfcff;
-			--s-text-primary: #12091e;
-			--s-text-secondary: #6b6680;
-			--s-text-tertiary: #b0aac0;
-			--s-grad-hero: linear-gradient(135deg, #1a0a2e 0%, #3730a3 40%, #7c3aed 100%);
-			--s-accent-3-bg: rgba(244, 63, 94, 0.08);
-			--s-accent-3-light: #f43f5e;
+			--bg-color: #fdfcfd;
+			--text-main: #121217;
+			--text-muted: #6b6b7b;
+			--glass-bg: rgba(255, 255, 255, 0.75);
+			--glass-border: rgba(255, 255, 255, 0.6);
+			--glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+			
+			--orb-1: rgba(124, 58, 237, 0.15); /* Purple */
+			--orb-2: rgba(232, 167, 48, 0.15); /* Gold */
+			--orb-3: rgba(244, 63, 94, 0.12); /* Rose */
+			
+			--accent: #121217;
+			--pulse-bg: rgba(0, 0, 0, 0.04);
+			--pulse-dot: #121217;
 		}
 
-		/* DARK MODE (Auto-Switch based on Phone Settings) */
+		/* DARK MODE (Auto-Switch) */
 		@media (prefers-color-scheme: dark) {
 			:root {
-				--s-bg-primary: #080510;
-				--s-bg-secondary: #100e1a;
-				--s-text-primary: #f0eeff;
-				--s-text-secondary: #a09ab8;
-				--s-text-tertiary: #60587a;
-				--s-grad-hero: linear-gradient(135deg, #0d0520 0%, #1e1060 40%, #3b0764 100%);
-				--s-accent-3-bg: rgba(251, 113, 133, 0.12);
-				--s-accent-3-light: #fda4af;
+				--bg-color: #09090b;
+				--text-main: #fcfcfd;
+				--text-muted: #a1a1aa;
+				--glass-bg: rgba(24, 24, 27, 0.55);
+				--glass-border: rgba(255, 255, 255, 0.06);
+				--glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+				
+				--orb-1: rgba(124, 58, 237, 0.22);
+				--orb-2: rgba(232, 167, 48, 0.16);
+				--orb-3: rgba(244, 63, 94, 0.12);
+				
+				--accent: #ffffff;
+				--pulse-bg: rgba(255, 255, 255, 0.08);
+				--pulse-dot: #ffffff;
 			}
 		}
 
@@ -37,8 +49,8 @@
 		
 		body {
 			font-family: 'Inter', -apple-system, sans-serif;
-			background: var(--s-bg-primary);
-			color: var(--s-text-primary);
+			background-color: var(--bg-color);
+			color: var(--text-main);
 			-webkit-font-smoothing: antialiased;
 			height: 100vh;
 			width: 100vw;
@@ -48,160 +60,175 @@
 			align-items: center;
 			justify-content: center;
 			position: relative;
-			transition: background 0.3s ease, color 0.3s ease;
+			transition: background-color 0.4s ease, color 0.4s ease;
 		}
 
-		.splash-container {
+		/* --- Mesh Ambient Background --- */
+		.ambient-background {
+			position: absolute;
+			top: 0; left: 0; width: 100%; height: 100%;
+			overflow: hidden;
+			z-index: 0;
+			pointer-events: none;
+		}
+		.orb {
+			position: absolute;
+			border-radius: 50%;
+			filter: blur(80px);
+			animation: float 20s ease-in-out infinite alternate;
+		}
+		.orb-1 {
+			width: 70vw; height: 70vw;
+			background-color: var(--orb-1);
+			top: -10%; left: -10%;
+			animation-delay: 0s;
+		}
+		.orb-2 {
+			width: 60vw; height: 60vw;
+			background-color: var(--orb-2);
+			bottom: 10%; right: -10%;
+			animation-delay: -5s;
+		}
+		.orb-3 {
+			width: 50vw; height: 50vw;
+			background-color: var(--orb-3);
+			top: 40%; left: 40%;
+			animation-delay: -10s;
+		}
+
+		@keyframes float {
+			0% { transform: translate(0, 0) scale(1); }
+			33% { transform: translate(30px, -50px) scale(1.1); }
+			66% { transform: translate(-20px, 20px) scale(0.9); }
+			100% { transform: translate(0, 0) scale(1); }
+		}
+
+		/* --- Glass Card --- */
+		.glass-card {
+			position: relative;
+			z-index: 10;
+			background: var(--glass-bg);
+			backdrop-filter: blur(28px);
+			-webkit-backdrop-filter: blur(28px);
+			border: 1px solid var(--glass-border);
+			border-radius: 36px;
+			padding: 48px 32px;
+			width: 88%;
+			max-width: 420px;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
 			text-align: center;
-			padding: 2rem;
-			z-index: 10;
-			width: 100%;
-			max-width: 400px;
+			box-shadow: var(--glass-shadow);
+			transform: translateY(20px);
+			opacity: 0;
+			animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 		}
 
-		.brand-mark {
+		@keyframes slideUp {
+			to { transform: translateY(0); opacity: 1; }
+		}
+
+		/* --- Icon --- */
+		.icon-container {
+			width: 80px;
+			height: 80px;
+			border-radius: 24px;
+			background: var(--pulse-bg);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 28px;
+			color: var(--accent);
 			position: relative;
-			width: 76px;
-			height: 76px;
-			border-radius: 22px;
-			background: var(--s-grad-hero);
-			color: white;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			box-shadow: 0 8px 32px rgba(124, 58, 237, 0.45);
-			margin-bottom: 2.5rem;
-			animation: float 3s ease-in-out infinite;
 		}
 
-		.brand-mark-letter {
-			font-family: 'Outfit', sans-serif;
-			font-size: 2.2rem;
-			font-weight: 800;
-			background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
-			-webkit-background-clip: text;
-			-webkit-text-fill-color: transparent;
-			background-clip: text;
+		.icon-container svg {
+			width: 36px;
+			height: 36px;
+			stroke-width: 1.5;
 		}
 
-		.offline-icon-wrap {
-			width: 100px;
-			height: 100px;
-			border-radius: 50%;
-			background: var(--s-accent-3-bg);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 1.5rem;
-			animation: pulse 2s infinite;
-		}
-		
-		.offline-icon-wrap svg {
-			width: 44px;
-			height: 44px;
-			stroke: var(--s-accent-3-light);
-		}
-
-		@keyframes pulse {
-			0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.4); }
-			70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(251, 113, 133, 0); }
-			100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(251, 113, 133, 0); }
-		}
-
-		@keyframes float {
-			0%, 100% { transform: translateY(0px); }
-			50% { transform: translateY(-8px); }
-		}
-
+		/* --- Typography --- */
 		h1 {
 			font-family: 'Outfit', sans-serif;
-			font-size: 1.75rem;
-			font-weight: 800;
-			margin-bottom: 0.5rem;
-			letter-spacing: -0.02em;
+			font-size: 1.8rem;
+			font-weight: 700;
+			letter-spacing: -0.03em;
+			margin-bottom: 12px;
+			line-height: 1.2;
 		}
 
 		p {
 			font-size: 0.95rem;
-			color: var(--s-text-secondary);
-			line-height: 1.5;
-			margin-bottom: 2.5rem;
+			color: var(--text-muted);
+			line-height: 1.6;
+			margin-bottom: 36px;
+			font-weight: 400;
 		}
 
-		.status-indicator {
+		/* --- Status Pulse --- */
+		.status-badge {
 			display: flex;
 			align-items: center;
-			gap: 10px;
-			padding: 12px 24px;
-			background: rgba(124, 58, 237, 0.08);
-			border-radius: 99px;
-			border: 1px solid rgba(124, 58, 237, 0.15);
-		}
-
-		.spinner {
-			width: 16px;
-			height: 16px;
-			border: 2px solid var(--s-text-secondary);
-			border-top-color: transparent;
-			border-radius: 50%;
-			animation: spin 1s linear infinite;
-		}
-
-		@keyframes spin { 100% { transform: rotate(360deg); } }
-
-		.status-text {
-			font-size: 0.9rem;
-			color: var(--s-text-secondary);
+			gap: 12px;
+			padding: 12px 20px;
+			background: var(--pulse-bg);
+			border-radius: 100px;
+			font-size: 0.85rem;
 			font-weight: 500;
+			color: var(--text-main);
+			transition: all 0.3s ease;
 		}
 
-		/* Decorative glowing orbs in background */
-		.glass-orb {
-			position: absolute;
+		.pulse-dot {
+			width: 8px;
+			height: 8px;
+			background-color: var(--pulse-dot);
 			border-radius: 50%;
-			filter: blur(80px);
-			opacity: 0.35;
-			z-index: 0;
-			pointer-events: none;
+			position: relative;
 		}
-		.orb-1 {
-			width: 300px; height: 300px;
-			background: #7c3aed;
-			top: -100px; left: -100px;
+
+		.pulse-dot::after {
+			content: '';
+			position: absolute;
+			top: -4px; left: -4px; right: -4px; bottom: -4px;
+			border-radius: 50%;
+			border: 2px solid var(--pulse-dot);
+			opacity: 0;
+			animation: ripple 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 		}
-		.orb-2 {
-			width: 250px; height: 250px;
-			background: #f43f5e;
-			bottom: -50px; right: -50px;
+
+		@keyframes ripple {
+			0% { transform: scale(0.5); opacity: 1; }
+			100% { transform: scale(2.5); opacity: 0; }
 		}
 	</style>
 </head>
 <body>
-	<div class="glass-orb orb-1"></div>
-	<div class="glass-orb orb-2"></div>
+	<div class="ambient-background">
+		<div class="orb orb-1"></div>
+		<div class="orb orb-2"></div>
+		<div class="orb orb-3"></div>
+	</div>
 
-	<div class="splash-container">
-		<div class="brand-mark">
-			<span class="brand-mark-letter">B</span>
-		</div>
-
-		<div class="offline-icon-wrap">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<path d="m2 2 20 20"/>
-				<path d="M8.35 2.69A10 10 0 0 1 21.5 9v.5a5.5 5.5 0 0 1 1.09 10.36"/>
-				<path d="M12.23 17.5a5.5 5.5 0 0 1-10.73-2.5V15a10 10 0 0 1 2.27-5.59"/>
+	<div class="glass-card">
+		<div class="icon-container">
+			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+				<line x1="12" y1="20" x2="12.01" y2="20"/>
+				<path d="M4.42 11.86a11 11 0 0 1 15.16 0"/>
+				<path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+				<line x1="2" y1="2" x2="22" y2="22" stroke-width="2"/>
 			</svg>
 		</div>
 		
-		<h1>No Connection</h1>
-		<p>You are currently offline. Please check your internet connection to access the Blancbeu Staff App.</p>
+		<h1>Connection Lost</h1>
+		<p id="descText">We can't seem to reach the servers right now. We'll automatically reconnect you when the internet is back.</p>
 		
-		<div class="status-indicator">
-			<div class="spinner"></div>
-			<span class="status-text">Waiting for network...</span>
+		<div class="status-badge" id="statusBadge">
+			<div class="pulse-dot"></div>
+			<span id="statusText">Waiting for network...</span>
 		</div>
 	</div>
 
@@ -215,42 +242,55 @@
 				metaThemeColor.name = "theme-color";
 				document.head.appendChild(metaThemeColor);
 			}
-			metaThemeColor.content = isDark ? "#080510" : "#f4f2ff";
+			metaThemeColor.content = isDark ? "#09090b" : "#fcfcfd";
 		}
 		
-		// Run on initial load
 		updateThemeMeta();
-		
-		// Listen for system theme changes while on the offline page
 		if (window.matchMedia) {
 			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeMeta);
 		}
 
-		// --- Auto-Reconnect Logic ---
-		if (navigator.onLine) {
-			reconnect();
+		// --- Auto-Reconnect Logic (Robust Fetch Method) ---
+		let isReconnecting = false;
+
+		function checkConnection() {
+			if (!navigator.onLine || isReconnecting) return;
+			
+			// Test real connection
+			fetch('https://blancbeu-sveltekit.vercel.app/favicon.ico', { mode: 'no-cors', cache: 'no-store' })
+				.then(() => reconnect())
+				.catch(() => { /* Still offline */ });
 		}
 
-		window.addEventListener('online', reconnect);
-
-		setInterval(() => {
-			if (navigator.onLine) {
-				fetch('https://www.google.com/favicon.ico', { mode: 'no-cors', cache: 'no-store' })
-					.then(() => reconnect())
-					.catch(() => { /* Still offline */ });
-			}
-		}, 5000);
+		checkConnection();
+		setInterval(checkConnection, 3000);
+		window.addEventListener('online', checkConnection);
 
 		function reconnect() {
-			const text = document.querySelector('.status-text');
-			const icon = document.querySelector('.offline-icon-wrap');
+			isReconnecting = true;
+			const statusText = document.getElementById('statusText');
+			const statusBadge = document.getElementById('statusBadge');
+			const dot = document.querySelector('.pulse-dot');
 			
-			if (text) text.innerText = 'Reconnecting...';
-			if (icon) {
-				icon.style.background = 'rgba(16, 185, 129, 0.12)';
-				icon.style.borderColor = 'rgba(16, 185, 129, 0.2)';
-				icon.style.boxShadow = '0 0 30px rgba(16, 185, 129, 0.15)';
-				icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>';
+			if (statusText) statusText.innerText = 'Reconnecting...';
+			
+			// Green success pulse
+			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+			const successColor = isDark ? '#30d158' : '#34c759';
+			
+			if (dot) {
+				dot.style.backgroundColor = successColor;
+				
+				// Re-inject the keyframe pseudo-element with the success color
+				const style = document.createElement('style');
+				style.innerHTML = `
+					.pulse-dot::after { border-color: ${successColor} !important; }
+				`;
+				document.head.appendChild(style);
+			}
+			if (statusBadge) {
+				statusBadge.style.color = successColor;
+				statusBadge.style.background = isDark ? 'rgba(48, 209, 88, 0.15)' : 'rgba(52, 199, 89, 0.12)';
 			}
 
 			setTimeout(() => {
