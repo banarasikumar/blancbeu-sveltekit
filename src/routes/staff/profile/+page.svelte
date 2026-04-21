@@ -11,8 +11,8 @@
 		checkNotificationStatus,
 		soundEnabled,
 		selectedSoundType,
-		customSoundPath,
 		AVAILABLE_SOUNDS,
+		savePreferredSound,
 		type SoundType
 	} from '$lib/stores/staffNotifications';
 	import { playSelectedNotificationSound, playNotificationSound } from '$lib/utils/notificationSound';
@@ -127,51 +127,17 @@
 
 	// Sound selection state
 	let showSoundSelector = $state(false);
-	let fileInput: HTMLInputElement | null = $state(null);
 
 	function handleSoundSelect(type: SoundType) {
-		selectedSoundType.set(type);
+		if ($staffUser) savePreferredSound($staffUser.uid, type);
+		else selectedSoundType.set(type);
+		
 		showToast(`Sound: ${AVAILABLE_SOUNDS.find(s => s.id === type)?.name || 'Custom'}`, 'success');
 		// Play a preview
 		setTimeout(() => playSelectedNotificationSound(0.5), 100);
 	}
 
-	function handleCustomSoundUpload(event: Event) {
-		const input = event.target as HTMLInputElement;
-		const file = input.files?.[0];
-		
-		if (!file) return;
-
-		// Validate file type
-		if (!file.type.startsWith('audio/')) {
-			showToast('Please select an audio file', 'error');
-			return;
-		}
-
-		// Validate file size (max 2MB)
-		if (file.size > 2 * 1024 * 1024) {
-			showToast('File too large (max 2MB)', 'error');
-			return;
-		}
-
-		// Create object URL for the file
-		const objectUrl = URL.createObjectURL(file);
-		customSoundPath.set(objectUrl);
-		selectedSoundType.set('custom');
-		showToast('Custom sound uploaded!', 'success');
-		
-		// Play preview
-		setTimeout(() => playNotificationSound(objectUrl, 0.5).catch(() => {
-			showToast('Preview failed, but sound is saved', 'error');
-		}), 100);
-	}
-
-	function openFilePicker() {
-		fileInput?.click();
-	}
-
 	let currentSoundName = $derived(() => {
-		if ($selectedSoundType === 'custom') return 'Custom Sound';
 		return AVAILABLE_SOUNDS.find(s => s.id === $selectedSoundType)?.name || 'iPhone';
 	});
 </script>
@@ -431,21 +397,6 @@
 								{/if}
 							</button>
 						{/each}
-
-						<button
-							class="sound-option"
-							class:selected={$selectedSoundType === 'custom'}
-							onclick={openFilePicker}
-							type="button"
-						>
-							<span class="sound-icon">📁</span>
-							<span class="sound-name">
-								{$selectedSoundType === 'custom' ? 'Custom Sound' : 'Upload Your Own'}
-							</span>
-							{#if $selectedSoundType === 'custom'}
-								<span class="check-icon">✓</span>
-							{/if}
-						</button>
 					</div>
 
 					<p class="sound-help">
@@ -460,15 +411,6 @@
 			</div>
 		</div>
 	{/if}
-
-	<!-- Hidden file input for custom sound upload -->
-	<input
-		bind:this={fileInput}
-		type="file"
-		accept="audio/*"
-		onchange={handleCustomSoundUpload}
-		style="display: none;"
-	/>
 </div>
 
 <style>

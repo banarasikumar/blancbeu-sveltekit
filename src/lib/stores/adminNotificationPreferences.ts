@@ -7,11 +7,11 @@ const ADMIN_NOTIFICATION_PREFS_KEY = 'blancbeu_admin_notification_prefs';
 // Sound preferences keys
 const ADMIN_SOUND_PREF_KEY = 'admin_notification_sound_enabled';
 const ADMIN_SOUND_TYPE_KEY = 'admin_selected_sound_type';
-const ADMIN_CUSTOM_SOUND_KEY = 'admin_custom_sound_path';
 
-export type SoundType = 'chime' | 'bell' | 'ios' | 'android' | 'retro' | 'custom';
+export type SoundType = 'default' | 'chime' | 'bell' | 'ios' | 'android' | 'retro';
 
 export const AVAILABLE_SOUNDS = [
+	{ id: 'default' as SoundType, name: 'System Default', path: '' },
 	{ id: 'chime' as SoundType, name: 'Luxury Chime', path: '/sounds/chime.mp3' },
 	{ id: 'bell' as SoundType, name: 'Classic Bell', path: '/sounds/bell.mp3' },
 	{ id: 'ios' as SoundType, name: 'iPhone', path: '/sounds/ios.mp3' },
@@ -35,7 +35,6 @@ export interface AdminNotificationPreferences {
 	// Sound settings
 	soundEnabled: boolean;
 	selectedSoundType: SoundType;
-	customSoundPath: string;
 }
 
 const DEFAULT_PREFS: AdminNotificationPreferences = {
@@ -47,8 +46,7 @@ const DEFAULT_PREFS: AdminNotificationPreferences = {
 	paymentReceived: true,
 	newUsers: true,
 	soundEnabled: true,
-	selectedSoundType: 'chime',
-	customSoundPath: ''
+	selectedSoundType: 'default'
 };
 
 function createNotificationPrefsStore() {
@@ -137,17 +135,29 @@ export const adminWalkInOrdersEnabled = createIndividualStore('walkInOrders');
 export const adminPaymentReceivedEnabled = createIndividualStore('paymentReceived');
 export const adminNewUsersEnabled = createIndividualStore('newUsers');
 
-// Sound stores
 export const adminSoundEnabled = createIndividualStore('soundEnabled');
 export const adminSelectedSoundType = createIndividualStore('selectedSoundType');
-export const adminCustomSoundPath = createIndividualStore('customSoundPath');
+
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '$lib/firebase';
+
+export async function saveAdminPreferredSound(userId: string, type: SoundType) {
+    adminSelectedSoundType.set(type);
+    try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+            preferredSound: type,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log('[AdminNotifications] Saved preferred sound to Firestore:', type);
+    } catch (e) {
+        console.error('[AdminNotifications] Failed to save preferred sound to Firestore:', e);
+    }
+}
 
 // Get selected sound path
 export function getAdminSelectedSoundPath(): string {
 	const prefs = get(adminNotificationPrefs);
-	if (prefs.selectedSoundType === 'custom') {
-		return prefs.customSoundPath || AVAILABLE_SOUNDS[0].path;
-	}
 	const sound = AVAILABLE_SOUNDS.find(s => s.id === prefs.selectedSoundType);
 	return sound?.path || AVAILABLE_SOUNDS[0].path;
 }

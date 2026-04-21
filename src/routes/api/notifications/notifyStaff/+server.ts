@@ -43,8 +43,8 @@ export async function POST({ request }) {
             admin: '/admin-icon-192.png'
         };
 
-        // Collect tokens per role (separate multicasts so each role gets the right icon)
-        const roleTokenMap: Record<string, string[]> = {};
+        // Collect tokens per role and sound preference
+        const batches: Record<string, { tokens: string[], role: string, sound: string }> = {};
 
         for (const role of targetRoles) {
             const usersSnapshot = await adminDb
@@ -52,7 +52,6 @@ export async function POST({ request }) {
                 .where('role', '==', role)
                 .get();
 
-            const roleTokens: string[] = [];
             usersSnapshot.forEach((doc) => {
                 const data = doc.data();
 
@@ -71,30 +70,36 @@ export async function POST({ request }) {
                     }
                 }
 
-                if (data.fcmTokens && Array.isArray(data.fcmTokens)) {
-                    roleTokens.push(...data.fcmTokens);
+                if (data.fcmTokens && Array.isArray(data.fcmTokens) && data.fcmTokens.length > 0) {
+                    const sound = data.preferredSound || 'default';
+                    const finalSound = sound === 'custom' ? 'default' : sound;
+                    
+                    const batchKey = `${role}_${finalSound}`;
+                    if (!batches[batchKey]) {
+                        batches[batchKey] = { tokens: [], role, sound: finalSound };
+                    }
+                    batches[batchKey].tokens.push(...data.fcmTokens);
                 }
             });
-
-            if (roleTokens.length > 0) {
-                roleTokenMap[role] = [...new Set(roleTokens)];
-            }
         }
 
-        const totalDevices = Object.values(roleTokenMap).reduce((s, t) => s + t.length, 0);
-        console.log('[Push] Devices to notify:', totalDevices, '| Roles:', Object.keys(roleTokenMap).join(', '));
+        const totalDevices = Object.values(batches).reduce((s, b) => s + b.tokens.length, 0);
+        console.log('[Push] Devices to notify:', totalDevices);
         if (totalDevices === 0) {
             console.warn('[Push] No devices found — are FCM tokens saved in Firestore?');
             return json({ success: true, message: 'No devices to notify' });
         }
 
-        // Send one multicast per role (preserves correct icon per app)
+        // Send one multicast per batch
         let totalSent = 0;
         let totalFailed = 0;
         const allFailedTokens: string[] = [];
 
-        for (const [role, tokens] of Object.entries(roleTokenMap)) {
-            const roleIcon = ROLE_ICONS[role] || '/pwa-192x192.png';
+        for (const batch of Object.values(batches)) {
+            const roleIcon = ROLE_ICONS[batch.role] || '/pwa-192x192.png';
+            const channelId = batch.sound === 'default' ? 'bookings' : `sound_${batch.sound}`;
+            const uniqueTokens = [...new Set(batch.tokens)];
+            
             const message = {
                 notification: {
                     title,
@@ -106,10 +111,11 @@ export async function POST({ request }) {
                 android: {
                     priority: 'high' as const,
                     notification: {
-                        channelId: 'bookings',
+                        channelId: channelId,
                         priority: 'high' as const,
                         defaultVibrateTimings: true,
-                        defaultSound: true
+                        defaultSound: batch.sound === 'default',
+                        sound: batch.sound === 'default' ? undefined : batch.sound
                     }
                 },
                 webpush: {
@@ -125,19 +131,19 @@ export async function POST({ request }) {
                         renotify: true
                     }
                 },
-                tokens
+                tokens: uniqueTokens
             };
 
             const response = await admin.messaging().sendEachForMulticast(message);
-            console.log(`[Push] Role=${role}: sent=${response.successCount}, failed=${response.failureCount}`);
+            console.log(`[Push] Role=${batch.role}, Sound=${batch.sound}: sent=${response.successCount}, failed=${response.failureCount}`);
             totalSent += response.successCount;
             totalFailed += response.failureCount;
 
             if (response.failureCount > 0) {
                 response.responses.forEach((resp, idx) => {
                     if (!resp.success) {
-                        console.warn(`[Push] Token failed [${role}]:`, resp.error?.code, resp.error?.message);
-                        allFailedTokens.push(tokens[idx]);
+                        console.warn(`[Push] Token failed [${batch.role}]:`, resp.error?.code, resp.error?.message);
+                        allFailedTokens.push(uniqueTokens[idx]);
                     }
                 });
             }

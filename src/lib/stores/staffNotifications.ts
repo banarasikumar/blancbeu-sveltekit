@@ -3,17 +3,19 @@ import { getToken, getMessaging, isSupported } from 'firebase/messaging';
 import { doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 import { browser } from '$app/environment';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 // ---------------------------------------------------------------------------
 // Sound preference — persisted in localStorage
 // ---------------------------------------------------------------------------
 const SOUND_PREF_KEY = 'blancbeu_staff_sound';
 const SOUND_TYPE_KEY = 'blancbeu_staff_sound_type';
-const CUSTOM_SOUND_KEY = 'blancbeu_staff_custom_sound';
 
-export type SoundType = 'iphone' | 'livechat' | 'notification' | 'custom';
+export type SoundType = 'default' | 'iphone' | 'livechat' | 'notification';
 
 export const AVAILABLE_SOUNDS = [
+	{ id: 'default' as SoundType, name: 'System Default', path: '' },
 	{ id: 'iphone' as SoundType, name: 'iPhone', path: '/sounds/Iphone.mp3' },
 	{ id: 'livechat' as SoundType, name: 'Live Chat', path: '/sounds/livechat.mp3' },
 	{ id: 'notification' as SoundType, name: 'Notification', path: '/sounds/notification.mp3' }
@@ -40,8 +42,8 @@ function createSoundStore() {
 
 function createSoundTypeStore() {
 	const initial: SoundType = browser 
-		? (localStorage.getItem(SOUND_TYPE_KEY) as SoundType) || 'iphone'
-		: 'iphone';
+		? (localStorage.getItem(SOUND_TYPE_KEY) as SoundType) || 'default'
+		: 'default';
 	const { subscribe, set } = writable<SoundType>(initial);
 	
 	return {
@@ -52,13 +54,8 @@ function createSoundTypeStore() {
 		},
 		getCurrentSound(): { type: SoundType; path: string } {
 			const currentType = browser 
-				? (localStorage.getItem(SOUND_TYPE_KEY) as SoundType) || 'iphone'
-				: 'iphone';
-			
-			if (currentType === 'custom') {
-				const customPath = browser ? localStorage.getItem(CUSTOM_SOUND_KEY) : null;
-				return { type: 'custom', path: customPath || AVAILABLE_SOUNDS[0].path };
-			}
+				? (localStorage.getItem(SOUND_TYPE_KEY) as SoundType) || 'default'
+				: 'default';
 			
 			const sound = AVAILABLE_SOUNDS.find(s => s.id === currentType);
 			return { type: currentType, path: sound?.path || AVAILABLE_SOUNDS[0].path };
@@ -66,26 +63,53 @@ function createSoundTypeStore() {
 	};
 }
 
-function createCustomSoundStore() {
-	const initial = browser ? localStorage.getItem(CUSTOM_SOUND_KEY) || '' : '';
-	const { subscribe, set } = writable<string>(initial);
-	
-	return {
-		subscribe,
-		set(path: string) {
-			if (browser) localStorage.setItem(CUSTOM_SOUND_KEY, path);
-			set(path);
-		},
-		clear() {
-			if (browser) localStorage.removeItem(CUSTOM_SOUND_KEY);
-			set('');
-		}
-	};
-}
-
 export const soundEnabled = createSoundStore();
 export const selectedSoundType = createSoundTypeStore();
-export const customSoundPath = createCustomSoundStore();
+
+export async function savePreferredSound(userId: string, type: SoundType) {
+    selectedSoundType.set(type);
+    try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+            preferredSound: type,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log('[StaffNotifications] Saved preferred sound to Firestore:', type);
+    } catch (e) {
+        console.error('[StaffNotifications] Failed to save preferred sound to Firestore:', e);
+    }
+}
+
+export async function ensureNotificationChannels() {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+        const channels = AVAILABLE_SOUNDS.map(s => ({
+            id: `sound_${s.id}`,
+            name: `Bookings (${s.name})`,
+            description: `Notifications with ${s.name} sound`,
+            importance: 5,
+            visibility: 1,
+            sound: s.id,
+            vibration: true,
+        }));
+        channels.push({
+            id: 'bookings',
+            name: 'Bookings (Default)',
+            description: 'Default booking notifications',
+            importance: 5,
+            visibility: 1,
+            sound: 'default',
+            vibration: true,
+        });
+
+        for (const ch of channels) {
+            await PushNotifications.createChannel(ch as any);
+        }
+        console.log('[StaffNotifications] Created native notification channels');
+    } catch (e) {
+        console.error('[StaffNotifications] Failed to create channels:', e);
+    }
+}
 
 export type NotificationsState = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -132,7 +156,24 @@ export async function closeListeningNotification() {
     } catch (e) { /* ignore */ }
 }
 
-export function checkNotificationStatus() {
+export async function checkNotificationStatus() {
+    if (Capacitor.isNativePlatform()) {
+        try {
+            await ensureNotificationChannels();
+            const permStatus = await PushNotifications.checkPermissions();
+            if (permStatus.receive === 'granted') {
+                notificationStatus.set('granted');
+            } else if (permStatus.receive === 'denied') {
+                notificationStatus.set('denied');
+            } else {
+                notificationStatus.set('default');
+            }
+        } catch (e) {
+            notificationStatus.set('unsupported');
+        }
+        return;
+    }
+
     if (!('Notification' in window)) {
         notificationStatus.set('unsupported');
         return;
@@ -149,6 +190,64 @@ export interface StaffNotificationResult {
 
 export async function requestNotificationPermission(userId: string): Promise<StaffNotificationResult> {
     console.log('[StaffNotifications] Starting permission request for user:', userId);
+
+    if (Capacitor.isNativePlatform()) {
+        try {
+            let permStatus = await PushNotifications.checkPermissions();
+            if (permStatus.receive === 'prompt') {
+                permStatus = await PushNotifications.requestPermissions();
+            }
+            if (permStatus.receive !== 'granted') {
+                notificationStatus.set('denied');
+                return { success: false, error: 'Permission denied', step: 'permission_request' };
+            }
+            
+            notificationStatus.set('granted');
+            await PushNotifications.register();
+            
+            return new Promise((resolve) => {
+                let resolved = false;
+                
+                const regListener = PushNotifications.addListener('registration', async (token) => {
+                    if (resolved) return;
+                    resolved = true;
+                    regListener.then(l => l.remove());
+                    errListener.then(l => l.remove());
+                    
+                    console.log('[StaffNotifications] Native push registration success, token:', token.value);
+                    try {
+                        const userRef = doc(db, 'users', userId);
+                        await setDoc(userRef, {
+                            fcmTokens: arrayUnion(token.value),
+                            updatedAt: new Date().toISOString()
+                        }, { merge: true });
+                        resolve({ success: true, token: token.value, step: 'complete' });
+                    } catch (err: any) {
+                        resolve({ success: false, error: err.message, step: 'save_token' });
+                    }
+                });
+
+                const errListener = PushNotifications.addListener('registrationError', (error: any) => {
+                    if (resolved) return;
+                    resolved = true;
+                    regListener.then(l => l.remove());
+                    errListener.then(l => l.remove());
+                    resolve({ success: false, error: error.error, step: 'registration' });
+                });
+                
+                setTimeout(() => {
+                    if (resolved) return;
+                    resolved = true;
+                    regListener.then(l => l.remove());
+                    errListener.then(l => l.remove());
+                    resolve({ success: false, error: 'Registration timeout', step: 'registration' });
+                }, 10000);
+            });
+        } catch (e: any) {
+             console.error('[StaffNotifications] Error in native push request:', e);
+             return { success: false, error: e.message, step: 'exception' };
+        }
+    }
 
     if (!browser) {
         console.warn('[StaffNotifications] Not in browser environment');
@@ -240,14 +339,16 @@ export async function requestNotificationPermission(userId: string): Promise<Sta
 export async function disableNotifications(userId: string): Promise<boolean> {
     try {
         console.log('[Notifications] Disabling notifications for device...');
-        // Clearing fcmTokens in Firestore is sufficient to stop receiving pushes.
-        // We do NOT depend on getToken() here — it can fail (messaging uninitialized,
-        // VAPID issue, SW error) and would silently leave tokens in the database.
         const userRef = doc(db, 'users', userId);
         await setDoc(userRef, {
             fcmTokens: [],
             updatedAt: new Date().toISOString()
         }, { merge: true });
+        
+        if (Capacitor.isNativePlatform()) {
+            await PushNotifications.removeAllListeners();
+        }
+        
         console.log('[Notifications] Tokens cleared. Notifications disabled.');
         return true;
     } catch (error) {

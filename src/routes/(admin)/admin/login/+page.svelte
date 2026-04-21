@@ -129,7 +129,7 @@
 		display: flex;
 		align-items: center;
 		margin: 24px 0;
-		color: var(--color-text-secondary, #8e8e93);
+		color: var(--admin-text-tertiary);
 		font-size: 0.8rem;
 		width: 100%;
 	}
@@ -138,7 +138,7 @@
 		content: '';
 		flex: 1;
 		height: 1px;
-		background: var(--color-border, #e5e5ea);
+		background: var(--admin-border);
 	}
 	.admin-divider span {
 		padding: 0 10px;
@@ -156,7 +156,7 @@
 	}
 
 	.whatsapp-hint {
-		color: var(--color-text-secondary, #8e8e93);
+		color: var(--admin-text-tertiary);
 		font-size: 0.85rem;
 		margin-top: 12px;
 		text-align: center;

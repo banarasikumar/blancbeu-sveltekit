@@ -43,8 +43,8 @@ if (typeof window !== 'undefined') {
     });
 }
 
-import { selectedSoundType, customSoundPath, soundEnabled, type SoundType, AVAILABLE_SOUNDS } from '$lib/stores/staffNotifications';
-import { selectedSoundType as adminSelectedSoundType, customSoundPath as adminCustomSoundPath, soundEnabled as adminSoundEnabled, type SoundType as AdminSoundType, AVAILABLE_SOUNDS as ADMIN_AVAILABLE_SOUNDS } from '$lib/stores/adminNotifications';
+import { selectedSoundType, soundEnabled, type SoundType, AVAILABLE_SOUNDS } from '$lib/stores/staffNotifications';
+import { selectedSoundType as adminSelectedSoundType, soundEnabled as adminSoundEnabled, type SoundType as AdminSoundType, AVAILABLE_SOUNDS as ADMIN_AVAILABLE_SOUNDS } from '$lib/stores/adminNotifications';
 import { get } from 'svelte/store';
 
 /**
@@ -53,7 +53,6 @@ import { get } from 'svelte/store';
 export async function playAppNotificationSound(
     soundEnabledStore: { subscribe: any },
     selectedSoundTypeStore: { subscribe: any },
-    customSoundPathStore: { subscribe: any },
     availableSounds: Array<{ id: string; path: string }>,
     volume = 0.7
 ): Promise<void> {
@@ -64,14 +63,20 @@ export async function playAppNotificationSound(
     }
 
     const soundType = get(selectedSoundTypeStore);
-    let soundPath: string;
 
-    if (soundType === 'custom') {
-        const customPath = get(customSoundPathStore);
-        soundPath = customPath || availableSounds[0].path;
-    } else {
-        const sound = availableSounds.find(s => s.id === soundType);
-        soundPath = sound?.path || availableSounds[0].path;
+    if (soundType === 'default') {
+        playNotificationChime(volume * 0.8);
+        return;
+    }
+
+    let soundPath: string;
+    const sound = availableSounds.find(s => s.id === soundType);
+    // fallback to first non-default sound if not found
+    soundPath = sound?.path || availableSounds.find(s => s.path !== '')?.path || '';
+
+    if (!soundPath) {
+        playNotificationChime(volume * 0.8);
+        return;
     }
 
     // Try to play the selected sound, fall back to chime on failure
@@ -90,7 +95,6 @@ export async function playSelectedNotificationSound(volume = 0.7): Promise<void>
     return playAppNotificationSound(
         soundEnabled,
         selectedSoundType,
-        customSoundPath,
         AVAILABLE_SOUNDS,
         volume
     );
@@ -103,7 +107,6 @@ export async function playAdminNotificationSound(volume = 0.7): Promise<void> {
     return playAppNotificationSound(
         adminSoundEnabled,
         adminSelectedSoundType,
-        adminCustomSoundPath,
         ADMIN_AVAILABLE_SOUNDS,
         volume
     );
