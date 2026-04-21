@@ -52,6 +52,11 @@ async function saveToken(
 	const { doc, setDoc, arrayUnion } = await import('firebase/firestore');
 	const { db } = await import('$lib/firebase');
 
+	// Store token locally so we can remove it later if user disables push
+	if (typeof window !== 'undefined') {
+		localStorage.setItem(`blancbeu_${appType}_current_token`, token);
+	}
+
 	const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
 	const userRef = doc(db, 'users', userId);
 	
@@ -66,6 +71,39 @@ async function saveToken(
 		},
 		{ merge: true }
 	);
+}
+
+/**
+ * Removes the current device's token from Firestore to stop receiving push notifications
+ * specifically on this device, leaving other devices untouched.
+ */
+export async function removeToken(userId: string, appType: 'staff' | 'admin'): Promise<void> {
+	if (typeof window === 'undefined') return;
+	
+	const token = localStorage.getItem(`blancbeu_${appType}_current_token`);
+	if (!token) {
+		console.warn(`[PushService] No local token found to remove for ${appType}`);
+		return;
+	}
+
+	try {
+		const { doc, updateDoc, arrayRemove } = await import('firebase/firestore');
+		const { db } = await import('$lib/firebase');
+
+		const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
+		const userRef = doc(db, 'users', userId);
+		
+		await updateDoc(userRef, {
+			fcmTokens: arrayRemove(token),
+			[tokenField]: arrayRemove(token)
+		});
+		
+		// Optional: clear local token, but not strictly necessary
+		// localStorage.removeItem(`blancbeu_${appType}_current_token`);
+		console.log(`[PushService] Successfully removed device token for ${appType}`);
+	} catch (err) {
+		console.error(`[PushService] Error removing device token for ${appType}:`, err);
+	}
 }
 
 // ─── Native path (Capacitor + FCM via Google Play Services) ──────────────────
@@ -252,7 +290,18 @@ async function initWebPush(userId: string, appType: 'staff' | 'admin', onMessage
  * @returns Unsubscribe function — call in onDestroy()
  */
 export async function initPush(userId: string, appType: 'staff' | 'admin', onMessage: ForegroundHandler): Promise<Unsubscribe> {
-	if (isNative()) {
+	if (typeof window === 'undefined') return () => {};
+
+	// Check if the user has disabled notifications explicitly on this device
+	const localEnabled = localStorage.getItem(`blancbeu_${appType}_push_enabled`);
+	if (localEnabled === 'false') {
+		console.log(`[PushService] Notifications disabled locally for ${appType}, skipping init.`);
+		return () => {};
+	}
+
+	const { Capacitor } = await import('@capacitor/core');
+
+	if (Capacitor.isNativePlatform()) {
 		console.log('[PushService] Running in native Capacitor shell → using FCM native path');
 		return initNativePush(userId, appType, onMessage);
 	} else {

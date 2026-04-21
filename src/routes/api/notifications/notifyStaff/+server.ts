@@ -55,14 +55,9 @@ export async function POST({ request }) {
             usersSnapshot.forEach((doc) => {
                 const data = doc.data();
 
-                // Check per-app push enabled flag — if user has explicitly disabled
-                // push for this app role, skip them entirely (Bug #2 fix)
-                if (role === 'admin' && data.adminPushEnabled === false) {
-                    return; // Admin has disabled push notifications for admin app
-                }
-                if (role === 'staff' && data.staffPushEnabled === false) {
-                    return; // Staff has disabled push notifications for staff app
-                }
+                // Device-specific notifications: we no longer check adminPushEnabled / staffPushEnabled 
+                // flags on the user document. If a device disabled notifications, its token was
+                // removed from adminFcmTokens / staffFcmTokens, so it inherently won't be notified.
 
                 // If a notification type was specified, check if the user has explicitly disabled it
                 if (notificationType && data.notificationPreferences) {
@@ -81,9 +76,9 @@ export async function POST({ request }) {
 
                 // Determine which token array to use based on the role we are currently notifying
                 let tokensToUse: string[] = [];
-                if (role === 'admin' && data.adminPushEnabled !== false && Array.isArray(data.adminFcmTokens)) {
+                if (role === 'admin' && Array.isArray(data.adminFcmTokens)) {
                     tokensToUse = data.adminFcmTokens;
-                } else if (role === 'staff' && data.staffPushEnabled !== false && Array.isArray(data.staffFcmTokens)) {
+                } else if (role === 'staff' && Array.isArray(data.staffFcmTokens)) {
                     tokensToUse = data.staffFcmTokens;
                 }
 

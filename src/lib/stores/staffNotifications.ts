@@ -20,26 +20,25 @@ export const adminPushEnabled = writable<boolean>(true);
 let _currentAppContext: 'staff' | 'admin' = 'staff';
 
 /**
- * Load the push enabled state for a specific app from Firestore.
+ * Load the push enabled state for a specific app from local device storage.
  * Call this on mount in the respective app's settings/profile page.
  */
 export async function loadPushEnabled(userId: string, appType: 'staff' | 'admin'): Promise<boolean> {
     _currentAppContext = appType;
+    if (!browser) return true;
+    
     try {
-        const userRef = doc(db, 'users', userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const data = userSnap.data();
-            const fieldName = appType === 'admin' ? 'adminPushEnabled' : 'staffPushEnabled';
-            // Default to true if field doesn't exist (backwards compat)
-            const enabled = data[fieldName] !== false;
-            if (appType === 'admin') {
-                adminPushEnabled.set(enabled);
-            } else {
-                staffPushEnabled.set(enabled);
-            }
-            return enabled;
+        const key = `blancbeu_${appType}_push_enabled`;
+        const stored = localStorage.getItem(key);
+        // Default to true if never set
+        const enabled = stored !== 'false';
+        
+        if (appType === 'admin') {
+            adminPushEnabled.set(enabled);
+        } else {
+            staffPushEnabled.set(enabled);
         }
+        return enabled;
     } catch (e) {
         console.error(`[Notifications] Failed to load ${appType} push enabled state:`, e);
     }
@@ -47,26 +46,24 @@ export async function loadPushEnabled(userId: string, appType: 'staff' | 'admin'
 }
 
 /**
- * Save the push enabled state for a specific app to Firestore.
+ * Save the push enabled state for a specific app to local device storage.
  */
 export async function savePushEnabled(userId: string, appType: 'staff' | 'admin', enabled: boolean): Promise<boolean> {
+    if (!browser) return false;
+    
     try {
-        const userRef = doc(db, 'users', userId);
-        const fieldName = appType === 'admin' ? 'adminPushEnabled' : 'staffPushEnabled';
-        await setDoc(userRef, {
-            [fieldName]: enabled,
-            updatedAt: new Date().toISOString()
-        }, { merge: true });
+        const key = `blancbeu_${appType}_push_enabled`;
+        localStorage.setItem(key, enabled.toString());
         
         if (appType === 'admin') {
             adminPushEnabled.set(enabled);
         } else {
             staffPushEnabled.set(enabled);
         }
-        console.log(`[Notifications] Saved ${appType} push enabled = ${enabled}`);
+        console.log(`[Notifications] Saved ${appType} push enabled locally = ${enabled}`);
         return true;
     } catch (e) {
-        console.error(`[Notifications] Failed to save ${appType} push enabled:`, e);
+        console.error(`[Notifications] Failed to save ${appType} push enabled locally:`, e);
         return false;
     }
 }
@@ -299,6 +296,11 @@ export async function requestNotificationPermission(userId: string, appType: 'st
                     try {
                         const userRef = doc(db, 'users', userId);
                         const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
+                        
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem(`blancbeu_${appType}_current_token`, token.value);
+                        }
+
                         await setDoc(userRef, {
                             fcmTokens: arrayUnion(token.value),
                             [tokenField]: arrayUnion(token.value),
@@ -403,6 +405,11 @@ export async function requestNotificationPermission(userId: string, appType: 'st
         // Save token to user profile
         const userRef = doc(db, 'users', userId);
         const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
+        
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(`blancbeu_${appType}_current_token`, token);
+        }
+
         await setDoc(userRef, {
             fcmTokens: arrayUnion(token),
             [tokenField]: arrayUnion(token),
@@ -427,18 +434,27 @@ export async function requestNotificationPermission(userId: string, appType: 'st
 }
 
 /**
- * Disable notifications for a specific app. Instead of wiping fcmTokens (which
- * would kill notifications for ALL apps), we set a per-app flag in Firestore.
- * The server-side notifyStaff endpoint checks these flags before sending.
+ * Disable notifications for a specific app instance.
+ * Sets the local preference to false and removes the current device's FCM token from Firestore.
  */
 export async function disableNotifications(userId: string, appType: 'staff' | 'admin' = _currentAppContext): Promise<boolean> {
     try {
-        console.log(`[Notifications] Disabling ${appType} notifications for user ${userId}...`);
+        console.log(`[Notifications] Disabling ${appType} notifications for this device...`);
         const success = await savePushEnabled(userId, appType, false);
         if (!success) return false;
         
+        // Remove the token from Firestore so the server stops sending to this device
+        if (browser) {
+            const { removeToken } = await import('$lib/capacitor/pushService');
+            await removeToken(userId, appType);
+            
+            if (Capacitor.isNativePlatform()) {
+                await PushNotifications.removeAllListeners();
+            }
+        }
+        
         notificationStatus.set('default');
-        console.log(`[Notifications] ${appType} notifications disabled (tokens preserved).`);
+        console.log(`[Notifications] ${appType} notifications disabled for this device.`);
         return true;
     } catch (error) {
         console.error('[Notifications] Error disabling notifications:', error);
