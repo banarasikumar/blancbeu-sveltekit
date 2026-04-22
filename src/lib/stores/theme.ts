@@ -65,9 +65,9 @@ if (browser) {
 				import(/* @vite-ignore */ pkgName).then(({ StatusBar, Style }) => {
 					StatusBar.setBackgroundColor({ color: THEME_COLORS[value] }).catch(console.warn);
 					
-					// 'gold' is dark mode -> light text (Style.Dark)
-					// others are light mode -> dark text (Style.Light)
-					const style = value === 'gold' ? Style.Dark : Style.Light;
+					// Style.Light = white/light status bar icons (for dark backgrounds like 'gold')
+					// Style.Dark  = dark status bar icons (for light backgrounds like 'glitch'/'clean')
+					const style = value === 'gold' ? Style.Light : Style.Dark;
 					StatusBar.setStyle({ style }).catch(console.warn);
 				}).catch(console.warn);
 			}

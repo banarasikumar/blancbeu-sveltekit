@@ -13,9 +13,7 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- Fix: Force Status Bar to match White header -->
-        <item name="android:statusBarColor">#ffffff</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <!-- Status bar color is controlled dynamically by @capacitor/status-bar plugin -->
     </style>
 
 
