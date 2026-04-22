@@ -72,6 +72,18 @@
 	let walkinName = $state('');
 	let walkinService = $state('');
 
+	// Revenue privacy toggle
+	let showRevenue = $state(false);
+	let revenueTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	function handleRevenueClick() {
+		showRevenue = true;
+		if (revenueTimeout) clearTimeout(revenueTimeout);
+		revenueTimeout = setTimeout(() => {
+			showRevenue = false;
+		}, 3000);
+	}
+
 	function openBooking(booking: any) {
 		selectedBooking = booking;
 		modalMode = 'edit';
@@ -212,16 +224,6 @@
 	<!-- ━━━ QUICK ACTIONS ━━━ -->
 	<section class="quick-actions">
 		<button
-			class="qa-btn qa-walkin"
-			onclick={() => {
-				modalMode = 'create';
-				isModalOpen = true;
-			}}
-		>
-			<span class="qa-icon">🚶</span>
-			<span class="qa-label">Walk-in</span>
-		</button>
-		<button
 			class="qa-btn qa-booking"
 			onclick={() => {
 				modalMode = 'create';
@@ -235,9 +237,19 @@
 			<span class="qa-icon">📅</span>
 			<span class="qa-label">Schedule</span>
 		</button>
-		<button class="qa-btn qa-history" onclick={() => goto('/staff/bookings')}>
-			<span class="qa-icon">📋</span>
-			<span class="qa-label">All</span>
+		<button
+			class="qa-btn qa-clients"
+			onclick={() => goto('/staff/clients')}
+		>
+			<span class="qa-icon">👥</span>
+			<span class="qa-label">Clients</span>
+		</button>
+		<button class="stat-card accent" onclick={handleRevenueClick}>
+			<span class="stat-value" style="min-width: 60px; transition: all 0.3s ease;">
+				{showRevenue ? `₹${todayRevenue.toLocaleString()}` : '••••'}
+			</span>
+			<span class="stat-label">Revenue</span>
+			<span class="stat-icon">💰</span>
 		</button>
 	</section>
 
@@ -253,15 +265,14 @@
 			<span class="stat-label">Pending</span>
 			<span class="stat-icon">⏳</span>
 		</button>
-		<button class="stat-card highlight">
+		<button class="stat-card highlight" onclick={() => goto('/staff/bookings?filter=completed')}>
 			<span class="stat-value">{completedToday}</span>
 			<span class="stat-label">Done</span>
 			<span class="stat-icon">✅</span>
 		</button>
-		<button class="stat-card accent">
-			<span class="stat-value">₹{todayRevenue.toLocaleString()}</span>
-			<span class="stat-label">Revenue</span>
-			<span class="stat-icon">💰</span>
+		<button class="qa-btn qa-history" onclick={() => goto('/staff/bookings')}>
+			<span class="qa-icon">📋</span>
+			<span class="qa-label">All</span>
 		</button>
 	</section>
 
@@ -757,7 +768,7 @@
 		transition: opacity 0.2s ease;
 	}
 
-	.qa-walkin::after {
+	.qa-clients::after {
 		background: var(--s-grad-violet);
 	}
 	.qa-booking::after {

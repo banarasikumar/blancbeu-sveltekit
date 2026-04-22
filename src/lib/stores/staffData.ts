@@ -308,3 +308,21 @@ export async function searchUsersByName(nameQuery: string): Promise<AppUser[]> {
 		return [];
 	}
 }
+
+export async function getRecentClients(limitCount: number = 20): Promise<AppUser[]> {
+	try {
+		// Fetch a batch of users. 
+		// We fetch a bit more and filter in memory to avoid needing complex Firestore indexes for 'role'.
+		const q = query(collection(db, 'users'), limit(limitCount * 2));
+		const snapshot = await getDocs(q);
+		const clients = snapshot.docs
+			.map((d) => ({ id: d.id, ...d.data() } as AppUser))
+			.filter(u => u.role !== 'admin' && u.role !== 'staff')
+			.slice(0, limitCount);
+			
+		return clients;
+	} catch (e) {
+		console.error('Error fetching recent clients:', e);
+		return [];
+	}
+}

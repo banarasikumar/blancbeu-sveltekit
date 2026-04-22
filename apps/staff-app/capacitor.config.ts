@@ -47,7 +47,9 @@ const config: CapacitorConfig = {
 		'@capacitor/push-notifications',
 		'@capacitor/app',
 		'@capacitor/browser',
-		'@capacitor/status-bar'
+		'@capacitor/status-bar',
+		'@capacitor/share',
+		'@capacitor/filesystem'
 	]
 };
 

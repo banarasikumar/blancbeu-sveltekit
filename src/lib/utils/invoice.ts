@@ -614,40 +614,141 @@ export async function generateAndShareInvoice(params: {
 
 	// ═══════════════════════════════════════════
 	//   SHARE PDF VIA SHARE SHEET
+	//   • Capacitor (Android): native Share plugin
+	//     writes PDF to cache dir, then opens the
+	//     native Android share sheet (WhatsApp, etc.)
+	//   • Web: Web Share API → download fallback
 	// ═══════════════════════════════════════════
 
 	const fileName = `Invoice_${(booking.userName || 'Client').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
 
 	const pdfBlob = doc.output('blob');
-	const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-	// Use Web Share API to share the PDF file (opens native share sheet on mobile)
-	// Try share directly — canShare may be undefined on HTTP dev servers
-	try {
-		await navigator.share({
-			files: [pdfFile],
-			title: `Invoice - ${booking.userName || 'Client'}`,
-			text: `Invoice from Blancbeu - ${booking.userName || 'Client'}`
-		});
-	} catch (shareErr: any) {
-		// If sharing is not supported or user cancelled, fall back to download
-		if (shareErr?.name === 'AbortError') {
-			// User cancelled — do nothing
-		} else {
-			// Safe download that won't navigate the page away
-			console.warn('Share not available, downloading PDF:', shareErr);
-			const blobUrl = URL.createObjectURL(pdfBlob);
-			const downloadLink = document.createElement('a');
-			downloadLink.href = blobUrl;
-			downloadLink.download = fileName;
-			downloadLink.style.display = 'none';
-			document.body.appendChild(downloadLink);
-			downloadLink.click();
-			document.body.removeChild(downloadLink);
-			// Clean up blob URL after a short delay
-			setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+	// Detect Capacitor runtime (window.Capacitor is injected by the native bridge)
+	const isCapacitor =
+		typeof window !== 'undefined' &&
+		!!(window as any).Capacitor &&
+		(window as any).Capacitor.isNativePlatform?.();
+
+	if (isCapacitor) {
+		// ── Capacitor native path ──────────────────────────────────────────────
+		// 1. Convert blob → base64
+		// 2. Write to the app cache directory via Filesystem plugin
+		// 3. Call Share plugin — opens Android share sheet (WhatsApp, Drive, etc.)
+		try {
+			const { Filesystem, Directory } = await import('@capacitor/filesystem');
+			const { Share } = await import('@capacitor/share');
+
+			// Blob → ArrayBuffer → base64
+			const arrayBuffer = await pdfBlob.arrayBuffer();
+			const uint8 = new Uint8Array(arrayBuffer);
+			let binary = '';
+			const chunkSize = 8192;
+			for (let i = 0; i < uint8.length; i += chunkSize) {
+				binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+			}
+			const base64Data = btoa(binary);
+
+			// Write to cache directory
+			const writeResult = await Filesystem.writeFile({
+				path: fileName,
+				data: base64Data,
+				directory: Directory.Cache
+			});
+
+			// Open native share sheet
+			await Share.share({
+				title: `Invoice – ${booking.userName || 'Client'}`,
+				text: `Invoice from Blancbeu Beauty Salon`,
+				url: writeResult.uri, // file:// URI on Android
+				dialogTitle: 'Send Invoice via'
+			});
+		} catch (capErr: any) {
+			if (capErr?.name !== 'AbortError') {
+				console.error('Capacitor share failed:', capErr);
+				// Cascade to a toast-able error so the caller can show feedback
+				throw capErr;
+			}
+			// AbortError = user cancelled → silent
+		}
+	} else {
+		// ── Web / browser path ─────────────────────────────────────────────────
+		const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+		try {
+			// Web Share API (works on Chrome/Android browser over HTTPS)
+			if (navigator.share && navigator.canShare?.({ files: [pdfFile] })) {
+				await navigator.share({
+					files: [pdfFile],
+					title: `Invoice - ${booking.userName || 'Client'}`,
+					text: `Invoice from Blancbeu - ${booking.userName || 'Client'}`
+				});
+			} else {
+				throw new Error('Web Share not supported');
+			}
+		} catch (shareErr: any) {
+			if (shareErr?.name === 'AbortError') {
+				// User cancelled — do nothing
+			} else {
+				// Safe download fallback
+				console.warn('Share not available, downloading PDF:', shareErr);
+				const blobUrl = URL.createObjectURL(pdfBlob);
+				const downloadLink = document.createElement('a');
+				downloadLink.href = blobUrl;
+				downloadLink.download = fileName;
+				downloadLink.style.display = 'none';
+				document.body.appendChild(downloadLink);
+				downloadLink.click();
+				document.body.removeChild(downloadLink);
+				setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+			}
 		}
 	}
+}
+
+// ═══════════════════════════════════════════
+//   NORMALIZE PHONE → E.164 (India default)
+//   Handles every format the DB can produce:
+//   10-digit, +91…, 91…, 0…, wa:+91…, spaces,
+//   dashes, parentheses, 0091… etc.
+//   Always returns digits only (e.g. 919876543210)
+//   ready for the whatsapp:// / wa.me URL.
+// ═══════════════════════════════════════════
+
+function normalizePhoneE164(raw: string | null | undefined): string {
+	if (!raw) return '';
+
+	// Strip the WhatsApp UID prefix (wa:+91...)
+	let cleaned = raw.replace(/^wa:/i, '');
+
+	// Remove all non-digit characters (spaces, dashes, dots, parentheses, +)
+	cleaned = cleaned.replace(/\D/g, '');
+
+	if (!cleaned) return '';
+
+	// Handle 0091XXXXXXXXXX → 91XXXXXXXXXX
+	if (cleaned.startsWith('0091') && cleaned.length >= 14) {
+		cleaned = cleaned.slice(2); // remove leading 00
+	}
+
+	// Handle 091XXXXXXXXXX → 91XXXXXXXXXX
+	if (cleaned.startsWith('091') && cleaned.length === 13) {
+		cleaned = cleaned.slice(1);
+	}
+
+	// Handle 0XXXXXXXXXX (Indian trunk prefix) → 91XXXXXXXXXX
+	if (cleaned.startsWith('0') && cleaned.length === 11) {
+		cleaned = '91' + cleaned.slice(1);
+	}
+
+	// Handle bare 10-digit Indian number → prepend 91
+	if (cleaned.length === 10 && !cleaned.startsWith('91')) {
+		cleaned = '91' + cleaned;
+	}
+
+	// If already has country code (91XXXXXXXXXX = 12 digits) — done
+	// Anything else: return as-is and let WhatsApp handle it
+	return cleaned;
 }
 
 // ═══════════════════════════════════════════
@@ -664,25 +765,46 @@ export function startWhatsAppChat(params: {
 }) {
 	const { booking, services, totalAmount, discountAmount = 0, extraCharge = 0 } = params;
 
+	// ── Build the message ────────────────────────────────────────────────────
 	let msg = `*Invoice from Blancbeu*\nHello ${booking.userName || ''},\nHere is your service summary:\n\n`;
-	services.forEach((s) => (msg += `- ${s.name}: Rs.${s.price}\n`));
-	if (extraCharge > 0) msg += `Other Charges: Rs.${extraCharge}\n`;
-	if (discountAmount > 0) msg += `Extra Discount: -Rs.${discountAmount}\n`;
-	msg += `\n*Total Amount: Rs.${totalAmount}*\n\nThank you for choosing Blancbeu! 💖`;
+	services.forEach((s) => (msg += `- ${s.name}: ₹${s.price}\n`));
+	if (extraCharge > 0) msg += `Other Charges: ₹${extraCharge}\n`;
+	if (discountAmount > 0) msg += `Extra Discount: -₹${discountAmount}\n`;
+	msg += `\n*Total Amount: ₹${totalAmount}*\n\nThank you for choosing Blancbeu! 💖`;
 
 	const encodedMsg = encodeURIComponent(msg);
-	const phone = booking.userPhone ? booking.userPhone.replace(/\D/g, '') : '';
 
-	// Use whatsapp:// scheme to launch WhatsApp app directly (not browser)
-	const waAppUrl = phone
+	// ── Normalize phone number robustly ──────────────────────────────────────
+	const phone = normalizePhoneE164(booking.userPhone);
+
+	// ── Build URLs ───────────────────────────────────────────────────────────
+	// whatsapp:// intent — directly opens the WhatsApp app (works on Capacitor WebView)
+	const waIntentUrl = phone
 		? `whatsapp://send?phone=${phone}&text=${encodedMsg}`
 		: `whatsapp://send?text=${encodedMsg}`;
 
-	// Anchor click properly triggers app intent on PWA
-	const waLink = document.createElement('a');
-	waLink.href = waAppUrl;
-	waLink.style.display = 'none';
-	document.body.appendChild(waLink);
-	waLink.click();
-	document.body.removeChild(waLink);
+	// wa.me fallback — works in browsers and as Browser.open() fallback
+	const waWebUrl = phone
+		? `https://wa.me/${phone}?text=${encodedMsg}`
+		: `https://wa.me/?text=${encodedMsg}`;
+
+	// ── Detect Capacitor runtime ─────────────────────────────────────────────
+	const isCapacitor =
+		typeof window !== 'undefined' &&
+		!!(window as any).Capacitor &&
+		(window as any).Capacitor.isNativePlatform?.();
+
+	if (isCapacitor) {
+		// On Capacitor (Android), trigger the whatsapp:// intent via anchor click.
+		// Android resolves this directly to the WhatsApp app — no browser step.
+		const link = document.createElement('a');
+		link.href = waIntentUrl;
+		link.style.display = 'none';
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	} else {
+		// On web: open wa.me in a new tab (browser handles redirect to WhatsApp)
+		window.open(waWebUrl, '_blank');
+	}
 }

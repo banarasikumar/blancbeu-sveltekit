@@ -93,6 +93,8 @@
 
 	// Theme cycling
 	let currentTheme = $state<'light' | 'dark' | 'system'>('light');
+	let showThemeText = $state(false);
+	let themeTextTimeout: ReturnType<typeof setTimeout> | null = null;
 	themeMode.subscribe((t) => (currentTheme = t));
 
 	function cycleTheme() {
@@ -100,7 +102,12 @@
 		const idx = themes.indexOf(currentTheme);
 		const next = themes[(idx + 1) % themes.length];
 		setTheme(next);
-		showToast(`Theme: ${next}`, 'success');
+
+		showThemeText = true;
+		if (themeTextTimeout) clearTimeout(themeTextTimeout);
+		themeTextTimeout = setTimeout(() => {
+			showThemeText = false;
+		}, 2000);
 	}
 
 	const themeIcons: Record<string, string> = {
@@ -245,9 +252,9 @@
 <div class="profile-page s-stagger">
 	<!-- Premium Hero Section -->
 	<section class="premium-hero s-card">
-		<button class="theme-toggle-btn" onclick={cycleTheme} title="Toggle Theme" aria-label="Toggle Theme">
-			<span class="theme-icon">{themeIcons[currentTheme]}</span>
+		<button class="theme-toggle-btn" class:expanded={showThemeText} onclick={cycleTheme} title="Toggle Theme" aria-label="Toggle Theme">
 			<span class="theme-text">{currentTheme === 'light' ? 'Light Mode' : currentTheme === 'dark' ? 'Dark Mode' : 'System Theme'}</span>
+			<span class="theme-icon">{themeIcons[currentTheme]}</span>
 		</button>
 
 		<div class="hero-bg-glow"></div>
@@ -584,23 +591,38 @@
 		position: absolute;
 		top: 16px;
 		right: 16px;
-		height: 40px;
-		padding: 0 16px;
+		height: 44px;
+		padding: 0 10px;
 		border-radius: var(--s-radius-full);
 		border: 1px solid var(--s-border);
 		background: var(--s-bg-secondary);
 		display: flex;
 		align-items: center;
-		gap: 8px;
 		cursor: pointer;
-		transition: all var(--s-duration-fast) var(--s-ease);
+		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 		z-index: 10;
 		color: var(--s-text-primary);
+		overflow: hidden;
+	}
+
+	.theme-toggle-btn.expanded {
+		padding: 0 12px 0 16px;
 	}
 
 	.theme-text {
 		font-size: 0.8rem;
 		font-weight: 600;
+		white-space: nowrap;
+		max-width: 0;
+		opacity: 0;
+		margin-right: 0;
+		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.theme-toggle-btn.expanded .theme-text {
+		max-width: 120px;
+		opacity: 1;
+		margin-right: 8px;
 	}
 
 	.theme-toggle-btn:hover {
@@ -612,6 +634,9 @@
 
 	.theme-icon {
 		font-size: 1.2rem;
+		width: 22px;
+		display: flex;
+		justify-content: center;
 	}
 
 	/* Floating Edit Button */

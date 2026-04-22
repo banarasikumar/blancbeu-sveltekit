@@ -98,24 +98,51 @@
 		}
 
 		// Deep-link handler (native APK only)
+		// Handles two scenarios:
+		// 1. App in foreground/background: appUrlOpen fires with the incoming URL
+		// 2. App killed (cold start): App.getLaunchUrl() returns the URL that launched it
 		if (isNative()) {
-			import('@capacitor/app').then(({ App }) => {
-				App.addListener('appUrlOpen', (data) => {
+			import('@capacitor/app').then(async ({ App }) => {
+				// Helper: process any incoming URL from either source
+				const handleIncomingUrl = (urlStr: string) => {
 					try {
-						const url = new URL(data.url);
+						const url = new URL(urlStr);
+						const tokenParam = url.searchParams.get('token');
+
+						// ── Magic-link token → authenticate directly ──────────────
+						if (tokenParam) {
+							import('$lib/services/authService').then(({ checkMagicLink }) => {
+								checkMagicLink('admin');
+							});
+							// Navigate to the path so page.url updates and the $effect
+							// on the login page also fires (belt-and-suspenders)
+							const path = url.pathname + url.search;
+							goto(path.startsWith('/admin') ? path : `/admin${path}`);
+							return;
+						}
+
+						// ── Regular push-notification / other deep-link path ─────
 						const path = url.pathname + url.search;
-						
-						// If URL domain is our native admin domain, map relative paths strictly into /admin
 						if (url.hostname.includes('admin.blancbeu.in')) {
 							const routedPath = path.startsWith('/admin') ? path : `/admin${path === '/' ? '' : path}`;
 							goto(routedPath);
 						} else if (path.startsWith('/admin')) {
-							// For vercel.app domains which inherently have the /admin prefix
 							goto(path);
 						}
 					} catch {
-						console.warn('[Admin] Invalid deep-link URL:', data.url);
+						console.warn('[Admin] Invalid deep-link URL:', urlStr);
 					}
+				};
+
+				// Handle cold-start (app was killed when link arrived)
+				const launchUrl = await App.getLaunchUrl();
+				if (launchUrl?.url) {
+					handleIncomingUrl(launchUrl.url);
+				}
+
+				// Handle warm/foreground deep links
+				App.addListener('appUrlOpen', (data) => {
+					handleIncomingUrl(data.url);
 				}).then((handle) => {
 					appUrlListener = handle;
 				});

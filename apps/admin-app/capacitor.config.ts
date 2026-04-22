@@ -36,7 +36,7 @@ const config: CapacitorConfig = {
 		},
 		StatusBar: {
 			overlaysWebView: false,
-			style: 'DARK',
+			style: 'LIGHT', // Light style = dark text/icons (matches the light #f5f5f7 initial background)
 			backgroundColor: '#f5f5f7'
 		}
 	},

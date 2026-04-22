@@ -134,28 +134,37 @@ export async function handleWhatsAppLogin(
 	message += `\nToken: ${timestamp}-${shortToken}`;
 	message += '\n\n_Send this message without editing_';
 
-	const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+	// wa.me URL (web fallback / Browser.open fallback)
+	const waWebUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
-	// Open WhatsApp
+	// ── Open WhatsApp ──────────────────────────────────────────────────────────
 	if (Capacitor.isNativePlatform()) {
-		await Browser.open({ url });
+		// On Android, the whatsapp:// intent scheme bypasses the browser entirely
+		// and opens the WhatsApp app directly with the pre-filled message.
+		// Using an anchor-click method so Android processes the intent correctly
+		// within the Capacitor WebView.
+		const waIntentUrl = `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(message)}`;
+
+		try {
+			// Attempt direct WhatsApp intent first (fastest path)
+			const link = document.createElement('a');
+			link.href = waIntentUrl;
+			link.style.display = 'none';
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		} catch {
+			// If intent fails (WhatsApp not installed), fall back to in-app browser
+			await Browser.open({ url: waWebUrl });
+		}
 	} else {
-		window.open(url, '_blank');
+		// Web: open wa.me in a new tab (browser handles redirect to WhatsApp)
+		window.open(waWebUrl, '_blank');
 	}
 
-	// Show notification
+	// Show notification — stay on the login page so the $effect token watcher
+	// can detect the magic link when the user returns from WhatsApp
 	showToast('Check WhatsApp for your login link! 📱', 'success');
-
-	// Redirect home after delay
-	setTimeout(() => {
-		if (appType === 'staff') {
-			goto('/staff/login');
-		} else if (appType === 'admin') {
-			goto('/admin/login');
-		} else {
-			goto('/');
-		}
-	}, 2000);
 }
 
 // --- Handle Successful Login ---
