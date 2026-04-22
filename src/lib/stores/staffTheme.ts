@@ -66,12 +66,15 @@ function applyTheme(mode: ThemeMode) {
 		if (Capacitor.isNativePlatform()) {
 			const pkgName = '@capacitor/status-bar';
 			import(/* @vite-ignore */ pkgName).then(({ StatusBar, Style }) => {
+				// Match the header background for an immersive look
+				// Dark mode: use the same dark bg as --s-bg-primary (#121212)
+				// Light mode: use the same light bg as --s-bg-primary (#f8fafc)
 				const bgColor = resolved === 'dark' ? '#121212' : '#f8fafc';
 				StatusBar.setBackgroundColor({ color: bgColor }).catch(console.warn);
 				
-				// 'dark' mode -> dark background -> light text/icons (Style.Dark)
-				// 'light' mode -> light background -> dark text/icons (Style.Light)
-				const style = resolved === 'dark' ? Style.Dark : Style.Light;
+				// Style.Light = white/light status bar icons (for dark backgrounds)
+				// Style.Dark  = dark status bar icons (for light backgrounds)
+				const style = resolved === 'dark' ? Style.Light : Style.Dark;
 				StatusBar.setStyle({ style }).catch(console.warn);
 			}).catch(console.warn);
 		}
