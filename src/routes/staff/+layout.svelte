@@ -13,7 +13,7 @@
 		upcomingBookings
 	} from '$lib/stores/staffData';
 	import { initTheme, destroyTheme, resolvedTheme } from '$lib/stores/staffTheme';
-	import { soundEnabled, selectedSoundType, customSoundPath, AVAILABLE_SOUNDS, showListeningNotification, closeListeningNotification } from '$lib/stores/staffNotifications';
+	import { soundEnabled, selectedSoundType, AVAILABLE_SOUNDS, showListeningNotification, closeListeningNotification } from '$lib/stores/staffNotifications';
 	import { notifications } from '$lib/stores/staffNotificationsList';
 	import { playNotificationChime, playNotificationSound, playSelectedNotificationSound } from '$lib/utils/notificationSound';
 	import StaffNav from '$lib/components/staff/StaffNav.svelte';

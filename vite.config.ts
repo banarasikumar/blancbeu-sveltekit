@@ -21,7 +21,7 @@ export default defineConfig({
 	],
 	server: {
 		host: true,
-		allowedHosts: ['staff.blancbeu.in', 'admin.blancbeu.in', 'www.blancbeu.in', 'blancbeu.in']
+		allowedHosts: ['staff.blancbeu.in', 'admin.blancbeu.in', 'www.blancbeu.in', 'blancbeu.in', '100.81.133.55']
 	},
 	optimizeDeps: {
 		include: ['jspdf-autotable']

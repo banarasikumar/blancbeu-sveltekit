@@ -10,6 +10,7 @@
 	import { findOrCreateWalkIn } from '$lib/services/walkInService';
 	import { staffUser } from '$lib/stores/staffAuth';
 	import { get } from 'svelte/store';
+	import { tick } from 'svelte';
 	import { showToast } from '$lib/stores/toast';
 	import { auth } from '$lib/firebase';
 	import type { Booking, AppUser } from '$lib/stores/adminData';
@@ -180,7 +181,7 @@
 		selectedServices[index].price = newPrice;
 	}
 
-	function addCustomService() {
+	async function addCustomService() {
 		selectedServices = [
 			...selectedServices,
 			{
@@ -189,12 +190,11 @@
 				price: ''
 			}
 		];
-		setTimeout(() => {
-			const inputs = document.querySelectorAll('.name-input');
-			if (inputs.length > 0) {
-				(inputs[inputs.length - 1] as HTMLInputElement).focus();
-			}
-		}, 0);
+		await tick();
+		const inputs = document.querySelectorAll('.name-input');
+		if (inputs.length > 0) {
+			(inputs[inputs.length - 1] as HTMLInputElement).focus();
+		}
 	}
 
 	function getNextAvailableSlot(): { date: string; time: string } {
@@ -783,50 +783,63 @@
 
 						<div class="service-list">
 							{#each selectedServices as item, i}
-								<div class="service-item">
+								<div class="service-item manual-entry-card">
 									<div class="s-info">
-										<input
-											type="text"
-											bind:value={item.name}
-											class="name-input"
-											placeholder="Type service name..."
-											onkeydown={(e) => {
-												if (e.key === 'Enter') {
-													e.preventDefault();
-													const row = e.currentTarget.closest('.s-info');
-													if (row) {
-														const priceInput = row.querySelector('.price-input');
-														if (priceInput) (priceInput as HTMLInputElement).focus();
+										<div class="input-container">
+											<input
+												type="text"
+												bind:value={item.name}
+												class="name-input"
+												placeholder="Type service name..."
+												onkeydown={(e) => {
+													if (e.key === 'Enter') {
+														e.preventDefault();
+														const row = e.currentTarget.closest('.s-info');
+														if (row) {
+															const priceInput = row.querySelector('.price-input');
+															if (priceInput) (priceInput as HTMLInputElement).focus();
+														}
 													}
-												}
-											}}
-										/>
-										<div class="s-price-edit">
-											<span>₹</span>
+												}}
+											/>
+										</div>
+										<div class="s-price-edit input-container">
+											<span class="currency-symbol">₹</span>
 											<input
 												type="number"
 												value={item.price}
 												oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
 												class="price-input"
+												placeholder="Amount"
 											/>
 										</div>
 									</div>
-									<button class="remove-btn" onclick={() => removeService(i)}>×</button>
+									<button class="remove-btn" onclick={() => removeService(i)} aria-label="Remove Service">
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+											<line x1="18" y1="6" x2="6" y2="18"></line>
+											<line x1="6" y1="6" x2="18" y2="18"></line>
+										</svg>
+									</button>
 								</div>
 							{/each}
 						</div>
 
-						<button
-							class="open-catalog-btn"
-							onclick={(e) => {
-								e.preventDefault();
-								isCatalogOpen = true;
-							}}
-						>
-							<span class="catalog-plus">+</span>
-							<span>Select Service from Catalog</span>
-						</button>
-						<button class="text-btn" onclick={addCustomService}>+ Add Manual Entry</button>
+						<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+							<button
+								class="s-btn s-btn-primary s-btn-block"
+								onclick={(e) => {
+									e.preventDefault();
+									isCatalogOpen = true;
+								}}
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+								Browse Service Catalog
+							</button>
+							<button class="s-btn s-btn-outline s-btn-block" onclick={addCustomService}>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+								Add Custom Service
+							</button>
+						</div>
 					</section>
 
 					<div class="form-group notes-group">
@@ -1825,88 +1838,152 @@
 	.service-list {
 		display: flex;
 		flex-direction: column;
-		background: var(--s-bg-tertiary, #f3f4f6);
-		border-radius: var(--s-radius-lg, 12px);
-		margin-bottom: 16px;
-		overflow: hidden;
+		gap: 14px;
+		margin-bottom: 18px;
 	}
 
-	:global(.staff-app.dark) .service-list {
-		background: rgba(0, 0, 0, 0.2);
-	}
-
-	.service-item {
-		padding: 14px 16px;
+	.service-item.manual-entry-card {
+		padding: 16px;
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		border-bottom: 1px solid var(--s-border, #e5e7eb);
-		background: transparent;
+		align-items: flex-start;
+		background: var(--s-surface, white);
+		border: 1px solid var(--s-border, #e5e7eb);
+		border-radius: var(--s-radius-lg, 12px);
+		position: relative;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+		transition: border-color 0.2s ease, box-shadow 0.2s ease;
 	}
 
-	.service-item:last-child {
-		border-bottom: none;
+	:global(.staff-app.dark) .service-item.manual-entry-card {
+		background: var(--s-bg-tertiary, #1e1e1e);
+		border-color: #333;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 	}
 
-	:global(.staff-app.dark) .service-item {
-		border-color: rgba(255, 255, 255, 0.05);
+	.service-item.manual-entry-card:focus-within {
+		border-color: var(--s-accent, #c9a24f);
+		box-shadow: 0 4px 12px rgba(201, 162, 79, 0.15);
 	}
 
 	.s-info {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.input-container {
+		position: relative;
+		display: flex;
+		align-items: center;
 		width: 100%;
 	}
 
 	.name-input {
 		font-weight: 600;
-		padding: 4px 0;
-		border-radius: 0;
-		box-shadow: none;
-		background: transparent;
-		border: none;
-		border-bottom: 1px dashed var(--s-border, #e5e7eb);
+		font-size: 1.05rem;
+		padding: 14px 16px;
+		border-radius: var(--s-radius-md, 8px);
+		background: var(--s-bg-tertiary, #f3f4f6);
+		border: 1.5px solid transparent;
 		width: 100%;
-		margin-bottom: 6px;
-	}
-	.name-input:focus {
-		border-bottom: 1px solid var(--s-accent, #c9a24f);
+		color: var(--s-text-primary, #1a1a2e);
+		transition: all 0.2s ease;
 		box-shadow: none;
+	}
+
+	:global(.staff-app.dark) .name-input {
+		background: #121212;
+		color: #ffffff;
+	}
+
+	.name-input:focus {
+		background: var(--s-surface, white);
+		border-color: var(--s-accent, #c9a24f);
+		box-shadow: 0 0 0 4px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
+		outline: none;
+	}
+
+	:global(.staff-app.dark) .name-input:focus {
+		background: #1e1e1e;
 	}
 
 	.s-price-edit {
 		display: flex;
 		align-items: center;
-		gap: 2px;
-		font-size: 0.9rem;
+		width: 100%;
+	}
+
+	.currency-symbol {
+		position: absolute;
+		left: 16px;
+		font-weight: 700;
 		color: var(--s-text-secondary, #6b7280);
+		font-size: 1.1rem;
+		pointer-events: none;
+		z-index: 1;
 	}
 
 	.price-input {
-		width: 80px;
-		padding: 4px 6px;
-		border: 1px solid var(--s-border, #e5e7eb);
-		border-radius: var(--s-radius-sm, 6px);
-		font-size: 0.9rem;
+		width: 100%;
+		padding: 14px 16px 14px 38px;
+		border: 1.5px solid transparent;
+		border-radius: var(--s-radius-md, 8px);
+		font-size: 1.05rem;
+		font-weight: 600;
+		background: var(--s-bg-tertiary, #f3f4f6);
+		color: var(--s-text-primary, #1a1a2e);
+		transition: all 0.2s ease;
 		box-shadow: none;
 	}
 
+	:global(.staff-app.dark) .price-input {
+		background: #121212;
+		color: #ffffff;
+	}
+
+	.price-input:focus {
+		background: var(--s-surface, white);
+		border-color: var(--s-accent, #c9a24f);
+		box-shadow: 0 0 0 4px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
+		outline: none;
+	}
+
+	:global(.staff-app.dark) .price-input:focus {
+		background: #1e1e1e;
+	}
+
 	.remove-btn {
-		background: var(--s-cancelled-bg, #fee2e2);
-		color: var(--s-cancelled, #ef4444);
-		border: none;
+		position: absolute;
+		top: -10px;
+		right: -10px;
+		background: var(--s-error, #ef4444);
+		color: white;
+		border: 2px solid var(--s-surface, white);
 		width: 28px;
 		height: 28px;
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin-left: 12px;
 		cursor: pointer;
-		font-size: 1.2rem;
 		flex-shrink: 0;
-		transition: transform 0.1s ease;
+		transition: transform 0.1s ease, background 0.2s ease;
+		box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+		padding: 0;
 	}
+
+	:global(.staff-app.dark) .remove-btn {
+		border-color: #1e1e1e;
+	}
+
 	.remove-btn:active {
 		transform: scale(0.85);
+	}
+	
+	.remove-btn:hover {
+		background: #dc2626;
 	}
 
 	.add-service-row {

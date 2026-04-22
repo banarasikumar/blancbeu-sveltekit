@@ -45,7 +45,8 @@ const config: CapacitorConfig = {
 		'@capacitor-firebase/authentication',
 		'@capacitor/push-notifications',
 		'@capacitor/app',
-		'@capacitor/browser'
+		'@capacitor/browser',
+		'@capacitor/status-bar'
 	]
 };
 

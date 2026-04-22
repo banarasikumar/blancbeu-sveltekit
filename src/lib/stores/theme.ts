@@ -61,7 +61,8 @@ if (browser) {
 		// Dynamically update Capacitor Status Bar natively
 		import('@capacitor/core').then(({ Capacitor }) => {
 			if (Capacitor.isNativePlatform()) {
-				import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+				const pkgName = '@capacitor/status-bar';
+				import(/* @vite-ignore */ pkgName).then(({ StatusBar, Style }) => {
 					StatusBar.setBackgroundColor({ color: THEME_COLORS[value] }).catch(console.warn);
 					
 					// 'gold' is dark mode -> light text (Style.Dark)
