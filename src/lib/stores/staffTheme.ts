@@ -71,9 +71,9 @@ function applyTheme(mode: ThemeMode) {
 		const bgColor = resolved === 'dark' ? '#121212' : '#f8fafc';
 		StatusBar.setBackgroundColor({ color: bgColor }).catch(console.warn);
 		
-		// Style.Light = white/light status bar icons (for dark backgrounds)
-		// Style.Dark  = dark status bar icons (for light backgrounds)
-		const style = resolved === 'dark' ? Style.Light : Style.Dark;
+		// Style.Dark = white/light status bar icons (used in Dark mode)
+		// Style.Light = dark status bar icons (used in Light mode)
+		const style = resolved === 'dark' ? Style.Dark : Style.Light;
 		StatusBar.setStyle({ style }).catch(console.warn);
 	}
 }

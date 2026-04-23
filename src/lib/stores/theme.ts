@@ -64,9 +64,9 @@ if (browser) {
 		if (browser && Capacitor.isNativePlatform()) {
 			StatusBar.setBackgroundColor({ color: THEME_COLORS[value] }).catch(console.warn);
 			
-			// Style.Light = white/light status bar icons (for dark backgrounds like 'gold')
-			// Style.Dark  = dark status bar icons (for light backgrounds like 'glitch'/'clean')
-			const style = value === 'gold' ? Style.Light : Style.Dark;
+			// Style.Dark = white/light status bar icons (used in Dark mode like 'gold')
+			// Style.Light = dark status bar icons (used in Light modes like 'glitch'/'clean')
+			const style = value === 'gold' ? Style.Dark : Style.Light;
 			StatusBar.setStyle({ style }).catch(console.warn);
 		}
 	});
