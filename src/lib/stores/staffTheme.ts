@@ -1,5 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -62,23 +64,18 @@ function applyTheme(mode: ThemeMode) {
 	}
 
 	// Dynamically update Capacitor Status Bar natively
-	import('@capacitor/core').then(({ Capacitor }) => {
-		if (Capacitor.isNativePlatform()) {
-			const pkgName = '@capacitor/status-bar';
-			import(/* @vite-ignore */ pkgName).then(({ StatusBar, Style }) => {
-				// Match the header background for an immersive look
-				// Dark mode: use the same dark bg as --s-bg-primary (#121212)
-				// Light mode: use the same light bg as --s-bg-primary (#f8fafc)
-				const bgColor = resolved === 'dark' ? '#121212' : '#f8fafc';
-				StatusBar.setBackgroundColor({ color: bgColor }).catch(console.warn);
-				
-				// Style.Light = white/light status bar icons (for dark backgrounds)
-				// Style.Dark  = dark status bar icons (for light backgrounds)
-				const style = resolved === 'dark' ? Style.Light : Style.Dark;
-				StatusBar.setStyle({ style }).catch(console.warn);
-			}).catch(console.warn);
-		}
-	}).catch(() => {});
+	if (browser && Capacitor.isNativePlatform()) {
+		// Match the header background for an immersive look
+		// Dark mode: use the same dark bg as --s-bg-primary (#121212)
+		// Light mode: use the same light bg as --s-bg-primary (#f8fafc)
+		const bgColor = resolved === 'dark' ? '#121212' : '#f8fafc';
+		StatusBar.setBackgroundColor({ color: bgColor }).catch(console.warn);
+		
+		// Style.Light = white/light status bar icons (for dark backgrounds)
+		// Style.Dark  = dark status bar icons (for light backgrounds)
+		const style = resolved === 'dark' ? Style.Light : Style.Dark;
+		StatusBar.setStyle({ style }).catch(console.warn);
+	}
 }
 
 export function setTheme(mode: ThemeMode) {

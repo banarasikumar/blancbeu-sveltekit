@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 export type Theme = 'gold' | 'glitch' | 'clean';
 
@@ -59,21 +61,14 @@ if (browser) {
 		}
 
 		// Dynamically update Capacitor Status Bar natively
-		import('@capacitor/core').then(({ Capacitor }) => {
-			if (Capacitor.isNativePlatform()) {
-				const pkgName = '@capacitor/status-bar';
-				import(/* @vite-ignore */ pkgName).then(({ StatusBar, Style }) => {
-					StatusBar.setBackgroundColor({ color: THEME_COLORS[value] }).catch(console.warn);
-					
-					// Style.Light = white/light status bar icons (for dark backgrounds like 'gold')
-					// Style.Dark  = dark status bar icons (for light backgrounds like 'glitch'/'clean')
-					const style = value === 'gold' ? Style.Light : Style.Dark;
-					StatusBar.setStyle({ style }).catch(console.warn);
-				}).catch(console.warn);
-			}
-		}).catch(() => {
-			// @capacitor/core might not be installed or bundled in some environments
-		});
+		if (browser && Capacitor.isNativePlatform()) {
+			StatusBar.setBackgroundColor({ color: THEME_COLORS[value] }).catch(console.warn);
+			
+			// Style.Light = white/light status bar icons (for dark backgrounds like 'gold')
+			// Style.Dark  = dark status bar icons (for light backgrounds like 'glitch'/'clean')
+			const style = value === 'gold' ? Style.Light : Style.Dark;
+			StatusBar.setStyle({ style }).catch(console.warn);
+		}
 	});
 }
 
