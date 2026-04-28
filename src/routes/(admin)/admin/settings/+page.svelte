@@ -2,9 +2,10 @@
 	import { adminUser, adminLogout } from '$lib/stores/adminAuth';
 	import { goto } from '$app/navigation';
 	import { showToast } from '$lib/stores/toast';
-	import { UserCircle, Bell, LogOut, ChevronRight, Database } from 'lucide-svelte';
+	import { UserCircle, Bell, LogOut, ChevronRight, Database, CreditCard } from 'lucide-svelte';
 	import { migrateServices } from '$lib/migrateServices';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { appSettings, initAppSettingsListener, destroyAppSettingsListener, updateAppSetting } from '$lib/stores/appSettings';
 
 	let userName = $derived($adminUser?.displayName || 'Admin User');
 	let userEmail = $derived($adminUser?.email || '');
@@ -54,12 +55,17 @@
 	} from '$lib/stores/adminNotificationPreferences';
 
 	onMount(async () => {
+		initAppSettingsListener();
 		// Load push enabled state from Firestore for admin app
 		if ($adminUser) {
 			await checkNotificationStatus($adminUser.uid, 'admin');
 		} else {
 			checkNotificationStatus();
 		}
+	});
+
+	onDestroy(() => {
+		destroyAppSettingsListener();
 	});
 
 	let showDeniedModal = $state(false);
@@ -276,6 +282,49 @@
 			</div>
 		</div>
 	{/if}
+
+	<div class="admin-settings-subcard" style="margin-top: 16px; animation: none;">
+		<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+			<CreditCard size={20} color="var(--admin-accent)" />
+			<h4 style="font-size: 15px; color: var(--admin-text-primary); margin: 0; font-weight: 700;">
+				Payment Gateway
+			</h4>
+		</div>
+
+		<div class="admin-settings-subitem" style="border-bottom: none; padding-bottom: 0;">
+			<div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+				<label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+					<span style="font-size: 15px; font-weight: 500;">Default (QR & Offline)</span>
+					<input
+						type="radio"
+						name="paymentGateway"
+						value="default"
+						checked={$appSettings.defaultPaymentGateway === 'default'}
+						onchange={() => {
+							updateAppSetting('defaultPaymentGateway', 'default');
+							showToast('Payment Gateway set to Default', 'success');
+						}}
+						style="accent-color: var(--admin-accent); width: 18px; height: 18px;"
+					/>
+				</label>
+
+				<label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+					<span style="font-size: 15px; font-weight: 500;">Razorpay Online Checkout</span>
+					<input
+						type="radio"
+						name="paymentGateway"
+						value="razorpay"
+						checked={$appSettings.defaultPaymentGateway === 'razorpay'}
+						onchange={() => {
+							updateAppSetting('defaultPaymentGateway', 'razorpay');
+							showToast('Payment Gateway set to Razorpay', 'success');
+						}}
+						style="accent-color: var(--admin-accent); width: 18px; height: 18px;"
+					/>
+				</label>
+			</div>
+		</div>
+	</div>
 
 	<div
 		class="admin-settings-item"

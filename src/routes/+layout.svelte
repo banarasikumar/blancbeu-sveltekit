@@ -25,6 +25,7 @@
 	let isHomePage = $derived(page.url.pathname === '/');
 	let isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
 	let isStaffRoute = $derived(page.url.pathname.startsWith('/staff'));
+	let isShowcaseRoute = $derived(page.url.pathname.startsWith('/showcase'));
 
 	let currentAppType = $derived(isAdminRoute ? 'admin' : isStaffRoute ? 'staff' : 'user');
 
@@ -50,7 +51,7 @@
 
 		// Only init global user-app services if NOT on an admin or staff route.
 		// Admin and Staff layouts initialize their own dedicated Auth and Data listeners.
-		if (!isAdminRoute && !isStaffRoute) {
+		if (!isAdminRoute && !isStaffRoute && !isShowcaseRoute) {
 			initAuth();
 			initAppServiceListener();
 
@@ -162,13 +163,13 @@
 	<meta name="msapplication-navbutton-color" content={metaThemeColor} />
 </svelte:head>
 
-{#if showSplash}
+{#if showSplash && !isShowcaseRoute}
 	<!-- We keep it alive for at least the animation minimum, but let the individual layout control when to turn it off strictly -->
 	<SplashScreen appType={currentAppType} onComplete={() => (showSplash = false)} />
 {/if}
 
-{#if isAdminRoute || isStaffRoute}
-	<!-- Admin & Staff routes: pass through directly to their respective +layout.svelte -->
+{#if isAdminRoute || isStaffRoute || isShowcaseRoute}
+	<!-- Admin, Staff & Showcase routes: pass through directly -->
 	{@render children()}
 {:else if !mounted}
 	<!-- Pre-mount overlay: CSS hides on mobile, shows on desktop -->

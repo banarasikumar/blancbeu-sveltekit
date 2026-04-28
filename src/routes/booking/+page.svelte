@@ -7,6 +7,8 @@
 	import { db, auth } from '$lib/firebase';
 	import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 	import { requestUserNotificationPermission } from '$lib/stores/userNotifications';
+	import { appSettings, initAppSettingsListener, destroyAppSettingsListener } from '$lib/stores/appSettings';
+	import { env } from '$env/dynamic/public';
 
 	import { goto } from '$app/navigation';
 	import BookingSuccess from '$lib/components/BookingSuccess.svelte';
@@ -95,12 +97,19 @@
 			isLoadingAuth = false;
 			if (user) {
 				userName = user.displayName || 'Guest';
+				userEmail = user.email || '';
 				userPhone = user.phoneNumber || '';
 			} else {
 				if (browser) goto('/login');
 			}
 		});
-		return () => unsubscribe();
+
+		initAppSettingsListener();
+
+		return () => {
+			unsubscribe();
+			destroyAppSettingsListener();
+		};
 	});
 
 	// --- DATE LOGIC ---
@@ -462,8 +471,78 @@
 		isSubmitting = true;
 
 		try {
-			// Simulate network delay for nice interaction
-			await new Promise((r) => setTimeout(r, 1500));
+			let razorpayPaymentId = null;
+			let razorpayOrderId = null;
+			let finalPaymentStatus = 'unpaid';
+
+			// RAZORPAY ONLINE FLOW
+			if ($appSettings.defaultPaymentGateway === 'razorpay' && (paymentType === 'token' || paymentType === 'full')) {
+				const checkoutAmount = paymentType === 'token' ? 50 : finalTotal;
+				
+				// 1. Create order on server
+				const orderRes = await fetch('/api/razorpay/create-order', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ amount: checkoutAmount, receipt: `rcpt_${Date.now()}` })
+				});
+				
+				if (!orderRes.ok) {
+					throw new Error('Failed to create Razorpay order');
+				}
+				const orderData = await orderRes.json();
+				
+				// 2. Open Razorpay Checkout Modal
+				await new Promise((resolve, reject) => {
+					const options = {
+						key: env.PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+						amount: orderData.amount,
+						currency: orderData.currency,
+						name: 'Blancbeu Salon',
+						description: 'Booking Payment',
+						order_id: orderData.orderId,
+						prefill: {
+							name: userName,
+							email: userEmail,
+							contact: userPhone
+						},
+						theme: {
+							color: '#D4AF37'
+						},
+						handler: async function (response: any) {
+							// Verify signature
+							const verifyRes = await fetch('/api/razorpay/verify-payment', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									razorpay_order_id: response.razorpay_order_id,
+									razorpay_payment_id: response.razorpay_payment_id,
+									razorpay_signature: response.razorpay_signature
+								})
+							});
+							
+							if (!verifyRes.ok) {
+								reject(new Error('Payment verification failed'));
+								return;
+							}
+
+							razorpayPaymentId = response.razorpay_payment_id;
+							razorpayOrderId = response.razorpay_order_id;
+							finalPaymentStatus = 'paid';
+							resolve(true);
+						},
+						modal: {
+							ondismiss: function() {
+								reject(new Error('Payment cancelled by user'));
+							}
+						}
+					};
+					const rzp = new (window as any).Razorpay(options);
+					rzp.open();
+				});
+			} else {
+				// Simulate network delay for nice interaction for offline flow
+				await new Promise((r) => setTimeout(r, 1500));
+			}
 
 			const bookingData = {
 				services: $cart.map((i) => ({ name: i.name, price: i.price, id: i.id })),
@@ -484,10 +563,13 @@
 				},
 				payment: {
 					type: paymentType,
-					method: paymentType === 'free' ? 'pay_at_salon' : selectedPaymentMethod,
-					amount: paymentType === 'token' ? 50 : paymentType === 'full' ? offerTotal : 0
+					method: paymentType === 'free' ? 'pay_at_salon' : ($appSettings.defaultPaymentGateway === 'razorpay' ? 'razorpay' : selectedPaymentMethod),
+					amount: paymentType === 'token' ? 50 : paymentType === 'full' ? offerTotal : 0,
+					status: finalPaymentStatus,
+					razorpay_payment_id: razorpayPaymentId,
+					razorpay_order_id: razorpayOrderId
 				},
-				userId: auth.currentUser?.uid, // Save User ID for fetching
+				userId: auth.currentUser?.uid || null, // Save User ID for fetching
 				createdAt: serverTimestamp(),
 				status: 'pending',
 				source: 'web_app_v2'
@@ -636,6 +718,10 @@
 	// Validation for Glow Effect
 	$: isValidForContinue = $cart.length > 0 && selectedDate && selectedTime && userName;
 </script>
+
+<svelte:head>
+	<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</svelte:head>
 
 <div class="booking-page min-h-screen">
 	<!-- Ambient Background -->
@@ -1000,10 +1086,11 @@
 
 						<!-- INLINE SUB METHODS -->
 						{#if paymentType === 'token' || paymentType === 'full'}
-							<div class="payment-sub-methods" transition:slide>
-								<div class="section-label-sm">
-									<h4>Select Payment Method</h4>
-								</div>
+							{#if $appSettings.defaultPaymentGateway !== 'razorpay'}
+								<div class="payment-sub-methods" transition:slide>
+									<div class="section-label-sm">
+										<h4>Select Payment Method</h4>
+									</div>
 								<div class="detailed-payment-grid">
 									<button
 										class="method-card {selectedPaymentMethod === 'upi' ? 'active' : ''}"
@@ -1058,6 +1145,13 @@
 									</div>
 								{/if}
 							</div>
+							{:else}
+								<div class="payment-sub-methods" style="justify-content: center; align-items: center; text-align: center; padding-top: 10px;" transition:slide>
+									<p style="color: var(--color-accent-gold); font-weight: 500; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+										<ShieldCheck size={18} /> Secure Online Checkout via Razorpay
+									</p>
+								</div>
+							{/if}
 						{/if}
 					</div>
 
@@ -1143,7 +1237,7 @@
 						class="btn-primary-shiny w-full text-lg py-4"
 						disabled={isSubmitting ||
 							paymentType === '' ||
-							(paymentType !== 'free' && !selectedPaymentMethod)}
+							(paymentType !== 'free' && $appSettings.defaultPaymentGateway !== 'razorpay' && !selectedPaymentMethod)}
 						on:click={submitBooking}
 					>
 						{#if isSubmitting}
