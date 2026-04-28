@@ -244,14 +244,23 @@
 					</div>
 				</div>
 
-				<!-- Card Footer (Guest) -->
+				<!-- Card Footer (Guest & Payment) -->
 				<div class="card-bottom">
 					<div class="guest-row">
 						<span class="label-tiny">GUEST</span>
 						<span class="guest-name">{userName}</span>
 					</div>
-					<div class="total-tag">
-						{paymentType === 'free' ? 'PAY AT SALON' : fmt(totalPrice)}
+					<div class="payment-summary">
+						<span class="label-tiny">
+							{#if paymentType === 'free'}
+								PAY AT SALON
+							{:else if paymentType === 'token'}
+								BOOKED WITH ₹50
+							{:else}
+								PAID ONLINE
+							{/if}
+						</span>
+						<span class="total-amount">{fmt(totalPrice)}</span>
 					</div>
 				</div>
 			</div>
@@ -804,14 +813,25 @@
 		color: var(--color-text-primary);
 		font-weight: 600;
 	}
-	.total-tag {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--color-text-primary);
+	.payment-summary {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 2px;
 		background: var(--color-bg-primary);
-		padding: 4px 8px;
+		padding: 4px 10px;
 		border-radius: 6px;
 		border: 1px solid var(--color-border);
+	}
+	.payment-summary .label-tiny {
+		color: var(--color-accent-gold);
+	}
+	.total-amount {
+		font-family: 'Geist Mono', monospace;
+		font-weight: 700;
+		color: var(--color-text-primary);
+		font-size: 0.95rem;
+		line-height: 1.1;
 	}
 
 	/* ACTIONS */

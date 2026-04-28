@@ -509,26 +509,30 @@
 							color: '#D4AF37'
 						},
 						handler: async function (response: any) {
-							// Verify signature
-							const verifyRes = await fetch('/api/razorpay/verify-payment', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify({
-									razorpay_order_id: response.razorpay_order_id,
-									razorpay_payment_id: response.razorpay_payment_id,
-									razorpay_signature: response.razorpay_signature
-								})
-							});
-							
-							if (!verifyRes.ok) {
-								reject(new Error('Payment verification failed'));
-								return;
-							}
+							try {
+								// Verify signature
+								const verifyRes = await fetch('/api/razorpay/verify-payment', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({
+										razorpay_order_id: response.razorpay_order_id,
+										razorpay_payment_id: response.razorpay_payment_id,
+										razorpay_signature: response.razorpay_signature
+									})
+								});
+								
+								if (!verifyRes.ok) {
+									reject(new Error('Payment verification failed'));
+									return;
+								}
 
-							razorpayPaymentId = response.razorpay_payment_id;
-							razorpayOrderId = response.razorpay_order_id;
-							finalPaymentStatus = 'paid';
-							resolve(true);
+								razorpayPaymentId = response.razorpay_payment_id;
+								razorpayOrderId = response.razorpay_order_id;
+								finalPaymentStatus = 'paid';
+								resolve(true);
+							} catch (err) {
+								reject(new Error('Payment verification encountered a network error.'));
+							}
 						},
 						modal: {
 							ondismiss: function() {
@@ -536,8 +540,12 @@
 							}
 						}
 					};
-					const rzp = new (window as any).Razorpay(options);
-					rzp.open();
+					try {
+						const rzp = new (window as any).Razorpay(options);
+						rzp.open();
+					} catch (err) {
+						reject(new Error('Payment gateway failed to load. Please check your connection.'));
+					}
 				});
 			} else {
 				// Simulate network delay for nice interaction for offline flow
@@ -632,12 +640,16 @@
 
 			// Trigger Confetti
 			if (browser) triggerConfetti();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Booking failed:', error);
-			alert('Failed to book. Please try again.');
-		} finally {
 			isSubmitting = false;
+			
+			// Don't show scary alerts if the user just closed the payment popup
+			if (error && error.message !== 'Payment cancelled by user') {
+				alert('Failed to book: ' + (error.message || 'Please try again.'));
+			}
 		}
+		isSubmitting = false;
 	}
 
 	// --- CONFETTI EFFECT ---
@@ -1045,16 +1057,16 @@
 						</h4>
 						<div class="payment-options-grid">
 							<button
-								class="payment-option compact {paymentType === 'free' ? 'active' : ''}"
-								on:click={() => (paymentType = 'free')}
+								class="payment-option compact {paymentType === 'full' ? 'active' : ''}"
+								on:click={() => (paymentType = 'full')}
 							>
 								<div class="option-icon-wrapper">
-									<MapPin size={20} />
+									<Check size={20} />
 								</div>
 								<div class="option-content">
-									<span class="option-label">Pay at Salon</span>
+									<span class="option-label">Pay Online</span>
 								</div>
-								<div class="radio-indicator"></div>
+								<div class="price-tag-badge">{fmt(offerTotal)}</div>
 							</button>
 
 							<button
@@ -1065,22 +1077,25 @@
 									<Sparkles size={20} />
 								</div>
 								<div class="option-content">
-									<span class="option-label">Token Advance</span>
+									<span class="option-label">Book with ₹50</span>
+									{#if paymentType === 'token'}
+										<span class="option-sub-info" transition:slide|local={{ duration: 200 }}>Adjusted in final bill • Pay <strong>{fmt(Math.max(0, finalTotal - 50))}</strong> at salon</span>
+									{/if}
 								</div>
 								<div class="price-tag-badge">₹50</div>
 							</button>
 
 							<button
-								class="payment-option compact {paymentType === 'full' ? 'active' : ''}"
-								on:click={() => (paymentType = 'full')}
+								class="payment-option compact {paymentType === 'free' ? 'active' : ''}"
+								on:click={() => (paymentType = 'free')}
 							>
 								<div class="option-icon-wrapper">
-									<Check size={20} />
+									<MapPin size={20} />
 								</div>
 								<div class="option-content">
-									<span class="option-label">Pay Full</span>
+									<span class="option-label">Pay at Salon</span>
 								</div>
-								<div class="price-tag-badge">{fmt(offerTotal)}</div>
+								<div class="radio-indicator"></div>
 							</button>
 						</div>
 
@@ -1146,11 +1161,9 @@
 								{/if}
 							</div>
 							{:else}
-								<div class="payment-sub-methods" style="justify-content: center; align-items: center; text-align: center; padding-top: 10px;" transition:slide>
-									<p style="color: var(--color-accent-gold); font-weight: 500; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-										<ShieldCheck size={18} /> Secure Online Checkout via Razorpay
-									</p>
-								</div>
+								<p style="color: var(--color-text-secondary); font-weight: 500; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; margin: 8px 0 0; opacity: 0.75;">
+								<ShieldCheck size={15} /> Secure Online Checkout
+							</p>
 							{/if}
 						{/if}
 					</div>
@@ -1228,6 +1241,24 @@
 								<span>Total Amount</span>
 								<span class="text-gold">{fmt(finalTotal)}</span>
 							</div>
+
+							{#if paymentType === 'token'}
+								<div class="token-breakup" transition:slide>
+									<div class="token-breakup-header">
+										<Sparkles size={14} />
+										<span>Payment Summary</span>
+									</div>
+									<div class="breakdown-row">
+										<span>Pay Now</span>
+										<span class="text-gold">₹50</span>
+									</div>
+									<div class="breakdown-row rest-at-salon">
+										<span>Pay at Salon</span>
+										<span>{fmt(Math.max(0, finalTotal - 50))}</span>
+									</div>
+									<p class="token-adjust-note">₹50 will be adjusted in your final bill. No extra charges.</p>
+								</div>
+							{/if}
 						</div>
 					</div>
 				</div>
@@ -1246,9 +1277,9 @@
 						{:else if paymentType === 'free'}
 							Confirm Appointment
 						{:else if paymentType === 'token'}
-							Pay ₹50 & Confirm
+							Book with ₹50 & Confirm
 						{:else}
-							Pay {fmt(offerTotal)} & Confirm
+							Pay {fmt(offerTotal)} & Book
 						{/if}
 					</button>
 				</div>
@@ -1960,6 +1991,52 @@
 		color: var(--color-text-secondary);
 		line-height: 1.4;
 	}
+	.option-sub-info {
+		font-size: 0.7rem;
+		color: var(--color-text-secondary);
+		opacity: 0.65;
+		line-height: 1.3;
+	}
+	.option-sub-info strong {
+		font-weight: 600;
+		color: var(--color-text-secondary);
+	}
+
+	/* Rest at salon row — muted, smaller */
+	.breakdown-row.rest-at-salon {
+		font-size: 0.8rem;
+		opacity: 0.55;
+	}
+
+	/* Token Payment Breakup */
+	.token-adjust-note {
+		font-size: 0.7rem;
+		color: var(--color-text-secondary);
+		opacity: 0.6;
+		margin: 8px 0 0;
+		line-height: 1.4;
+		font-style: italic;
+	}
+	.token-breakup {
+		margin-top: 12px;
+		padding: 12px 14px;
+		background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%);
+		border: 1px solid rgba(212, 175, 55, 0.2);
+		border-radius: 12px;
+	}
+	.token-breakup-header {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--color-accent-gold);
+		font-size: 0.8rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		margin-bottom: 10px;
+		padding-bottom: 8px;
+		border-bottom: 1px dashed rgba(212, 175, 55, 0.2);
+	}
 
 	.price-tag-badge {
 		background: var(--color-surface);
@@ -2092,7 +2169,8 @@
 		border-radius: 24px; /* More rounded */
 		display: flex;
 		flex-direction: column;
-		max-height: 90vh; /* Slightly smaller to float */
+		height: 98vh;
+		max-height: 98vh; /* Almost full screen */
 		overflow: hidden;
 		border: 1px solid var(--color-border);
 		box-shadow:
@@ -2849,7 +2927,7 @@
 
 	/* Payment Section Standalone (Outside Card) */
 	.payment-section-standalone {
-		margin-bottom: 20px;
+		margin-bottom: 12px;
 	}
 	.payment-section-standalone h4 {
 		font-size: 1rem;
@@ -2861,7 +2939,7 @@
 
 	/* Totals Section (Outside Card) */
 	.totals-section {
-		margin-top: 20px;
+		margin-top: 12px;
 		padding-top: 16px;
 		border-top: 1px solid var(--color-border);
 	}
