@@ -15,6 +15,7 @@
 		Heart
 	} from 'lucide-svelte';
 	import html2canvas from 'html2canvas';
+	import JsBarcode from 'jsbarcode';
 
 	export let userName = 'Guest';
 	export let selectedDate: string | null = null;
@@ -28,6 +29,35 @@
 	const fmt = (n: number) =>
 		new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
+	function barcode(node: SVGElement | HTMLCanvasElement, text: string) {
+		if (text) {
+			JsBarcode(node, text, {
+				format: 'CODE128',
+				lineColor: '#000000', // We'll override with CSS filters if needed, but for barcode standard black is safest
+				background: 'transparent',
+				width: 2,
+				height: 40,
+				displayValue: false,
+				margin: 0
+			});
+		}
+		return {
+			update(newText: string) {
+				if (newText) {
+					JsBarcode(node, newText, {
+						format: 'CODE128',
+						lineColor: '#000000',
+						background: 'transparent',
+						width: 2,
+						height: 40,
+						displayValue: false,
+						margin: 0
+					});
+				}
+			}
+		};
+	}
+
 	// Derived: label for payment method shown in the ticket
 	$: paymentLabel =
 		paymentType === 'free'
@@ -39,18 +69,18 @@
 	// Show strikethrough only when there's an actual discount
 	$: showStrike = originalTotal > totalPrice && originalTotal > 0;
 
+	// Determine if booking is instantly confirmed based on payment type
+	$: isConfirmed = paymentType === 'full' || paymentType === 'token';
+
 	// --- SHINE / GLIMMER ---
 	let cardElement: HTMLDivElement;
 	let overlayElement: HTMLDivElement;
 	let glimmerX = 50;
 	let glimmerY = 50;
 	let isDownloading = false;
+	let isSharing = false;
 
-	async function downloadTicket() {
-		if (!overlayElement || isDownloading) return;
-
-		isDownloading = true;
-
+	async function generateTicketCanvas() {
 		// 1. Reset shine for a clean capture
 		const prevGlimmerX = glimmerX;
 		const prevGlimmerY = glimmerY;
@@ -82,11 +112,31 @@
 					}
 
 					// Hide buttons in clone (alternative to ignoreElements)
-					const actions = clonedDoc.querySelector('.actions-row') as HTMLElement;
+					const actions = clonedDoc.querySelector('.actions-container') as HTMLElement;
 					if (actions) actions.style.display = 'none';
+
+					const diamondContent = clonedDoc.querySelector('.diamond-content') as HTMLElement;
+					if (diamondContent) {
+						// Remove the extra padding at bottom so the captured image doesn't have blank space
+						diamondContent.style.paddingBottom = '24px';
+					}
 				}
 			});
+			return canvas;
+		} finally {
+			// Restore state
+			glimmerX = prevGlimmerX;
+			glimmerY = prevGlimmerY;
+		}
+	}
 
+	async function downloadTicket() {
+		if (!overlayElement || isDownloading || isSharing) return;
+
+		isDownloading = true;
+
+		try {
+			const canvas = await generateTicketCanvas();
 			const image = canvas.toDataURL('image/png');
 			const link = document.createElement('a');
 			link.href = image;
@@ -98,10 +148,49 @@
 			console.error('Download failed', err);
 			alert('Could not download ticket. Please try taking a screenshot.');
 		} finally {
-			// Restore state
-			glimmerX = prevGlimmerX;
-			glimmerY = prevGlimmerY;
 			isDownloading = false;
+		}
+	}
+
+	async function shareTicket() {
+		if (!overlayElement || isDownloading || isSharing) return;
+
+		// 1. Check if the Web Share API is supported
+		if (!navigator.share || !navigator.canShare) {
+			alert('Sharing is not supported on this device/browser. Please download the ticket instead.');
+			return;
+		}
+
+		isSharing = true;
+
+		try {
+			const canvas = await generateTicketCanvas();
+			
+			// Convert canvas to Blob
+			const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+			if (!blob) throw new Error('Blob creation failed');
+
+			// Create a File object from the blob
+			const file = new File([blob], `Blancbeu-Ticket-${bookingId || 'Booking'}.png`, { type: 'image/png' });
+
+			// Check if this file can be shared natively
+			if (navigator.canShare({ files: [file] })) {
+				await navigator.share({
+					title: 'My Blancbeu Appointment',
+					text: 'Here is my appointment ticket for Blancbeu!',
+					files: [file]
+				});
+			} else {
+				alert('Your system does not support sharing images directly. Please download the ticket instead.');
+			}
+		} catch (err: any) {
+			// Don't show an error if the user just cancelled the share sheet
+			if (err.name !== 'AbortError') {
+				console.error('Share failed', err);
+				alert('Could not share ticket. Please download it instead.');
+			}
+		} finally {
+			isSharing = false;
 		}
 	}
 
@@ -167,8 +256,13 @@
 				<span class="italic-accent">Beautiful.</span>
 			</h1>
 			<p class="status-subtext">
-				It's official. Your request has been received.<br />
-				We'll confirm shortly and can't wait to see you shine.
+				{#if isConfirmed}
+					It's official. Your request has been received and confirmed.<br />
+					We can't wait to see you shine.
+				{:else}
+					It's official. Your request has been received.<br />
+					We'll confirm shortly and can't wait to see you shine.
+				{/if}
 			</p>
 		</div>
 
@@ -198,7 +292,10 @@
 				<!-- Content Layer (Promoted) -->
 				<div class="card-body">
 					<div class="ticket-header">
-						<span class="brand-small">BLANCBEU EXCLUSIVE</span>
+						<div class="brand-info">
+							<span class="brand-small">{isConfirmed ? 'CONFIRMED APPOINTMENT' : 'AWAITING CONFIRMATION'}</span>
+							<h2 class="salon-name">Blancbeu Beauty Salon</h2>
+						</div>
 						<!-- Holographic Badge Moved Here -->
 						<div class="holo-badge">
 							<div class="holo-shimmer"></div>
@@ -243,15 +340,20 @@
 						</div>
 					</div>
 
-					<!-- QR Code Section -->
-					<div class="qr-section">
-						<div class="qr-box">
-							<QrCode size={56} color="var(--color-text-primary)" strokeWidth={1.5} />
-							<div class="scan-lines"></div>
+					<!-- Codes Section -->
+					<div class="codes-wrapper">
+						<div class="qr-row">
+							<div class="qr-box">
+								<QrCode size={56} color="var(--color-text-primary)" strokeWidth={1.5} />
+								<div class="scan-lines"></div>
+							</div>
+							<div class="qr-info">
+								<span class="label-tiny">BOOKING ID</span>
+								<span class="id-text">{bookingId || '...'}</span>
+							</div>
 						</div>
-						<div class="qr-info">
-							<span class="label-tiny">BOOKING ID</span>
-							<span class="id-text">{bookingId || '...'}</span>
+						<div class="barcode-row">
+							<svg use:barcode={bookingId || 'NO-ID'} class="barcode-svg"></svg>
 						</div>
 					</div>
 				</div>
@@ -264,30 +366,39 @@
 						<span class="guest-name">{userName}</span>
 					</div>
 
-					<!-- CENTER: Payment Method -->
-					<div class="payment-method-center">
+					<!-- RIGHT: Payment Method & Amount -->
+					<div class="payment-amount-right">
 						<span class="payment-method-label">{paymentLabel}</span>
-					</div>
-
-					<!-- RIGHT: Amount -->
-					<div class="amount-col">
-						{#if showStrike}
-							<span class="amount-original">{fmt(originalTotal)}</span>
-						{/if}
-						<span class="amount-final">{fmt(totalPrice)}</span>
+						<div class="amount-col">
+							{#if showStrike}
+								<span class="amount-original">{fmt(originalTotal)}</span>
+							{/if}
+							<span class="amount-final">{fmt(totalPrice)}</span>
+						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+	</div>
 
-		<!-- ACTIONS -->
-		<div class="actions-row" in:fade={{ duration: 1000, delay: 600 }}>
+	<!-- ACTIONS BAR -->
+	<div class="actions-container" in:fade={{ duration: 1000, delay: 600 }}>
+		<div class="actions-row">
 			<a href="/" class="btn-diamond">
 				<span>Return Home</span>
 			</a>
 			<div class="secondary-actions">
-				<button class="icon-btn" aria-label="Share appointment">
-					<Share2 size={18} />
+				<button 
+					class="icon-btn" 
+					aria-label="Share appointment"
+					on:click={shareTicket}
+					disabled={isSharing}
+				>
+					{#if isSharing}
+						<div class="spinner-mini"></div>
+					{:else}
+						<Share2 size={18} />
+					{/if}
 				</button>
 				<button
 					class="icon-btn"
@@ -335,6 +446,7 @@
 		opacity: 0.5;
 		z-index: 0;
 		pointer-events: none;
+		overflow: hidden; /* Fix phantom scrolling gap */
 	}
 	.prism-light {
 		position: absolute;
@@ -389,13 +501,11 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: flex-start;
-		gap: 16px; /* Fixed gap instead of space-evenly distribution */
+		gap: 16px;
 		width: 100%;
-		max-width: 420px;
-		min-height: 100vh;
-		min-height: 100dvh;
-		padding: 24px 16px; /* Top padding for breathing room */
-		padding-bottom: max(24px, env(safe-area-inset-bottom));
+		max-width: 480px; /* Increased ticket size */
+		padding: 24px 16px;
+		padding-bottom: 100px; /* Space for the fixed bottom bar */
 		box-sizing: border-box;
 	}
 
@@ -569,10 +679,24 @@
 	.ticket-header {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		padding-bottom: 10px;
+		align-items: flex-start;
+		padding-bottom: 12px;
 		border-bottom: 1px dashed var(--color-border);
 		flex-shrink: 0;
+	}
+	.brand-info {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.salon-name {
+		font-family: var(--font-heading, serif);
+		font-size: 1.4rem;
+		color: var(--color-text-primary);
+		font-weight: 500;
+		letter-spacing: -0.5px;
+		margin: 0;
+		line-height: 1.1;
 	}
 	.brand-small {
 		font-size: 0.65rem;
@@ -674,15 +798,20 @@
 		text-overflow: ellipsis;
 	}
 
-	/* QR SECTION */
-	.qr-section {
+	/* CODES SECTION */
+	.codes-wrapper {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		background: var(--color-surface);
+		padding: 12px;
+		border-radius: 12px;
+		flex-shrink: 0;
+	}
+	.qr-row {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		background: var(--color-surface);
-		padding: 8px;
-		border-radius: 12px;
-		flex-shrink: 0;
 	}
 	.qr-box {
 		width: 50px; /* Smaller QR container */
@@ -724,6 +853,23 @@
 		letter-spacing: 1px;
 		color: var(--color-text-primary);
 		font-weight: 600;
+	}
+	.barcode-row {
+		display: flex;
+		justify-content: center;
+		padding-top: 12px;
+		border-top: 1px dashed var(--color-border);
+		width: 100%;
+	}
+	.barcode-svg {
+		width: 100%;
+		max-height: 40px;
+		/* Use invert for dark mode if needed. We assume var(--color-text-primary) handles it, 
+		but JsBarcode draws explicitly black/white. Let's invert if the theme is dark. */
+	}
+	:global(body.dark-mode) .barcode-svg,
+	:global([data-theme='dark']) .barcode-svg {
+		filter: invert(1);
 	}
 
 	/* HOLOGRAPHIC BADGE - V7 COOL */
@@ -806,14 +952,13 @@
 		z-index: 2;
 	}
 
-	/* CARD BOTTOM — 3-column layout */
+	/* CARD BOTTOM — 2-column layout */
 	.card-bottom {
 		background: var(--color-surface);
 		padding: 12px 16px;
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
+		display: flex;
+		justify-content: space-between;
 		align-items: center;
-		gap: 8px;
 		border-top: 1px solid var(--color-border);
 		z-index: 3;
 		position: relative;
@@ -830,26 +975,25 @@
 		font-weight: 600;
 	}
 
-	/* CENTER: Payment method pill */
-	.payment-method-center {
+	/* RIGHT: Payment method and amount */
+	.payment-amount-right {
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		gap: 12px;
+		text-align: right;
 	}
 	.payment-method-label {
 		background: var(--color-bg-primary);
 		border: 1px solid var(--color-border);
 		color: var(--color-accent-gold);
-		font-size: 0.65rem;
+		font-size: 0.8rem;
 		font-weight: 700;
 		letter-spacing: 0.5px;
-		padding: 4px 10px;
+		padding: 6px 12px;
 		border-radius: 100px;
 		white-space: nowrap;
-		text-align: center;
 	}
 
-	/* RIGHT: Amount column */
 	.amount-col {
 		display: flex;
 		flex-direction: column;
@@ -858,7 +1002,7 @@
 	}
 	.amount-original {
 		font-family: 'Geist Mono', monospace;
-		font-size: 0.7rem;
+		font-size: 0.85rem;
 		color: var(--color-text-secondary);
 		text-decoration: line-through;
 		opacity: 0.7;
@@ -867,20 +1011,35 @@
 		font-family: 'Geist Mono', monospace;
 		font-weight: 700;
 		color: var(--color-text-primary);
-		font-size: 0.95rem;
+		font-size: 1.25rem;
 		line-height: 1.1;
 	}
 
-	/* ACTIONS */
+	/* ACTIONS BAR - FIXED BOTTOM */
+	.actions-container {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		padding: 16px;
+		padding-bottom: max(16px, env(safe-area-inset-bottom));
+		background: var(--color-surface);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		border-top: 1px solid var(--color-border);
+		z-index: 100;
+		display: flex;
+		justify-content: center;
+		box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+	}
+
 	.actions-row {
 		display: flex;
 		align-items: center;
 		gap: 12px;
 		width: 100%;
+		max-width: 480px; /* Match ticket max width */
 		flex-shrink: 0;
-		margin-bottom: constant(safe-area-inset-bottom);
-		margin-bottom: env(safe-area-inset-bottom);
-		padding-bottom: 4px; /* Slight lifting from bottom */
 	}
 	.btn-diamond {
 		flex: 1;

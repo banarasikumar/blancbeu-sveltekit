@@ -582,7 +582,7 @@
 				},
 				userId: auth.currentUser?.uid || null, // Save User ID for fetching
 				createdAt: serverTimestamp(),
-				status: 'pending',
+				status: (paymentType === 'full' || paymentType === 'token') ? 'confirmed' : 'pending',
 				source: 'web_app_v2'
 			};
 
