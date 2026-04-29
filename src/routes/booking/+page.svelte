@@ -58,6 +58,9 @@
 	let isSubmitting = false;
 	let success = false;
 	let bookingId = ''; // Store the generated ID here
+	// Snapshot totals captured just before cart.clear() so the ticket shows correct amounts
+	let ticketOriginalTotal = 0;
+	let ticketOfferTotal = 0;
 	let showDateModal = false;
 	let showTimeModal = false;
 	let showSummaryModal = false;
@@ -585,6 +588,10 @@
 
 			const docRef = await addDoc(collection(db, 'bookings'), bookingData);
 
+			// Snapshot totals BEFORE clearing cart so the success ticket shows correct amounts
+			ticketOriginalTotal = originalTotal;
+			ticketOfferTotal = offerTotal;
+
 			success = true;
 			bookingId = docRef.id;
 			showSummaryModal = false;
@@ -749,7 +756,8 @@
 			{selectedDate}
 			{selectedTime}
 			cartItems={$cart}
-			totalPrice={finalTotal}
+			totalPrice={ticketOfferTotal}
+			originalTotal={ticketOriginalTotal}
 			{paymentType}
 			{bookingId}
 		/>

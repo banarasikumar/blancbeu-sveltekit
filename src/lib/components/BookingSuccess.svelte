@@ -21,11 +21,23 @@
 	export let selectedTime: string | null = null;
 	export let cartItems: any[] = [];
 	export let totalPrice = 0;
+	export let originalTotal = 0;
 	export let paymentType = 'pay_at_salon';
 	export let bookingId = '';
 
 	const fmt = (n: number) =>
-		new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n);
+		new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+
+	// Derived: label for payment method shown in the ticket
+	$: paymentLabel =
+		paymentType === 'free'
+			? '🏪 Pay at Salon'
+			: paymentType === 'token'
+				? '⚡ Book with ₹50'
+				: '🔒 Paid Online';
+
+	// Show strikethrough only when there's an actual discount
+	$: showStrike = originalTotal > totalPrice && originalTotal > 0;
 
 	// --- SHINE / GLIMMER ---
 	let cardElement: HTMLDivElement;
@@ -244,23 +256,25 @@
 					</div>
 				</div>
 
-				<!-- Card Footer (Guest & Payment) -->
+				<!-- Card Footer (Guest, Payment Method & Amount) -->
 				<div class="card-bottom">
+					<!-- LEFT: Guest Name -->
 					<div class="guest-row">
 						<span class="label-tiny">GUEST</span>
 						<span class="guest-name">{userName}</span>
 					</div>
-					<div class="payment-summary">
-						<span class="label-tiny">
-							{#if paymentType === 'free'}
-								PAY AT SALON
-							{:else if paymentType === 'token'}
-								BOOKED WITH ₹50
-							{:else}
-								PAID ONLINE
-							{/if}
-						</span>
-						<span class="total-amount">{fmt(totalPrice)}</span>
+
+					<!-- CENTER: Payment Method -->
+					<div class="payment-method-center">
+						<span class="payment-method-label">{paymentLabel}</span>
+					</div>
+
+					<!-- RIGHT: Amount -->
+					<div class="amount-col">
+						{#if showStrike}
+							<span class="amount-original">{fmt(originalTotal)}</span>
+						{/if}
+						<span class="amount-final">{fmt(totalPrice)}</span>
 					</div>
 				</div>
 			</div>
@@ -792,13 +806,14 @@
 		z-index: 2;
 	}
 
-	/* CARD BOTTOM */
+	/* CARD BOTTOM — 3-column layout */
 	.card-bottom {
 		background: var(--color-surface);
-		padding: 12px 18px;
-		display: flex;
-		justify-content: space-between;
+		padding: 12px 16px;
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
+		gap: 8px;
 		border-top: 1px solid var(--color-border);
 		z-index: 3;
 		position: relative;
@@ -807,26 +822,48 @@
 	.guest-row {
 		display: flex;
 		flex-direction: column;
+		gap: 1px;
 	}
 	.guest-name {
-		font-size: 0.95rem;
+		font-size: 0.9rem;
 		color: var(--color-text-primary);
 		font-weight: 600;
 	}
-	.payment-summary {
+
+	/* CENTER: Payment method pill */
+	.payment-method-center {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.payment-method-label {
+		background: var(--color-bg-primary);
+		border: 1px solid var(--color-border);
+		color: var(--color-accent-gold);
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		padding: 4px 10px;
+		border-radius: 100px;
+		white-space: nowrap;
+		text-align: center;
+	}
+
+	/* RIGHT: Amount column */
+	.amount-col {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
-		gap: 2px;
-		background: var(--color-bg-primary);
-		padding: 4px 10px;
-		border-radius: 6px;
-		border: 1px solid var(--color-border);
+		gap: 1px;
 	}
-	.payment-summary .label-tiny {
-		color: var(--color-accent-gold);
+	.amount-original {
+		font-family: 'Geist Mono', monospace;
+		font-size: 0.7rem;
+		color: var(--color-text-secondary);
+		text-decoration: line-through;
+		opacity: 0.7;
 	}
-	.total-amount {
+	.amount-final {
 		font-family: 'Geist Mono', monospace;
 		font-weight: 700;
 		color: var(--color-text-primary);
