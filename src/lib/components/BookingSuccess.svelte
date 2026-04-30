@@ -548,7 +548,7 @@
 	.italic-accent {
 		font-style: italic;
 		font-weight: 300;
-		background: linear-gradient(135deg, silver, #fff, silver); /* Metallic */
+		background: linear-gradient(135deg, #d4af37, #f7e7ce, #d4af37); /* Gold metallic for dark bg */
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 	}
@@ -568,7 +568,7 @@
 	.status-subtext {
 		font-size: clamp(0.8rem, 2vh, 0.9rem);
 		color: var(--color-text-secondary);
-		opacity: 0.8;
+		opacity: 0.9;
 		max-width: 100%; /* FULL WIDTH allowed */
 		line-height: 1.35;
 		margin-top: 2px;
@@ -602,19 +602,19 @@
 	.glass-panel {
 		position: absolute;
 		inset: 0;
-		/* Crystalline Gradient: Theme-aware glass tint */
+		/* Crystalline Gradient: Theme-aware glass tint — more opaque for dark mode readability */
 		background: linear-gradient(
 			145deg,
-			rgba(var(--color-bg-secondary-rgb), 0.3) 0%,
-			rgba(var(--color-bg-secondary-rgb), 0.1) 100%
+			rgba(var(--color-bg-secondary-rgb), 0.85) 0%,
+			rgba(var(--color-bg-secondary-rgb), 0.75) 100%
 		);
 		border-radius: 20px;
 		/* Diamond Cut Border: Double rim effect */
-		border: 1px solid var(--color-border);
+		border: 1px solid rgba(255, 255, 255, 0.25);
 		box-shadow:
-			0 0 0 1px rgba(var(--color-shadow-rgb), 0.15),
-			inset 0 0 20px rgba(var(--color-accent-gold-rgb), 0.05),
-			0 20px 50px -10px rgba(var(--color-shadow-rgb), 0.25);
+			0 0 0 1px rgba(255, 255, 255, 0.08),
+			inset 0 0 30px rgba(var(--color-accent-gold-rgb), 0.08),
+			0 20px 50px -10px rgba(0, 0, 0, 0.5);
 
 		/* Enhanced Blur */
 		backdrop-filter: blur(40px) brightness(1.1);
@@ -622,6 +622,28 @@
 
 		z-index: 0;
 		pointer-events: none;
+	}
+	/* Light theme: stronger glass panel for better card visibility */
+	:global([data-theme='clean']) .glass-panel {
+		background: linear-gradient(
+			145deg,
+			rgba(255, 255, 255, 0.92) 0%,
+			rgba(245, 245, 245, 0.88) 100%
+		);
+		border: 1px solid rgba(0, 0, 0, 0.15);
+		box-shadow:
+			0 0 0 1px rgba(0, 0, 0, 0.06),
+			0 20px 50px -10px rgba(0, 0, 0, 0.12);
+		backdrop-filter: blur(40px) brightness(1.02);
+		-webkit-backdrop-filter: blur(40px) brightness(1.02);
+	}
+	:global([data-theme='glitch']) .glass-panel {
+		background: linear-gradient(
+			145deg,
+			rgba(245, 245, 255, 0.85) 0%,
+			rgba(235, 235, 250, 0.8) 100%
+		);
+		border: 1px solid rgba(108, 93, 211, 0.2);
 	}
 
 	/* NOISE TEXTURE */
@@ -640,16 +662,28 @@
 		inset: 0;
 		background: radial-gradient(
 			ellipse 80% 60% at var(--glimmer-x) var(--glimmer-y),
-			rgba(255, 255, 255, 0.35) 0%,
-			rgba(var(--color-accent-gold-rgb), 0.18) 30%,
+			rgba(255, 255, 255, 0.2) 0%,
+			rgba(var(--color-accent-gold-rgb), 0.1) 30%,
 			transparent 70%
 		);
 		pointer-events: none;
-		mix-blend-mode: overlay;
-		opacity: 0.8;
+		mix-blend-mode: soft-light;
+		opacity: 0.6;
 		z-index: 2;
 		transition: background 0.3s ease-out;
 		border-radius: 20px;
+	}
+	/* Light theme: use soft-light instead of overlay so glimmer is visible on white */
+	:global([data-theme='clean']) .glimmer-layer,
+	:global([data-theme='glitch']) .glimmer-layer {
+		background: radial-gradient(
+			ellipse 80% 60% at var(--glimmer-x) var(--glimmer-y),
+			rgba(var(--color-accent-gold-rgb), 0.15) 0%,
+			rgba(var(--color-accent-gold-rgb), 0.06) 30%,
+			transparent 70%
+		);
+		mix-blend-mode: normal;
+		opacity: 1;
 	}
 
 	.card-body {
@@ -681,7 +715,7 @@
 		justify-content: space-between;
 		align-items: flex-start;
 		padding-bottom: 12px;
-		border-bottom: 1px dashed var(--color-border);
+		border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
 		flex-shrink: 0;
 	}
 	.brand-info {
@@ -701,8 +735,9 @@
 	.brand-small {
 		font-size: 0.65rem;
 		letter-spacing: 2px;
-		color: var(--color-text-secondary);
+		color: var(--color-accent-gold);
 		font-weight: 700;
+		opacity: 0.9;
 	}
 	.booking-id-tag {
 		font-family: 'Geist Mono', monospace;
@@ -732,9 +767,19 @@
 	.label-tiny {
 		font-size: 0.6rem;
 		letter-spacing: 2px;
-		color: var(--color-text-secondary);
+		color: var(--color-accent-gold);
 		text-transform: uppercase;
 		font-weight: 600;
+		opacity: 0.85;
+	}
+	/* Light themes: labels use secondary text */
+	:global([data-theme='clean']) .label-tiny {
+		color: var(--color-text-secondary);
+		opacity: 1;
+	}
+	:global([data-theme='glitch']) .label-tiny {
+		color: var(--color-text-secondary);
+		opacity: 1;
 	}
 
 	.date-group {
@@ -752,15 +797,20 @@
 	.month {
 		font-size: 1rem;
 		font-weight: 600;
-		color: var(--color-text-secondary);
+		color: var(--color-text-primary);
 		letter-spacing: 1px;
+		opacity: 0.8;
 	}
 
 	.vertical-divider {
 		width: 1px;
 		height: 32px;
-		background: var(--color-border-strong);
+		background: rgba(255, 255, 255, 0.25);
 		opacity: 1;
+	}
+	:global([data-theme='clean']) .vertical-divider,
+	:global([data-theme='glitch']) .vertical-divider {
+		background: var(--color-border-strong);
 	}
 
 	.time-group {
@@ -777,22 +827,27 @@
 	}
 	.ampm {
 		font-size: 0.8rem;
-		color: var(--color-text-secondary);
+		color: var(--color-text-primary);
 		font-weight: 500;
+		opacity: 0.75;
 	}
 
 	/* SERVICE PREVIEW */
 	.service-preview {
 		padding: 8px 0;
-		border-top: 1px dashed var(--color-border);
-		border-bottom: 1px dashed var(--color-border);
+		border-top: 1px dashed rgba(255, 255, 255, 0.18);
+		border-bottom: 1px dashed rgba(255, 255, 255, 0.18);
 		flex-shrink: 0;
+	}
+	:global([data-theme='clean']) .service-preview,
+	:global([data-theme='glitch']) .service-preview {
+		border-color: var(--color-border);
 	}
 	.service-scroll {
 		margin-top: 4px;
 		font-size: 0.9rem;
 		color: var(--color-text-primary);
-		opacity: 0.9;
+		opacity: 1;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -803,10 +858,20 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		background: var(--color-surface);
+		background: rgba(255, 255, 255, 0.08);
 		padding: 12px;
 		border-radius: 12px;
 		flex-shrink: 0;
+		border: 1px solid rgba(255, 255, 255, 0.15);
+	}
+	/* Light themes: more visible codes section */
+	:global([data-theme='clean']) .codes-wrapper {
+		background: rgba(0, 0, 0, 0.04);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+	}
+	:global([data-theme='glitch']) .codes-wrapper {
+		background: rgba(108, 93, 211, 0.06);
+		border: 1px solid rgba(108, 93, 211, 0.15);
 	}
 	.qr-row {
 		display: flex;
@@ -858,18 +923,23 @@
 		display: flex;
 		justify-content: center;
 		padding-top: 12px;
-		border-top: 1px dashed var(--color-border);
+		border-top: 1px dashed rgba(255, 255, 255, 0.15);
 		width: 100%;
+	}
+	:global([data-theme='clean']) .barcode-row,
+	:global([data-theme='glitch']) .barcode-row {
+		border-top-color: var(--color-border);
 	}
 	.barcode-svg {
 		width: 100%;
 		max-height: 40px;
-		/* Use invert for dark mode if needed. We assume var(--color-text-primary) handles it, 
-		but JsBarcode draws explicitly black/white. Let's invert if the theme is dark. */
+		/* Default (Midnight Gold) theme is dark — invert black barcode to gold/white */
+		filter: invert(1) brightness(1.2);
 	}
-	:global(body.dark-mode) .barcode-svg,
-	:global([data-theme='dark']) .barcode-svg {
-		filter: invert(1);
+	/* Light themes: barcode should stay black, so undo the invert */
+	:global([data-theme='clean']) .barcode-svg,
+	:global([data-theme='glitch']) .barcode-svg {
+		filter: none;
 	}
 
 	/* HOLOGRAPHIC BADGE - V7 COOL */
@@ -954,15 +1024,24 @@
 
 	/* CARD BOTTOM — 2-column layout */
 	.card-bottom {
-		background: var(--color-surface);
+		background: rgba(255, 255, 255, 0.06);
 		padding: 12px 16px;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		border-top: 1px solid var(--color-border);
+		border-top: 1px solid rgba(255, 255, 255, 0.18);
 		z-index: 3;
 		position: relative;
 		flex-shrink: 0;
+	}
+	/* Light themes: card bottom needs distinct background */
+	:global([data-theme='clean']) .card-bottom {
+		background: rgba(0, 0, 0, 0.04);
+		border-top: 1px solid rgba(0, 0, 0, 0.12);
+	}
+	:global([data-theme='glitch']) .card-bottom {
+		background: rgba(108, 93, 211, 0.06);
+		border-top: 1px solid rgba(108, 93, 211, 0.15);
 	}
 	.guest-row {
 		display: flex;
@@ -983,15 +1062,26 @@
 		text-align: right;
 	}
 	.payment-method-label {
-		background: var(--color-bg-primary);
-		border: 1px solid var(--color-border);
-		color: var(--color-accent-gold);
+		background: rgba(212, 175, 55, 0.12);
+		border: 1px solid rgba(212, 175, 55, 0.35);
+		color: #e8c84a;
 		font-size: 0.8rem;
 		font-weight: 700;
 		letter-spacing: 0.5px;
 		padding: 6px 12px;
 		border-radius: 100px;
 		white-space: nowrap;
+	}
+	/* Light themes: payment label needs stronger contrast */
+	:global([data-theme='clean']) .payment-method-label {
+		background: rgba(107, 142, 35, 0.08);
+		border-color: rgba(107, 142, 35, 0.3);
+		color: #5a7a1e;
+	}
+	:global([data-theme='glitch']) .payment-method-label {
+		background: rgba(108, 93, 211, 0.08);
+		border-color: rgba(108, 93, 211, 0.3);
+		color: #6c5dd3;
 	}
 
 	.amount-col {
@@ -1023,14 +1113,20 @@
 		right: 0;
 		padding: 16px;
 		padding-bottom: max(16px, env(safe-area-inset-bottom));
-		background: var(--color-surface);
+		background: var(--color-bg-glass-heavy);
 		backdrop-filter: blur(20px);
 		-webkit-backdrop-filter: blur(20px);
-		border-top: 1px solid var(--color-border);
+		border-top: 1px solid var(--color-border-strong);
 		z-index: 100;
 		display: flex;
 		justify-content: center;
 		box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+	}
+	/* Light theme: actions bar needs solid bg */
+	:global([data-theme='clean']) .actions-container {
+		background: rgba(249, 249, 249, 0.95);
+		border-top: 1px solid rgba(0, 0, 0, 0.1);
+		box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
 	}
 
 	.actions-row {

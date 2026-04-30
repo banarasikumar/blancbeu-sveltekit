@@ -172,7 +172,7 @@
 	.progress-track {
 		width: 100%;
 		height: 6px;
-		background: rgba(255, 255, 255, 0.1);
+		background: rgba(0, 0, 0, 0.08); /* Darker track so it's visible when empty */
 		border-radius: 10px;
 		margin-bottom: 6px;
 		overflow: hidden;
@@ -195,7 +195,7 @@
 
 	.card-divider {
 		height: 1px;
-		background: rgba(255, 255, 255, 0.05);
+		background: rgba(0, 0, 0, 0.05); /* Visible on light cards */
 		width: 100%;
 	}
 

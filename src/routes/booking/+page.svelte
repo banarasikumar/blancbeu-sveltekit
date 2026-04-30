@@ -5,7 +5,7 @@
 	import { elasticOut, cubicOut, quintOut } from 'svelte/easing';
 	import { cart } from '$lib/stores/booking';
 	import { db, auth } from '$lib/firebase';
-	import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+	import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 	import { requestUserNotificationPermission } from '$lib/stores/userNotifications';
 	import { appSettings, initAppSettingsListener, destroyAppSettingsListener } from '$lib/stores/appSettings';
 	import { env } from '$env/dynamic/public';
@@ -37,7 +37,9 @@
 		Smartphone,
 		Bitcoin,
 		QrCode,
-		Banknote
+		Banknote,
+		Gem,
+		Ticket
 	} from 'lucide-svelte';
 	import { browser } from '$app/environment';
 
@@ -76,6 +78,17 @@
 	let couponApplied = false;
 	let couponError = '';
 	let isApplyingCoupon = false;
+	let showCouponsModal = false;
+
+	const availableCoupons = [
+		{ code: 'SAVE20', discountText: 'Flat ₹20 OFF', description: 'Save ₹20 on your booking' },
+		{ code: 'FLAT50', discountText: 'Flat ₹50 OFF', description: 'Save ₹50 on your booking' },
+		{ code: 'FIRST100', discountText: 'Flat ₹100 OFF', description: 'Exclusive discount' }
+	];
+
+	// Beu Cash State
+	let beuCashBalance = 0;
+	let useBeuCash = false;
 
 	// Date/Time Logic
 	let timeSlots: string[] = [];
@@ -96,12 +109,23 @@
 		generateQuickDates();
 
 		// Auth Requirement Check
-		const unsubscribe = auth.onAuthStateChanged((user) => {
+		const unsubscribe = auth.onAuthStateChanged(async (user) => {
 			isLoadingAuth = false;
 			if (user) {
 				userName = user.displayName || 'Guest';
 				userEmail = user.email || '';
 				userPhone = user.phoneNumber || '';
+				
+				// Fetch Beu Cash Balance
+				try {
+					const docRef = doc(db, 'users', user.uid);
+					const docSnap = await getDoc(docRef);
+					if (docSnap.exists()) {
+						beuCashBalance = docSnap.data().beuCash || 0;
+					}
+				} catch (err) {
+					console.error("Error fetching Beu Cash balance:", err);
+				}
 			} else {
 				if (browser) goto('/login');
 			}
@@ -437,14 +461,17 @@
 				couponDiscount = 20;
 				couponApplied = true;
 				couponError = '';
+				showCouponsModal = false;
 			} else if (code === 'FLAT50') {
 				couponDiscount = 50;
 				couponApplied = true;
 				couponError = '';
+				showCouponsModal = false;
 			} else if (code === 'FIRST100') {
 				couponDiscount = 100;
 				couponApplied = true;
 				couponError = '';
+				showCouponsModal = false;
 			} else {
 				couponDiscount = 0;
 				couponApplied = false;
@@ -464,8 +491,11 @@
 
 	// Computed totals
 	$: offersDiscount = originalTotal - offerTotal;
-	$: totalSavings = offersDiscount + couponDiscount;
-	$: finalTotal = Math.max(0, offerTotal - couponDiscount);
+	$: subTotalAfterCoupon = Math.max(0, offerTotal - couponDiscount);
+	$: maxBeuCashAllowed = subTotalAfterCoupon * 0.30;
+	$: actualBeuCashApplied = useBeuCash ? Math.min(beuCashBalance, maxBeuCashAllowed) : 0;
+	$: totalSavings = offersDiscount + couponDiscount + actualBeuCashApplied;
+	$: finalTotal = Math.max(0, subTotalAfterCoupon - actualBeuCashApplied);
 
 	async function submitBooking() {
 		// Validation handled in handleContinue, but double check
@@ -575,10 +605,11 @@
 				payment: {
 					type: paymentType,
 					method: paymentType === 'free' ? 'pay_at_salon' : ($appSettings.defaultPaymentGateway === 'razorpay' ? 'razorpay' : selectedPaymentMethod),
-					amount: paymentType === 'token' ? 50 : paymentType === 'full' ? offerTotal : 0,
+					amount: paymentType === 'token' ? 50 : paymentType === 'full' ? finalTotal : 0,
 					status: finalPaymentStatus,
 					razorpay_payment_id: razorpayPaymentId,
-					razorpay_order_id: razorpayOrderId
+					razorpay_order_id: razorpayOrderId,
+					beuCashApplied: actualBeuCashApplied
 				},
 				userId: auth.currentUser?.uid || null, // Save User ID for fetching
 				createdAt: serverTimestamp(),
@@ -1058,6 +1089,102 @@
 						</div>
 					</div>
 
+					<!-- Offers & Rewards Section -->
+					<div class="offers-rewards-section mt-4 mb-2">
+						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
+							Offers & Rewards
+						</h4>
+						
+						<!-- View Coupons Button / Applied Coupon -->
+						<div class="coupon-input-wrapper mb-3">
+							{#if couponApplied}
+								<div class="coupon-applied">
+									<div class="coupon-badge">
+										<Sparkles size={14} />
+										<span>{couponCode.toUpperCase()}</span>
+									</div>
+									<button class="remove-coupon" on:click={removeCoupon}>
+										<X size={14} />
+									</button>
+								</div>
+							{:else}
+								<button class="view-coupons-btn" on:click={() => showCouponsModal = true}>
+									<div class="view-coupons-left">
+										<Ticket size={18} class="text-gold" />
+										<span>View all coupons & offers</span>
+									</div>
+									<ChevronRight size={18} class="text-secondary" />
+								</button>
+							{/if}
+						</div>
+
+						<!-- Beu Cash Toggle -->
+						<div class="beu-cash-card {beuCashBalance === 0 ? 'empty-balance' : ''}">
+							<div class="beu-cash-info">
+								<div class="beu-cash-header">
+									<Gem size={16} class="text-gold" />
+									<span class="font-bold">Beu Cash Balance: {fmt(beuCashBalance)}</span>
+								</div>
+								{#if beuCashBalance > 0}
+									<p class="beu-cash-subtext">Use up to 30% ({fmt(maxBeuCashAllowed)}) of your subtotal.</p>
+								{:else}
+									<p class="beu-cash-subtext">Earn Beu Cash on your bookings to use here!</p>
+								{/if}
+							</div>
+							<div class="beu-cash-action">
+								<label class="switch-container" style={beuCashBalance === 0 ? 'opacity: 0.5; pointer-events: none;' : ''}>
+									<input type="checkbox" bind:checked={useBeuCash} disabled={beuCashBalance === 0} />
+									<span class="slider round"></span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<!-- Price Breakdown Section -->
+					<div class="totals-section mt-2">
+						<div class="receipt-box">
+							<div class="price-breakdown">
+								<div class="breakdown-row">
+								<span>Original Amount</span>
+								<span>{fmt(originalTotal)}</span>
+							</div>
+
+							{#if offersDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Offers Discount</span>
+									<span class="text-green">-{fmt(offersDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if couponDiscount > 0}
+								<div class="breakdown-row discount">
+									<span>Coupon Discount</span>
+									<span class="text-green">-{fmt(couponDiscount)}</span>
+								</div>
+							{/if}
+
+							{#if actualBeuCashApplied > 0}
+								<div class="breakdown-row discount">
+									<span>Beu Cash Used</span>
+									<span class="text-green">-{fmt(actualBeuCashApplied)}</span>
+								</div>
+							{/if}
+
+							{#if totalSavings > 0}
+								<div class="savings-row">
+									<Sparkles size={14} class="text-gold" />
+									<span>You Saved {fmt(totalSavings)}</span>
+								</div>
+							{/if}
+
+							<div class="total-row">
+								<span>Total Amount</span>
+								<span class="text-gold">{fmt(finalTotal)}</span>
+							</div>
+						</div>
+						</div>
+					</div>
+
 					<!-- Payment Method Section (Outside Card) -->
 					<div class="payment-section-standalone mt-2">
 						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
@@ -1174,100 +1301,24 @@
 							</p>
 							{/if}
 						{/if}
-					</div>
 
-					<!-- Coupon & Totals Section -->
-					<div class="totals-section">
-						<!-- Coupon Input -->
-						<div class="coupon-input-wrapper">
-							{#if couponApplied}
-								<div class="coupon-applied">
-									<div class="coupon-badge">
-										<Sparkles size={14} />
-										<span>{couponCode.toUpperCase()}</span>
-									</div>
-									<button class="remove-coupon" on:click={removeCoupon}>
-										<X size={14} />
-									</button>
+						{#if paymentType === 'token'}
+							<div class="token-breakup" transition:slide>
+								<div class="token-breakup-header">
+									<Sparkles size={14} />
+									<span>Payment Summary</span>
 								</div>
-							{:else}
-								<div class="coupon-input-row">
-									<input
-										type="text"
-										placeholder="Enter coupon code"
-										bind:value={couponCode}
-										class="coupon-input"
-										disabled={isApplyingCoupon}
-									/>
-									<button
-										class="apply-coupon-btn"
-										on:click={applyCoupon}
-										disabled={isApplyingCoupon || !couponCode.trim()}
-									>
-										{#if isApplyingCoupon}
-											<div class="spinner-sm"></div>
-										{:else}
-											Apply
-										{/if}
-									</button>
+								<div class="breakdown-row">
+									<span>Pay Now</span>
+									<span class="text-gold">₹50</span>
 								</div>
-								{#if couponError}
-									<p class="coupon-error">{couponError}</p>
-								{/if}
-							{/if}
-						</div>
-
-						<!-- Price Breakdown -->
-						<div class="price-breakdown">
-							<div class="breakdown-row">
-								<span>Original Amount</span>
-								<span>{fmt(originalTotal)}</span>
+								<div class="breakdown-row rest-at-salon">
+									<span>Pay at Salon</span>
+									<span>{fmt(Math.max(0, finalTotal - 50))}</span>
+								</div>
+								<p class="token-adjust-note">₹50 will be adjusted in your final bill. No extra charges.</p>
 							</div>
-
-							{#if offersDiscount > 0}
-								<div class="breakdown-row discount">
-									<span>Offers Discount</span>
-									<span class="text-green">-{fmt(offersDiscount)}</span>
-								</div>
-							{/if}
-
-							{#if couponDiscount > 0}
-								<div class="breakdown-row discount">
-									<span>Coupon Discount</span>
-									<span class="text-green">-{fmt(couponDiscount)}</span>
-								</div>
-							{/if}
-
-							{#if totalSavings > 0}
-								<div class="savings-row">
-									<Sparkles size={14} class="text-gold" />
-									<span>You Saved {fmt(totalSavings)}</span>
-								</div>
-							{/if}
-
-							<div class="total-row">
-								<span>Total Amount</span>
-								<span class="text-gold">{fmt(finalTotal)}</span>
-							</div>
-
-							{#if paymentType === 'token'}
-								<div class="token-breakup" transition:slide>
-									<div class="token-breakup-header">
-										<Sparkles size={14} />
-										<span>Payment Summary</span>
-									</div>
-									<div class="breakdown-row">
-										<span>Pay Now</span>
-										<span class="text-gold">₹50</span>
-									</div>
-									<div class="breakdown-row rest-at-salon">
-										<span>Pay at Salon</span>
-										<span>{fmt(Math.max(0, finalTotal - 50))}</span>
-									</div>
-									<p class="token-adjust-note">₹50 will be adjusted in your final bill. No extra charges.</p>
-								</div>
-							{/if}
-						</div>
+						{/if}
 					</div>
 				</div>
 
@@ -1290,6 +1341,82 @@
 							Pay {fmt(offerTotal)} & Book
 						{/if}
 					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- COUPONS MODAL -->
+	{#if showCouponsModal}
+		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={() => showCouponsModal = false}>
+			<div
+				class="summary-modal glass-panel coupons-modal"
+				transition:fly={{ y: 50, duration: 300, easing: cubicOut }}
+				on:click|stopPropagation
+			>
+				<div class="summary-header">
+					<div class="header-left">
+						<Ticket size={24} class="text-gold" />
+						<div>
+							<h3>Apply Coupon</h3>
+							<p class="text-xs text-secondary">Unlock special offers</p>
+						</div>
+					</div>
+					<button class="close-btn" on:click={() => showCouponsModal = false}>
+						<X size={20} />
+					</button>
+				</div>
+
+				<div class="summary-body coupons-body">
+					<!-- Manual Input -->
+					<div class="manual-coupon-input mb-4">
+						<div class="coupon-input-row">
+							<input
+								type="text"
+								placeholder="Enter coupon code"
+								bind:value={couponCode}
+								class="coupon-input"
+								disabled={isApplyingCoupon}
+							/>
+							<button
+								class="apply-coupon-btn"
+								on:click={applyCoupon}
+								disabled={isApplyingCoupon || !couponCode.trim()}
+							>
+								{#if isApplyingCoupon}
+									<div class="spinner-sm"></div>
+								{:else}
+									Apply
+								{/if}
+							</button>
+						</div>
+						{#if couponError}
+							<p class="coupon-error">{couponError}</p>
+						{/if}
+					</div>
+
+					<div class="section-divider mb-4"></div>
+
+					<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3">
+						Available Coupons
+					</h4>
+
+					<div class="coupons-list">
+						{#each availableCoupons as coupon}
+							<div class="coupon-card">
+								<div class="coupon-card-left">
+									<div class="coupon-code-badge">{coupon.code}</div>
+									<div class="coupon-desc-bold">{coupon.discountText}</div>
+									<div class="coupon-desc-sub">{coupon.description}</div>
+								</div>
+								<div class="coupon-card-right">
+									<button class="apply-text-btn" on:click={() => { couponCode = coupon.code; applyCoupon(); }}>
+										APPLY
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -3329,5 +3456,216 @@
 		background: var(--color-accent-gold);
 		color: white;
 		box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+	}
+	/* BEU CASH CARD UI */
+	.beu-cash-card {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 12px 16px;
+		background: rgba(212, 175, 55, 0.08);
+		border: 1px solid rgba(212, 175, 55, 0.3);
+		border-radius: 12px;
+		margin-bottom: 12px;
+	}
+	.beu-cash-info {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.beu-cash-header {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--color-text-primary);
+	}
+	.beu-cash-subtext {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+	}
+	
+	/* TOGGLE SWITCH */
+	.switch-container {
+		position: relative;
+		display: inline-block;
+		width: 44px;
+		height: 24px;
+	}
+	.switch-container input {
+		opacity: 0;
+		width: 0;
+		height: 0;
+	}
+	.slider {
+		position: absolute;
+		cursor: pointer;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background-color: rgba(255, 255, 255, 0.2);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		transition: .4s;
+	}
+	.slider:before {
+		position: absolute;
+		content: "";
+		height: 18px;
+		width: 18px;
+		left: 2px;
+		bottom: 2px;
+		background-color: white;
+		transition: .4s;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+	}
+	input:checked + .slider {
+		background-color: var(--color-accent-gold);
+		border-color: var(--color-accent-gold);
+	}
+	input:checked + .slider:before {
+		transform: translateX(20px);
+	}
+	.slider.round {
+		border-radius: 24px;
+	}
+	.slider.round:before {
+		border-radius: 50%;
+	}
+
+	:global([data-theme='clean']) .beu-cash-card,
+	:global([data-theme='glitch']) .beu-cash-card {
+		background: rgba(212, 175, 55, 0.1);
+		border-color: rgba(212, 175, 55, 0.4);
+	}
+	:global([data-theme='clean']) .slider,
+	:global([data-theme='glitch']) .slider {
+		background-color: rgba(0, 0, 0, 0.1);
+		border-color: rgba(0, 0, 0, 0.15);
+	}
+
+	/* RECEIPT BOX UI */
+	.receipt-box {
+		background: rgba(0, 0, 0, 0.02);
+		border: 1px solid rgba(0, 0, 0, 0.05);
+		border-radius: 12px;
+		padding: 16px 12px;
+		box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+	}
+	:global([data-theme='clean']) .receipt-box,
+	:global([data-theme='glitch']) .receipt-box {
+		background: rgba(0, 0, 0, 0.03);
+		border-color: rgba(0, 0, 0, 0.08);
+	}
+
+	/* COUPONS UI */
+	.view-coupons-btn {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 14px 16px;
+		background: #ffffff;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		border-radius: 12px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+	.view-coupons-btn:hover {
+		border-color: var(--color-accent-gold);
+		box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+	}
+	.view-coupons-left {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-weight: 700;
+		color: var(--color-text-primary);
+		font-size: 0.95rem;
+	}
+
+	.coupons-modal {
+		max-height: 80vh;
+		display: flex;
+		flex-direction: column;
+	}
+	.coupons-body {
+		padding: 20px;
+		overflow-y: auto;
+	}
+	.coupon-card {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 16px;
+		background: rgba(212, 175, 55, 0.05);
+		border: 1px dashed rgba(212, 175, 55, 0.4);
+		border-radius: 12px;
+		margin-bottom: 12px;
+		position: relative;
+	}
+	.coupon-card::before, .coupon-card::after {
+		content: '';
+		position: absolute;
+		width: 16px;
+		height: 16px;
+		background: white;
+		border-radius: 50%;
+		top: 50%;
+		transform: translateY(-50%);
+		border: 1px solid rgba(212, 175, 55, 0.2);
+	}
+	.coupon-card::before {
+		left: -8px;
+		border-left-color: transparent;
+		border-bottom-color: transparent;
+		transform: translateY(-50%) rotate(45deg);
+	}
+	.coupon-card::after {
+		right: -8px;
+		border-right-color: transparent;
+		border-top-color: transparent;
+		transform: translateY(-50%) rotate(45deg);
+	}
+	.coupon-code-badge {
+		display: inline-block;
+		background: rgba(212, 175, 55, 0.15);
+		color: #b8860b;
+		padding: 4px 10px;
+		border-radius: 6px;
+		font-weight: 800;
+		font-size: 0.85rem;
+		letter-spacing: 0.5px;
+		margin-bottom: 8px;
+	}
+	.coupon-desc-bold {
+		font-weight: 700;
+		color: var(--color-text-primary);
+		font-size: 1rem;
+		margin-bottom: 2px;
+	}
+	.coupon-desc-sub {
+		color: var(--color-text-secondary);
+		font-size: 0.8rem;
+	}
+	.apply-text-btn {
+		color: var(--color-accent-gold);
+		font-weight: 800;
+		font-size: 0.9rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 8px;
+	}
+	.apply-text-btn:hover {
+		color: #b8860b;
+	}
+
+	:global([data-theme='clean']) .view-coupons-btn,
+	:global([data-theme='glitch']) .view-coupons-btn {
+		background: rgba(255, 255, 255, 0.9);
+	}
+	:global([data-theme='clean']) .coupon-card::before,
+	:global([data-theme='clean']) .coupon-card::after,
+	:global([data-theme='glitch']) .coupon-card::before,
+	:global([data-theme='glitch']) .coupon-card::after {
+		background: #fdfdfd;
 	}
 </style>

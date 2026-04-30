@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 
 	import { auth, db } from '$lib/firebase';
-	import { collection, query, where, getDocs } from 'firebase/firestore';
+	import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 	import { onAuthStateChanged } from 'firebase/auth';
 	import type { User } from 'firebase/auth';
 	import { LogOut, Camera, Calendar, Clock, ChevronRight } from 'lucide-svelte';
@@ -13,19 +13,43 @@
 	// UI Components
 	import UnifiedStatusCard from '$lib/components/you/UnifiedStatusCard.svelte';
 	import QuickActions from '$lib/components/you/QuickActions.svelte';
+	import WalletCard from '$lib/components/you/WalletCard.svelte';
 
 	// Svelte 5 Runes
 	let user = $state<User | null>(null);
 	let latestBooking = $state<any>(null);
 	let loading = $state(true);
 	let isLoggingOut = $state(false);
+	let beuCash = $state(0);
+	let points = $state(0);
+	let totalSaved = $state(0);
+	let bookingsCount = $state(0);
+
+	// Tier Calculation (1 Point = ₹10 Spent)
+	let currentTierName = $derived.by(() => {
+		if (points < 500) return 'Bronze';
+		if (points < 1500) return 'Silver';
+		if (points < 2500) return 'Gold';
+		return 'Platinum';
+	});
+
+	let nextTierName = $derived.by(() => {
+		if (points < 500) return 'Silver';
+		if (points < 1500) return 'Gold';
+		if (points < 2500) return 'Platinum';
+		return 'Max Tier';
+	});
+
+	let nextTierThreshold = $derived.by(() => {
+		if (points < 500) return 500;
+		if (points < 1500) return 1500;
+		if (points < 2500) return 2500;
+		return points; // Maxed out
+	});
 
 	let unsubscribe: () => void;
 
-	// Mock Data for Premium Feel (Could be loaded from Firestore later)
-	const MOCK_POINTS = 4550;
-	const MOCK_SAVINGS = 4850;
-	const MOCK_BOOKINGS = 24;
+
 
 	onMount(() => {
 		console.log('Mounting Profile Page...');
@@ -36,6 +60,7 @@
 			user = auth.currentUser;
 			loading = false;
 			fetchLatestBooking(user.uid);
+			fetchUserProfile(user.uid);
 		}
 
 		// 2. Safety Timeout (Fallback)
@@ -66,6 +91,7 @@
 				// simple check: if we have user but no booking, fetch.
 				if (!latestBooking) {
 					fetchLatestBooking(user.uid);
+					fetchUserProfile(user.uid);
 				}
 			} else {
 				// Only redirect if NOT intentionally logging out
@@ -91,6 +117,12 @@
 					(b: any) =>
 						b.status !== 'cancelled' && b.status !== 'declined' && b.status !== 'completed'
 				);
+
+				// Dynamically calculate bookingsCount for the Tier Card
+				const validBookings = docs.filter(
+					(b: any) => b.status !== 'cancelled' && b.status !== 'declined'
+				);
+				bookingsCount = validBookings.length;
 
 				// 2. Parse dates and find the NEAREST UPCOMING appointment
 				const now = new Date();
@@ -128,6 +160,21 @@
 			}
 		} catch (error) {
 			console.error('Error fetching latest booking:', error);
+		}
+	}
+
+	async function fetchUserProfile(uid: string) {
+		try {
+			const docRef = doc(db, 'users', uid);
+			const docSnap = await getDoc(docRef);
+			if (docSnap.exists()) {
+				const data = docSnap.data();
+				beuCash = data.beuCash || 0;
+				points = data.points || 0;
+				totalSaved = data.totalSaved || 0;
+			}
+		} catch (error) {
+			console.error('Error fetching user profile:', error);
 		}
 	}
 
@@ -261,13 +308,16 @@
 			<div class="dashboard-content" in:fly={{ y: 20, duration: 400, delay: 100 }}>
 				<!-- UNIFIED STATUS CARD (Combines Tier & Stats) -->
 				<UnifiedStatusCard
-					currentPoints={MOCK_POINTS}
-					nextTierThreshold={5000}
-					currentTierName="Gold"
-					nextTierName="Platinum"
-					totalSaved={MOCK_SAVINGS}
-					bookingsCount={MOCK_BOOKINGS}
+					currentPoints={points}
+					nextTierThreshold={nextTierThreshold}
+					currentTierName={currentTierName}
+					nextTierName={nextTierName}
+					totalSaved={totalSaved}
+					bookingsCount={bookingsCount}
 				/>
+
+				<!-- BEU CASH WALLET CARD -->
+				<WalletCard balance={beuCash} />
 
 				<!-- LATEST BOOKING WIDGET (TICKET STYLE) -->
 				<h2 class="section-title">Upcoming Appointment</h2>
