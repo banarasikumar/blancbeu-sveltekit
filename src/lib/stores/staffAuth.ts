@@ -1,5 +1,13 @@
 import { writable, derived } from 'svelte/store';
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, signInWithCredential } from 'firebase/auth';
+import {
+	onAuthStateChanged,
+	signInWithPopup,
+	signInWithRedirect,
+	getRedirectResult,
+	GoogleAuthProvider,
+	signOut,
+	signInWithCredential
+} from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -87,7 +95,9 @@ export async function initStaffAuth() {
 	try {
 		await Promise.race([
 			(auth as any).authStateReady(),
-			new Promise((_, reject) => setTimeout(() => reject(new Error('Auth state ready timeout')), 15000))
+			new Promise((_, reject) =>
+				setTimeout(() => reject(new Error('Auth state ready timeout')), 15000)
+			)
 		]);
 		const restoredUser = auth.currentUser;
 		console.log('[StaffAuth] Auth state ready, user:', restoredUser?.uid || 'null');

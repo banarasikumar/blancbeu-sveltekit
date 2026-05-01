@@ -154,28 +154,52 @@
 
 	/* ── Drift Keyframes ── */
 	@keyframes driftA {
-		0% { transform: translate(0, 0) scale(1); }
-		100% { transform: translate(90px, 110px) scale(1.18); }
+		0% {
+			transform: translate(0, 0) scale(1);
+		}
+		100% {
+			transform: translate(90px, 110px) scale(1.18);
+		}
 	}
 	@keyframes driftB {
-		0% { transform: translate(0, 0) scale(1); }
-		100% { transform: translate(-100px, 80px) scale(0.88); }
+		0% {
+			transform: translate(0, 0) scale(1);
+		}
+		100% {
+			transform: translate(-100px, 80px) scale(0.88);
+		}
 	}
 	@keyframes driftC {
-		0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-		100% { transform: translate(80px, -90px) scale(1.12) rotate(25deg); }
+		0% {
+			transform: translate(0, 0) scale(1) rotate(0deg);
+		}
+		100% {
+			transform: translate(80px, -90px) scale(1.12) rotate(25deg);
+		}
 	}
 	@keyframes driftD {
-		0% { transform: translate(0, 0) scale(1); }
-		100% { transform: translate(-70px, -80px) scale(1.22); }
+		0% {
+			transform: translate(0, 0) scale(1);
+		}
+		100% {
+			transform: translate(-70px, -80px) scale(1.22);
+		}
 	}
 	@keyframes driftE {
-		0% { transform: translate(0, 0) scale(1); }
-		100% { transform: translate(60px, 70px) scale(0.82); }
+		0% {
+			transform: translate(0, 0) scale(1);
+		}
+		100% {
+			transform: translate(60px, 70px) scale(0.82);
+		}
 	}
 	@keyframes driftF {
-		0% { transform: translate(0, 0) scale(1); }
-		100% { transform: translate(-50px, 50px) scale(1.14); }
+		0% {
+			transform: translate(0, 0) scale(1);
+		}
+		100% {
+			transform: translate(-50px, 50px) scale(1.14);
+		}
 	}
 
 	/* ── Floating Sparkle Particles ── */

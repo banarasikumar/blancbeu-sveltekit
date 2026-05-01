@@ -87,13 +87,13 @@ jobs:
             echo "${{ secrets.APP_KEYSTORE_B64 }}" | base64 --decode > blancbeu.keystore
             export KS="blancbeu.keystore"
           fi
-          
+
           # Output the SHA-1 and SHA-256 for Firebase & Deep-Link Configuration
           keytool -list -v -keystore $KS -alias blancbeu -storepass "blancbeu123" | grep -E "SHA1:|SHA256:" > sha_fingerprints.txt
-          
+
           # Sign the Staff APK
           $APKSIGNER sign --ks $KS --ks-pass pass:blancbeu123 --key-pass pass:blancbeu123 --out apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk apps/staff-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
-          
+
           # Sign the Admin APK
           $APKSIGNER sign --ks $KS --ks-pass pass:blancbeu123 --key-pass pass:blancbeu123 --out apps/admin-app/android/app/build/outputs/apk/release/Blancbeu-Admin.apk apps/admin-app/android/app/build/outputs/apk/release/app-release-unsigned.apk
 
@@ -121,8 +121,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: "Blancbeu Release v1.0.${{ github.run_number }}"
-          body: "Automated build release containing standalone APKs."
+          name: 'Blancbeu Release v1.0.${{ github.run_number }}'
+          body: 'Automated build release containing standalone APKs.'
           prerelease: true
           files: |
             apps/staff-app/android/app/build/outputs/apk/release/Blancbeu-Stylist.apk

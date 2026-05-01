@@ -1,5 +1,11 @@
 import { writable, derived } from 'svelte/store';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithCredential } from 'firebase/auth';
+import {
+	onAuthStateChanged,
+	signInWithPopup,
+	GoogleAuthProvider,
+	signOut,
+	signInWithCredential
+} from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -29,7 +35,7 @@ let unsubscribeAuth: (() => void) | null = null;
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
 	return Promise.race([
 		promise,
-		new Promise<T>((_, reject) => 
+		new Promise<T>((_, reject) =>
 			setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs)
 		)
 	]);
@@ -40,7 +46,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
  */
 async function verifyAdminRole(uid: string, email: string | null): Promise<boolean> {
 	console.log('[AdminAuth] Starting admin role verification for:', email || uid);
-	
+
 	// Extract phone from uid if user logged in via WhatsApp
 	const phone = uid.startsWith('wa:') ? uid.replace('wa:', '') : null;
 
@@ -99,8 +105,11 @@ export async function initAdminAuth() {
 		await withTimeout((auth as any).authStateReady(), 15000, 'Auth state ready');
 		const user = auth.currentUser;
 		const timeToReady = (performance.now() - initStartTime).toFixed(2);
-		console.log(`[AdminAuth] Auth state ready after ${timeToReady}ms, user:`, user?.email || user?.uid || 'null');
-		
+		console.log(
+			`[AdminAuth] Auth state ready after ${timeToReady}ms, user:`,
+			user?.email || user?.uid || 'null'
+		);
+
 		if (user) {
 			adminUser.set(user);
 			adminAuthState.set('checking');
@@ -125,7 +134,7 @@ export async function initAdminAuth() {
 	// Set up listener for future auth state changes
 	unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
 		console.log('[AdminAuth] Auth state changed, user:', user?.email || user?.uid || 'null');
-		
+
 		if (user) {
 			adminUser.set(user);
 			adminAuthState.set('checking');

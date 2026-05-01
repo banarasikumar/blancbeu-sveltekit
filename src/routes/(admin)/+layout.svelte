@@ -125,7 +125,9 @@
 						// ── Regular push-notification / other deep-link path ─────
 						const path = url.pathname + url.search;
 						if (url.hostname.includes('admin.blancbeu.in')) {
-							const routedPath = path.startsWith('/admin') ? path : `/admin${path === '/' ? '' : path}`;
+							const routedPath = path.startsWith('/admin')
+								? path
+								: `/admin${path === '/' ? '' : path}`;
 							goto(routedPath);
 						} else if (path.startsWith('/admin')) {
 							goto(path);

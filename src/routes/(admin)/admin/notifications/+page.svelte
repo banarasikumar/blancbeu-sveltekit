@@ -1,7 +1,21 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { adminNotifications, adminUnreadCount, type AdminNotification, type AdminNotificationType } from '$lib/stores/adminNotificationsList';
-	import { Bell, Trash2, Check, CheckCheck, ArrowLeft, Calendar, User, Package } from 'lucide-svelte';
+	import {
+		adminNotifications,
+		adminUnreadCount,
+		type AdminNotification,
+		type AdminNotificationType
+	} from '$lib/stores/adminNotificationsList';
+	import {
+		Bell,
+		Trash2,
+		Check,
+		CheckCheck,
+		ArrowLeft,
+		Calendar,
+		User,
+		Package
+	} from 'lucide-svelte';
 
 	let filter: 'all' | 'unread' = $state('all');
 	let selectedType: AdminNotificationType | 'all' = $state('all');
@@ -125,17 +139,21 @@
 	<!-- Filters -->
 	<div class="filters">
 		<div class="filter-group">
-			<button class="filter-btn" class:active={filter === 'all'} onclick={() => filter = 'all'}>
+			<button class="filter-btn" class:active={filter === 'all'} onclick={() => (filter = 'all')}>
 				All
 			</button>
-			<button class="filter-btn" class:active={filter === 'unread'} onclick={() => filter = 'unread'}>
+			<button
+				class="filter-btn"
+				class:active={filter === 'unread'}
+				onclick={() => (filter = 'unread')}
+			>
 				Unread
 			</button>
 		</div>
 
 		<select class="type-select" bind:value={selectedType}>
 			{#each Object.entries(typeLabels) as [value, label]}
-				<option value={value}>{label}</option>
+				<option {value}>{label}</option>
 			{/each}
 		</select>
 	</div>
@@ -163,7 +181,7 @@
 				</div>
 				<p>No notifications</p>
 				{#if filter === 'unread'}
-					<button class="view-all-btn" onclick={() => filter = 'all'}>View all</button>
+					<button class="view-all-btn" onclick={() => (filter = 'all')}>View all</button>
 				{/if}
 			</div>
 		{:else}
@@ -177,9 +195,17 @@
 					tabindex="0"
 					onkeydown={(e) => e.key === 'Enter' && handleNotificationClick(notification)}
 				>
-					<div class="notification-indicator" style="background: {getNotificationColor(notification.type)}"></div>
-					
-					<div class="notification-icon" style="background: {getNotificationColor(notification.type)}20; color: {getNotificationColor(notification.type)}">
+					<div
+						class="notification-indicator"
+						style="background: {getNotificationColor(notification.type)}"
+					></div>
+
+					<div
+						class="notification-icon"
+						style="background: {getNotificationColor(
+							notification.type
+						)}20; color: {getNotificationColor(notification.type)}"
+					>
 						{getNotificationIcon(notification.type)}
 					</div>
 
@@ -189,7 +215,7 @@
 							<span class="notification-time">{formatTimeAgo(notification.createdAt)}</span>
 						</div>
 						<p class="notification-message">{notification.message}</p>
-						
+
 						{#if notification.userName || notification.data}
 							<div class="notification-details">
 								{#if notification.userName}
@@ -314,7 +340,7 @@
 	.filter-btn.active {
 		background: white;
 		color: var(--admin-accent, #6366f1);
-		box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
 	.type-select {
@@ -408,7 +434,7 @@
 
 	.notification-card:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 	}
 
 	.notification-card.unread {
@@ -501,22 +527,22 @@
 		letter-spacing: 0.05em;
 	}
 
-	.detail-item.status[data-status="pending"] {
+	.detail-item.status[data-status='pending'] {
 		background: #fef3c7;
 		color: #92400e;
 	}
 
-	.detail-item.status[data-status="confirmed"] {
+	.detail-item.status[data-status='confirmed'] {
 		background: #dbeafe;
 		color: #1e40af;
 	}
 
-	.detail-item.status[data-status="completed"] {
+	.detail-item.status[data-status='completed'] {
 		background: #dcfce7;
 		color: #166534;
 	}
 
-	.detail-item.status[data-status="cancelled"] {
+	.detail-item.status[data-status='cancelled'] {
 		background: #fee2e2;
 		color: #991b1b;
 	}

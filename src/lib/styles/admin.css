@@ -773,9 +773,13 @@
 	padding: 18px;
 	border: 1px solid var(--admin-border);
 	border-left: 5px solid transparent;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 6px 20px rgba(0,0,0,0.04);
+	box-shadow:
+		0 2px 8px rgba(0, 0, 0, 0.06),
+		0 6px 20px rgba(0, 0, 0, 0.04);
 	position: relative;
-	transition: transform 0.2s, box-shadow 0.2s;
+	transition:
+		transform 0.2s,
+		box-shadow 0.2s;
 }
 
 .admin-booking-card:active {
@@ -785,34 +789,72 @@
 .admin-booking-card.pending {
 	border-left-color: var(--admin-orange);
 	background:
-		linear-gradient(135deg, rgba(255, 159, 10, 0.12) 0%, rgba(255, 159, 10, 0.03) 60%, transparent 100%), var(--admin-surface);
-	box-shadow: 0 2px 8px rgba(255, 159, 10, 0.08), 0 6px 20px rgba(0,0,0,0.04);
+		linear-gradient(
+			135deg,
+			rgba(255, 159, 10, 0.12) 0%,
+			rgba(255, 159, 10, 0.03) 60%,
+			transparent 100%
+		),
+		var(--admin-surface);
+	box-shadow:
+		0 2px 8px rgba(255, 159, 10, 0.08),
+		0 6px 20px rgba(0, 0, 0, 0.04);
 }
 
 .admin-booking-card.confirmed {
 	border-left-color: var(--admin-green);
 	background:
-		linear-gradient(135deg, rgba(48, 209, 88, 0.12) 0%, rgba(48, 209, 88, 0.03) 60%, transparent 100%), var(--admin-surface);
-	box-shadow: 0 2px 8px rgba(48, 209, 88, 0.08), 0 6px 20px rgba(0,0,0,0.04);
+		linear-gradient(
+			135deg,
+			rgba(48, 209, 88, 0.12) 0%,
+			rgba(48, 209, 88, 0.03) 60%,
+			transparent 100%
+		),
+		var(--admin-surface);
+	box-shadow:
+		0 2px 8px rgba(48, 209, 88, 0.08),
+		0 6px 20px rgba(0, 0, 0, 0.04);
 }
 
 .admin-booking-card.completed {
 	border-left-color: var(--admin-accent);
 	background:
-		linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(212, 175, 55, 0.03) 60%, transparent 100%), var(--admin-surface);
-	box-shadow: 0 2px 8px rgba(212, 175, 55, 0.08), 0 6px 20px rgba(0,0,0,0.04);
+		linear-gradient(
+			135deg,
+			rgba(212, 175, 55, 0.12) 0%,
+			rgba(212, 175, 55, 0.03) 60%,
+			transparent 100%
+		),
+		var(--admin-surface);
+	box-shadow:
+		0 2px 8px rgba(212, 175, 55, 0.08),
+		0 6px 20px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme='clean'] .admin-booking-card.completed {
 	background:
-		linear-gradient(135deg, rgba(0, 122, 255, 0.12) 0%, rgba(0, 122, 255, 0.03) 60%, transparent 100%), var(--admin-surface);
-	box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08), 0 6px 20px rgba(0,0,0,0.04);
+		linear-gradient(
+			135deg,
+			rgba(0, 122, 255, 0.12) 0%,
+			rgba(0, 122, 255, 0.03) 60%,
+			transparent 100%
+		),
+		var(--admin-surface);
+	box-shadow:
+		0 2px 8px rgba(0, 122, 255, 0.08),
+		0 6px 20px rgba(0, 0, 0, 0.04);
 }
 
 .admin-booking-card.cancelled {
 	border-left-color: var(--admin-red);
 	background:
-		linear-gradient(135deg, rgba(255, 69, 58, 0.08) 0%, rgba(255, 69, 58, 0.02) 60%, transparent 100%), var(--admin-surface);
+		linear-gradient(
+			135deg,
+			rgba(255, 69, 58, 0.08) 0%,
+			rgba(255, 69, 58, 0.02) 60%,
+			transparent 100%
+		),
+		var(--admin-surface);
 	opacity: 0.85;
 }
 
@@ -844,14 +886,14 @@
 }
 
 .admin-status-badge.pending {
-	background: linear-gradient(135deg, #FF9F0A, #FF8C00);
+	background: linear-gradient(135deg, #ff9f0a, #ff8c00);
 	color: #fff;
 	border: none;
 	box-shadow: 0 2px 6px rgba(255, 159, 10, 0.3);
 }
 
 .admin-status-badge.confirmed {
-	background: linear-gradient(135deg, #30D158, #28a745);
+	background: linear-gradient(135deg, #30d158, #28a745);
 	color: #fff;
 	border: none;
 	box-shadow: 0 2px 6px rgba(48, 209, 88, 0.3);
@@ -865,13 +907,13 @@
 }
 
 [data-theme='clean'] .admin-status-badge.completed {
-	background: linear-gradient(135deg, #007AFF, #0056CC);
+	background: linear-gradient(135deg, #007aff, #0056cc);
 	box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3);
 	border: none;
 }
 
 .admin-status-badge.cancelled {
-	background: linear-gradient(135deg, #FF453A, #dc2626);
+	background: linear-gradient(135deg, #ff453a, #dc2626);
 	color: #fff;
 	border: none;
 	box-shadow: 0 2px 6px rgba(255, 69, 58, 0.3);
@@ -1019,7 +1061,7 @@
 
 .admin-card-actions .admin-action-btn.confirm,
 .admin-card-actions .admin-action-btn.complete {
-	background: linear-gradient(135deg, #30D158 0%, #28a745 100%);
+	background: linear-gradient(135deg, #30d158 0%, #28a745 100%);
 	color: #fff;
 	box-shadow: 0 3px 10px rgba(48, 209, 88, 0.3);
 }
@@ -1031,7 +1073,7 @@
 }
 
 .admin-card-actions .admin-action-btn.cancel {
-	background: linear-gradient(135deg, #FF453A 0%, #dc2626 100%);
+	background: linear-gradient(135deg, #ff453a 0%, #dc2626 100%);
 	color: #fff;
 	border: none;
 	box-shadow: 0 3px 10px rgba(255, 69, 58, 0.25);
@@ -1339,13 +1381,13 @@
 }
 
 [data-theme='clean'] .admin-countdown.upcoming {
-	background: linear-gradient(135deg, #007AFF, #0056CC);
+	background: linear-gradient(135deg, #007aff, #0056cc);
 	box-shadow: 0 1px 4px rgba(0, 122, 255, 0.3);
 }
 
 .admin-countdown.overdue {
 	color: #fff;
-	background: linear-gradient(135deg, #FF453A, #dc2626);
+	background: linear-gradient(135deg, #ff453a, #dc2626);
 	box-shadow: 0 1px 4px rgba(255, 69, 58, 0.3);
 }
 
@@ -1870,7 +1912,7 @@
 	gap: 5px;
 	padding: 7px 14px;
 	border-radius: var(--admin-radius-md);
-	background: linear-gradient(135deg, #FF453A 0%, #dc2626 100%);
+	background: linear-gradient(135deg, #ff453a 0%, #dc2626 100%);
 	color: #fff;
 	border: none;
 	font-size: 12px;
@@ -1909,12 +1951,16 @@
 /* Selected card highlight */
 .admin-booking-card.admin-card-selected {
 	border-color: var(--admin-accent) !important;
-	box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2), 0 4px 12px rgba(212, 175, 55, 0.1) !important;
+	box-shadow:
+		0 0 0 2px rgba(212, 175, 55, 0.2),
+		0 4px 12px rgba(212, 175, 55, 0.1) !important;
 }
 
 [data-theme='clean'] .admin-booking-card.admin-card-selected {
-	border-color: #007AFF !important;
-	box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2), 0 4px 12px rgba(0, 122, 255, 0.1) !important;
+	border-color: #007aff !important;
+	box-shadow:
+		0 0 0 2px rgba(0, 122, 255, 0.2),
+		0 4px 12px rgba(0, 122, 255, 0.1) !important;
 }
 
 /* Hidden utility */
@@ -1933,14 +1979,16 @@
 	width: 56px;
 	height: 56px;
 	border-radius: 50%;
-	background: #FF375F !important;
+	background: #ff375f !important;
 	color: #fff !important;
 	border: 3px solid #fff;
 	cursor: pointer;
 	display: flex !important;
 	align-items: center;
 	justify-content: center;
-	box-shadow: 0 8px 24px rgba(255, 55, 95, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+	box-shadow:
+		0 8px 24px rgba(255, 55, 95, 0.4),
+		0 4px 12px rgba(0, 0, 0, 0.3);
 	z-index: 999999 !important;
 	transition: all 0.3s ease;
 	animation: scrollTopIn 0.3s ease-out;
@@ -1964,6 +2012,6 @@
 }
 
 [data-theme='clean'] .scroll-to-top-btn {
-	background: #007AFF;
+	background: #007aff;
 	border: 2px solid rgba(255, 255, 255, 0.3);
 }

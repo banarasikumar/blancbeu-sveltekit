@@ -155,7 +155,13 @@
 				</div>
 
 				<!-- FORM SECTION -->
-				<form class="details-form" onsubmit={(e) => { e.preventDefault(); saveDetails(); }}>
+				<form
+					class="details-form"
+					onsubmit={(e) => {
+						e.preventDefault();
+						saveDetails();
+					}}
+				>
 					<!-- Full Name -->
 					<div class="form-group">
 						<label for="name" class="input-label">

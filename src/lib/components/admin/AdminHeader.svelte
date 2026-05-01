@@ -11,7 +11,11 @@
 <header class="admin-header">
 	<div class="admin-header-title">{title}</div>
 	<div style="display: flex; gap: 8px;">
-		<button class="admin-header-btn admin-header-bell" onclick={() => goto('/admin/notify')} aria-label="Notifications">
+		<button
+			class="admin-header-btn admin-header-bell"
+			onclick={() => goto('/admin/notify')}
+			aria-label="Notifications"
+		>
 			<Bell size={22} />
 			{#if $adminUnreadCount > 0}
 				<span class="admin-header-badge">{$adminUnreadCount > 99 ? '99+' : $adminUnreadCount}</span>

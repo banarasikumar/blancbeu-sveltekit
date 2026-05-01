@@ -68,7 +68,6 @@ onBackgroundMessage(swMessaging, async (payload) => {
 	} as NotificationOptions);
 });
 
-
 // ── Lifecycle ────────────────────────────────────────────────
 self.skipWaiting();
 self.addEventListener('activate', (event) => {
@@ -179,16 +178,14 @@ self.addEventListener('notificationclick', (event) => {
 	// Persistent listening notification — open/focus dashboard, keep notification alive
 	if (data?.type === 'staff-listening') {
 		event.waitUntil(
-			self.clients
-				.matchAll({ type: 'window', includeUncontrolled: true })
-				.then((windowClients) => {
-					for (const client of windowClients) {
-						if (client.url.includes('/staff') && 'focus' in client) {
-							return client.focus();
-						}
+			self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+				for (const client of windowClients) {
+					if (client.url.includes('/staff') && 'focus' in client) {
+						return client.focus();
 					}
-					return self.clients.openWindow('/staff/dashboard');
-				})
+				}
+				return self.clients.openWindow('/staff/dashboard');
+			})
 		);
 		return;
 	}

@@ -1,6 +1,15 @@
 <script lang="ts">
 	import { db } from '$lib/firebase';
-	import { collection, query, where, getDocs, writeBatch, serverTimestamp, doc, limit } from 'firebase/firestore';
+	import {
+		collection,
+		query,
+		where,
+		getDocs,
+		writeBatch,
+		serverTimestamp,
+		doc,
+		limit
+	} from 'firebase/firestore';
 	import { showToast } from '$lib/stores/toast';
 	import { ArrowLeft, Upload, CheckCircle, XCircle } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
@@ -105,7 +114,10 @@
 		}
 
 		result = { added, skipped, errors };
-		showToast(`Imported ${added} walk-in users (${skipped} skipped, ${errors} errors)`, added > 0 ? 'success' : 'error');
+		showToast(
+			`Imported ${added} walk-in users (${skipped} skipped, ${errors} errors)`,
+			added > 0 ? 'success' : 'error'
+		);
 		isRunning = false;
 	}
 </script>
@@ -121,8 +133,8 @@
 
 <div style="padding: 16px 0;">
 	<p style="color: var(--admin-text-secondary); font-size: 13px; margin-bottom: 16px;">
-		Import <strong>{contactsData.length}</strong> contacts from <code>cleaned_contacts.json</code> as walk-in users.
-		Duplicates (by phone) will be skipped.
+		Import <strong>{contactsData.length}</strong> contacts from <code>cleaned_contacts.json</code> as
+		walk-in users. Duplicates (by phone) will be skipped.
 	</p>
 
 	<button
@@ -136,17 +148,27 @@
 	</button>
 
 	{#if result}
-		<div style="margin-top: 16px; padding: 14px; border-radius: 12px; background: var(--admin-surface); border: 1px solid var(--admin-border);">
+		<div
+			style="margin-top: 16px; padding: 14px; border-radius: 12px; background: var(--admin-surface); border: 1px solid var(--admin-border);"
+		>
 			<div style="display: flex; gap: 16px; flex-wrap: wrap;">
-				<div style="display: flex; align-items: center; gap: 6px; color: #30D158; font-weight: 700;">
-					<CheckCircle size={16} /> {result.added} added
+				<div
+					style="display: flex; align-items: center; gap: 6px; color: #30D158; font-weight: 700;"
+				>
+					<CheckCircle size={16} />
+					{result.added} added
 				</div>
-				<div style="display: flex; align-items: center; gap: 6px; color: var(--admin-orange); font-weight: 700;">
+				<div
+					style="display: flex; align-items: center; gap: 6px; color: var(--admin-orange); font-weight: 700;"
+				>
 					{result.skipped} skipped
 				</div>
 				{#if result.errors > 0}
-					<div style="display: flex; align-items: center; gap: 6px; color: var(--admin-red); font-weight: 700;">
-						<XCircle size={16} /> {result.errors} errors
+					<div
+						style="display: flex; align-items: center; gap: 6px; color: var(--admin-red); font-weight: 700;"
+					>
+						<XCircle size={16} />
+						{result.errors} errors
 					</div>
 				{/if}
 			</div>
@@ -154,7 +176,9 @@
 	{/if}
 
 	{#if log.length > 0}
-		<div style="margin-top: 12px; max-height: 400px; overflow-y: auto; padding: 12px; border-radius: 10px; background: var(--admin-bg); border: 1px solid var(--admin-border); font-family: 'SF Mono', monospace; font-size: 11px; line-height: 1.6; color: var(--admin-text-secondary);">
+		<div
+			style="margin-top: 12px; max-height: 400px; overflow-y: auto; padding: 12px; border-radius: 10px; background: var(--admin-bg); border: 1px solid var(--admin-border); font-family: 'SF Mono', monospace; font-size: 11px; line-height: 1.6; color: var(--admin-text-secondary);"
+		>
 			{#each log as entry}
 				<div>{entry}</div>
 			{/each}

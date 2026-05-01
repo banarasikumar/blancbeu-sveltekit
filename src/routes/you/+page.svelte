@@ -50,8 +50,6 @@
 
 	let unsubscribe: () => void;
 
-
-
 	onMount(() => {
 		console.log('Mounting Profile Page...');
 
@@ -308,11 +306,11 @@
 				<!-- UNIFIED STATUS CARD (Combines Tier & Stats) -->
 				<UnifiedStatusCard
 					currentPoints={points}
-					nextTierThreshold={nextTierThreshold}
-					currentTierName={currentTierName}
-					nextTierName={nextTierName}
-					totalSaved={totalSaved}
-					bookingsCount={bookingsCount}
+					{nextTierThreshold}
+					{currentTierName}
+					{nextTierName}
+					{totalSaved}
+					{bookingsCount}
 				/>
 
 				<!-- BEU CASH WALLET CARD -->
@@ -322,7 +320,13 @@
 				<h2 class="section-title">Upcoming Appointment</h2>
 
 				{#if latestBooking}
-					<div class="ticket-widget" onclick={() => goto('/you/bookings')} onkeydown={(e) => e.key === 'Enter' && goto('/you/bookings')} role="button" tabindex="0">
+					<div
+						class="ticket-widget"
+						onclick={() => goto('/you/bookings')}
+						onkeydown={(e) => e.key === 'Enter' && goto('/you/bookings')}
+						role="button"
+						tabindex="0"
+					>
 						<div class="ticket-content">
 							<!-- Top Row: Date & Status -->
 							<div class="ticket-header">

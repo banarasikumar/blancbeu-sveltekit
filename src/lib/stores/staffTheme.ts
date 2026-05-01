@@ -70,7 +70,7 @@ function applyTheme(mode: ThemeMode) {
 		// Light mode: use the same light bg as --s-bg-primary (#f8fafc)
 		const bgColor = resolved === 'dark' ? '#121212' : '#f8fafc';
 		StatusBar.setBackgroundColor({ color: bgColor }).catch(console.warn);
-		
+
 		// Style.Dark = white/light status bar icons (used in Dark mode)
 		// Style.Light = dark status bar icons (used in Light mode)
 		const style = resolved === 'dark' ? Style.Dark : Style.Light;

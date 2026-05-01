@@ -50,9 +50,7 @@ function createNotificationsStore() {
 
 		markAsRead(id: string) {
 			update((notifications) => {
-				const updated = notifications.map((n) =>
-					n.id === id ? { ...n, read: true } : n
-				);
+				const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
 				if (browser) {
 					localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(updated));
 				}
@@ -99,12 +97,14 @@ function createNotificationsStore() {
 		}) {
 			const customerName = booking.userName || 'Guest';
 			const serviceName = booking.serviceName || 'Service';
-			const formattedDate = booking.date ? new Date(booking.date).toLocaleDateString('en-IN', { 
-				weekday: 'short', 
-				day: 'numeric', 
-				month: 'short' 
-			}) : 'Today';
-			
+			const formattedDate = booking.date
+				? new Date(booking.date).toLocaleDateString('en-IN', {
+						weekday: 'short',
+						day: 'numeric',
+						month: 'short'
+					})
+				: 'Today';
+
 			return this.add({
 				type: 'booking',
 				title: `📅 New Booking from ${customerName}`,
@@ -125,22 +125,31 @@ function createNotificationsStore() {
 			time?: string;
 			serviceName?: string;
 		}) {
-			const statusText = booking.status === 'completed' ? '✅ Completed' : 
-				booking.status === 'cancelled' ? '❌ Cancelled' : 
-				booking.status === 'confirmed' ? '✓ Confirmed' : 'Updated';
-			
+			const statusText =
+				booking.status === 'completed'
+					? '✅ Completed'
+					: booking.status === 'cancelled'
+						? '❌ Cancelled'
+						: booking.status === 'confirmed'
+							? '✓ Confirmed'
+							: 'Updated';
+
 			const customerName = booking.userName || 'Guest';
 			const serviceInfo = booking.serviceName ? ` for ${booking.serviceName}` : '';
 			const timeInfo = booking.time ? ` at ${booking.time}` : '';
-			
+
 			let message = `${customerName}'s${serviceInfo} booking${timeInfo} has been ${booking.status}`;
 			if (booking.previousStatus) {
 				message += ` (changed from ${booking.previousStatus})`;
 			}
-			
+
 			return this.add({
-				type: booking.status === 'completed' ? 'completed' : 
-					booking.status === 'cancelled' ? 'cancelled' : 'booking',
+				type:
+					booking.status === 'completed'
+						? 'completed'
+						: booking.status === 'cancelled'
+							? 'cancelled'
+							: 'booking',
 				title: statusText,
 				message,
 				bookingId: booking.id,
@@ -155,10 +164,9 @@ export const notifications = createNotificationsStore();
 
 export const unreadCount = derived(
 	notifications,
-	$notifications => $notifications.filter(n => !n.read).length
+	($notifications) => $notifications.filter((n) => !n.read).length
 );
 
-export const recentNotifications = derived(
-	notifications,
-	$notifications => $notifications.slice(0, 20)
+export const recentNotifications = derived(notifications, ($notifications) =>
+	$notifications.slice(0, 20)
 );

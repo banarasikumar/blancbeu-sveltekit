@@ -470,11 +470,12 @@
 		if (!msg) return;
 		try {
 			const idToken = await auth.currentUser.getIdToken();
-			const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
-			? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyUser' 
-			: '/api/notifications/notifyUser';
-		
-		fetch(apiUrl, {
+			const apiUrl =
+				typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform()
+					? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyUser'
+					: '/api/notifications/notifyUser';
+
+			fetch(apiUrl, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
 				body: JSON.stringify({ userId, title: msg.title, body: msg.body(booking) })
@@ -814,8 +815,21 @@
 											/>
 										</div>
 									</div>
-									<button class="remove-btn" onclick={() => removeService(i)} aria-label="Remove Service">
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+									<button
+										class="remove-btn"
+										onclick={() => removeService(i)}
+										aria-label="Remove Service"
+									>
+										<svg
+											width="16"
+											height="16"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2.5"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+										>
 											<line x1="18" y1="6" x2="6" y2="18"></line>
 											<line x1="6" y1="6" x2="18" y2="18"></line>
 										</svg>
@@ -832,11 +846,42 @@
 									isCatalogOpen = true;
 								}}
 							>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+								<svg
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><rect x="3" y="3" width="7" height="7"></rect><rect
+										x="14"
+										y="3"
+										width="7"
+										height="7"
+									></rect><rect x="14" y="14" width="7" height="7"></rect><rect
+										x="3"
+										y="14"
+										width="7"
+										height="7"
+									></rect></svg
+								>
 								Browse Service Catalog
 							</button>
 							<button class="s-btn s-btn-outline s-btn-block" onclick={addCustomService}>
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+								<svg
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"
+									></line></svg
+								>
 								Add Custom Service
 							</button>
 						</div>
@@ -1852,7 +1897,9 @@
 		border-radius: var(--s-radius-lg, 12px);
 		position: relative;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-		transition: border-color 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			border-color 0.2s ease,
+			box-shadow 0.2s ease;
 	}
 
 	:global(.staff-app.dark) .service-item.manual-entry-card {
@@ -1969,7 +2016,9 @@
 		justify-content: center;
 		cursor: pointer;
 		flex-shrink: 0;
-		transition: transform 0.1s ease, background 0.2s ease;
+		transition:
+			transform 0.1s ease,
+			background 0.2s ease;
 		box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
 		padding: 0;
 	}
@@ -1981,7 +2030,7 @@
 	.remove-btn:active {
 		transform: scale(0.85);
 	}
-	
+
 	.remove-btn:hover {
 		background: #dc2626;
 	}

@@ -239,10 +239,11 @@
 				// Send targeted push notification to Admin
 				try {
 					const idToken = await currentUser.getIdToken();
-					const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
-						? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyStaff' 
-						: '/api/notifications/notifyStaff';
-					
+					const apiUrl =
+						typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform()
+							? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyStaff'
+							: '/api/notifications/notifyStaff';
+
 					await fetch(apiUrl, {
 						method: 'POST',
 						headers: {
@@ -267,7 +268,9 @@
 				const email = currentUser.email || '';
 				const merged = await mergeAllWalkIns(currentUser.uid, phone, email);
 				if (merged > 0) {
-					console.log(`[CompleteProfile] Merged ${merged} walk-in account(s) into ${currentUser.uid}`);
+					console.log(
+						`[CompleteProfile] Merged ${merged} walk-in account(s) into ${currentUser.uid}`
+					);
 				}
 			} catch (mergeErr) {
 				console.warn('[CompleteProfile] Walk-in merge failed (non-blocking):', mergeErr);

@@ -4,10 +4,11 @@
 	import MobileNav from '$lib/components/layout/MobileNav.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
+	import NotificationPrompt from '$lib/components/NotificationPrompt.svelte';
 	import SplashScreen from '$lib/components/layout/SplashScreen.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { onNavigate, afterNavigate, beforeNavigate, goto } from '$app/navigation';
-	import { initAuth } from '$lib/stores/auth';
+	import { initAuth, user } from '$lib/stores/auth';
 	import { playNotificationChime } from '$lib/utils/notificationSound';
 	import { page } from '$app/state';
 	import { restoreScrollPosition, saveScrollPosition, scrollPositions } from '$lib/stores/scroll';
@@ -21,6 +22,7 @@
 	let isDesktop = $state(false);
 	let SimulatorComponent = $state<any>(null);
 	let unsubUserFcm: (() => void) | null = null;
+	let notificationPromptRef: any = $state(null);
 
 	let isHomePage = $derived(page.url.pathname === '/');
 	let isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
@@ -43,7 +45,7 @@
 			history.scrollRestoration = 'manual';
 		}
 
-		// Capacitor Native Soft Routing 
+		// Capacitor Native Soft Routing
 		// Instead of triggering hard HTTP reloads via window.location.replace which instantly breaks offline SPA architectures,
 		// we securely push the application down the internal Svelte client routes exactly upon boot!
 		if (typeof window !== 'undefined' && window.location.pathname === '/') {
@@ -62,26 +64,30 @@
 			initAuth();
 			initAppServiceListener();
 
-			// Foreground FCM handler for the customer app
-			import('firebase/messaging').then(({ onMessage, isSupported }) => {
-				isSupported().then((supported) => {
-					if (!supported) return;
-					import('$lib/firebase').then(({ app }) => {
-						if (!app) return;
-						import('firebase/messaging').then(({ getMessaging }) => {
-							const msgInstance = getMessaging(app);
-							unsubUserFcm = onMessage(msgInstance, (payload) => {
-								const title = payload.notification?.title ?? 'Booking Update';
-								const body = payload.notification?.body ?? '';
-								playNotificationChime(0.45);
-								// showToast is available via the Toast component already rendered
-								import('$lib/stores/toast').then(({ showToast }) => {
-									showToast(body ? `${title}: ${body}` : title, 'success');
-								});
-							});
+			// Foreground FCM handler for the customer app using unified pushService
+			import('$lib/capacitor/pushService').then(({ initPush }) => {
+				// Subscribe to user store to get the current UID
+				const unsubUser = user.subscribe((currentUser) => {
+					// We can re-init push when user changes, but pushService manages multiple calls safely
+					initPush(currentUser?.uid, 'user', (payload) => {
+						const title = payload.title ?? 'Booking Update';
+						const body = payload.body ?? '';
+						playNotificationChime(0.45);
+						import('$lib/stores/toast').then(({ showToast }) => {
+							showToast(body ? `${title}: ${body}` : title, 'success');
 						});
+					}).then((unsub) => {
+						unsubUserFcm = unsub;
 					});
 				});
+
+				// Wait a moment to see if InstallPrompt fires. If not, show NotificationPrompt.
+				setTimeout(() => {
+					// If the install prompt hasn't taken over the screen, and we are not on an admin/staff route
+					if (notificationPromptRef && !document.querySelector('.install-overlay')) {
+						notificationPromptRef.show();
+					}
+				}, 3500); // Wait 3.5 seconds to ensure install prompt has time to trigger if eligible
 			});
 		}
 
@@ -98,7 +104,6 @@
 		// Mark as mounted AFTER we've determined the device type
 		mounted = true;
 	});
-
 
 	onDestroy(() => {
 		if (unsubUserFcm) unsubUserFcm();
@@ -196,7 +201,8 @@
 			{@render children()}
 		</main>
 		<MobileNav />
-		<InstallPrompt />
+		<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
+		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
 	</div>
 {:else if isDesktop}
@@ -208,7 +214,8 @@
 					{@render children()}
 				</main>
 				<MobileNav />
-				<InstallPrompt />
+				<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
+				<NotificationPrompt bind:this={notificationPromptRef} />
 				<Toast />
 			</div>
 		</SimulatorComponent>
@@ -220,7 +227,8 @@
 			{@render children()}
 		</main>
 		<MobileNav />
-		<InstallPrompt />
+		<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
+		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
 	</div>
 {/if}

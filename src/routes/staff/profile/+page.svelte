@@ -15,7 +15,10 @@
 		savePreferredSound,
 		type SoundType
 	} from '$lib/stores/staffNotifications';
-	import { playSelectedNotificationSound, playNotificationSound } from '$lib/utils/notificationSound';
+	import {
+		playSelectedNotificationSound,
+		playNotificationSound
+	} from '$lib/utils/notificationSound';
 	import { onMount } from 'svelte';
 	import { updateProfile } from 'firebase/auth';
 	import { auth, db, storage } from '$lib/firebase';
@@ -144,14 +147,14 @@
 	function handleSoundSelect(type: SoundType) {
 		if ($staffUser) savePreferredSound($staffUser.uid, type);
 		else selectedSoundType.set(type);
-		
-		showToast(`Sound: ${AVAILABLE_SOUNDS.find(s => s.id === type)?.name || 'Custom'}`, 'success');
+
+		showToast(`Sound: ${AVAILABLE_SOUNDS.find((s) => s.id === type)?.name || 'Custom'}`, 'success');
 		// Play a preview
 		setTimeout(() => playSelectedNotificationSound(0.5), 100);
 	}
 
 	let currentSoundName = $derived(() => {
-		return AVAILABLE_SOUNDS.find(s => s.id === $selectedSoundType)?.name || 'iPhone';
+		return AVAILABLE_SOUNDS.find((s) => s.id === $selectedSoundType)?.name || 'iPhone';
 	});
 
 	// Edit Profile State
@@ -161,7 +164,7 @@
 	let editPhone = $state('');
 	let isSavingProfile = $state(false);
 	let avatarError = $state(false);
-	
+
 	// Avatar Upload State
 	let isUploadingAvatar = $state(false);
 	let fileInput: HTMLInputElement;
@@ -169,19 +172,19 @@
 	async function handleAvatarUpload(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
 		if (!file || !auth.currentUser) return;
-		
+
 		isUploadingAvatar = true;
 		try {
 			const storageRef = ref(storage, `users/${auth.currentUser.uid}/avatar_${Date.now()}`);
 			await uploadBytes(storageRef, file);
 			const downloadURL = await getDownloadURL(storageRef);
-			
+
 			// Update Auth and Firestore
 			await updateProfile(auth.currentUser, { photoURL: downloadURL });
 			const userRef = doc(db, 'users', auth.currentUser.uid);
 			await setDoc(userRef, { photoURL: downloadURL }, { merge: true });
-			
-			staffUser.update(u => u ? { ...u, photoURL: downloadURL } as any : null);
+
+			staffUser.update((u) => (u ? ({ ...u, photoURL: downloadURL } as any) : null));
 			showToast('Profile picture updated!', 'success');
 			avatarError = false; // Reset error state for new image
 		} catch (err) {
@@ -198,7 +201,7 @@
 		editName = $staffUser.displayName || '';
 		editEmail = $staffUser.email || '';
 		editPhone = $staffUser.phoneNumber || '';
-		
+
 		try {
 			const docRef = doc(db, 'users', $staffUser.uid);
 			const snap = await getDoc(docRef);
@@ -225,19 +228,27 @@
 			if (editName !== auth.currentUser.displayName) {
 				await updateProfile(auth.currentUser, { displayName: editName });
 			}
-			
+
 			// Update Firestore details
 			const userRef = doc(db, 'users', auth.currentUser.uid);
-			await setDoc(userRef, { 
-				displayName: editName,
-				email: editEmail,
-				phone: editPhone,
-				updatedAt: new Date().toISOString()
-			}, { merge: true });
+			await setDoc(
+				userRef,
+				{
+					displayName: editName,
+					email: editEmail,
+					phone: editPhone,
+					updatedAt: new Date().toISOString()
+				},
+				{ merge: true }
+			);
 
 			// Trigger store update for reactive UI
-			staffUser.update(u => u ? { ...u, displayName: editName, email: editEmail, phoneNumber: editPhone } as any : null);
-			
+			staffUser.update((u) =>
+				u
+					? ({ ...u, displayName: editName, email: editEmail, phoneNumber: editPhone } as any)
+					: null
+			);
+
 			showToast('Profile updated successfully', 'success');
 			showEditModal = false;
 		} catch (error) {
@@ -252,28 +263,45 @@
 <div class="profile-page s-stagger">
 	<!-- Premium Hero Section -->
 	<section class="premium-hero s-card">
-		<button class="theme-toggle-btn" class:expanded={showThemeText} onclick={cycleTheme} title="Toggle Theme" aria-label="Toggle Theme">
-			<span class="theme-text">{currentTheme === 'light' ? 'Light Mode' : currentTheme === 'dark' ? 'Dark Mode' : 'System Theme'}</span>
+		<button
+			class="theme-toggle-btn"
+			class:expanded={showThemeText}
+			onclick={cycleTheme}
+			title="Toggle Theme"
+			aria-label="Toggle Theme"
+		>
+			<span class="theme-text"
+				>{currentTheme === 'light'
+					? 'Light Mode'
+					: currentTheme === 'dark'
+						? 'Dark Mode'
+						: 'System Theme'}</span
+			>
 			<span class="theme-icon">{themeIcons[currentTheme]}</span>
 		</button>
 
 		<div class="hero-bg-glow"></div>
-		
+
 		<div class="profile-avatar-wrapper">
 			<div class="profile-avatar">
 				{#if $staffUser?.photoURL && !avatarError}
-					<img src={$staffUser.photoURL} alt="Profile" referrerpolicy="no-referrer" onerror={() => avatarError = true} />
+					<img
+						src={$staffUser.photoURL}
+						alt="Profile"
+						referrerpolicy="no-referrer"
+						onerror={() => (avatarError = true)}
+					/>
 				{:else}
 					<span class="avatar-initials">{initials}</span>
 				{/if}
 			</div>
 			<div class="status-indicator" class:available={isAvailable}></div>
 		</div>
-		
+
 		<div class="hero-info">
 			<h2 class="profile-name">{$staffUser?.displayName || 'Staff Member'}</h2>
 			<p class="profile-role">Senior Stylist</p>
-			
+
 			<div class="hero-actions">
 				<!-- Availability Toggle -->
 				<button
@@ -293,7 +321,19 @@
 
 		<!-- Floating Edit Button at Bottom Right -->
 		<button class="floating-edit-btn" onclick={openEditModal} title="Edit Profile">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+			<svg
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2.5"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path
+					d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+				></path></svg
+			>
 		</button>
 	</section>
 
@@ -345,7 +385,16 @@
 						<span class="nic-label">{item.label}</span>
 						<span class="nic-sub">{item.sub}</span>
 					</div>
-					<svg class="nic-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+					<svg
+						class="nic-arrow"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg
+					>
 				</a>
 			{/each}
 		</div>
@@ -354,9 +403,18 @@
 	<!-- Settings -->
 	<section class="settings-section">
 		<h3 class="s-section-title">Preferences</h3>
-		
+
 		<div class="settings-container s-card">
-			<div class="setting-item" onclick={() => { soundEnabled.toggle(); showToast($soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success'); }} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && soundEnabled.toggle()}>
+			<div
+				class="setting-item"
+				onclick={() => {
+					soundEnabled.toggle();
+					showToast($soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
+				}}
+				role="button"
+				tabindex="0"
+				onkeydown={(e) => e.key === 'Enter' && soundEnabled.toggle()}
+			>
 				<div class="si-icon-box"><span class="si-icon">{$soundEnabled ? '🔊' : '🔇'}</span></div>
 				<div class="si-text">
 					<span class="si-label">Sound Effects</span>
@@ -367,26 +425,45 @@
 
 			<div class="setting-divider"></div>
 
-			<div class="setting-item" onclick={toggleNotifications} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && toggleNotifications()}>
+			<div
+				class="setting-item"
+				onclick={toggleNotifications}
+				role="button"
+				tabindex="0"
+				onkeydown={(e) => e.key === 'Enter' && toggleNotifications()}
+			>
 				<div class="si-icon-box"><span class="si-icon">🔔</span></div>
 				<div class="si-text">
 					<span class="si-label">Push Notifications</span>
 					<span class="si-value">
-						{#if $notificationStatus === 'granted'} Active
-						{:else if $notificationStatus === 'denied'} Blocked
-						{:else if $notificationStatus === 'unsupported'} Not supported
-						{:else} Disabled {/if}
+						{#if $notificationStatus === 'granted'}
+							Active
+						{:else if $notificationStatus === 'denied'}
+							Blocked
+						{:else if $notificationStatus === 'unsupported'}
+							Not supported
+						{:else}
+							Disabled
+						{/if}
 					</span>
 				</div>
 				{#if $notificationStatus !== 'unsupported'}
-					<div class="toggle-switch" class:on={$notificationStatus === 'granted'}><div class="toggle-thumb"></div></div>
+					<div class="toggle-switch" class:on={$notificationStatus === 'granted'}>
+						<div class="toggle-thumb"></div>
+					</div>
 				{/if}
 			</div>
 
 			<!-- Notification Sound Selection -->
 			{#if $soundEnabled}
 				<div class="setting-divider"></div>
-				<div class="setting-item" onclick={() => showSoundSelector = true} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showSoundSelector = true)}>
+				<div
+					class="setting-item"
+					onclick={() => (showSoundSelector = true)}
+					role="button"
+					tabindex="0"
+					onkeydown={(e) => e.key === 'Enter' && (showSoundSelector = true)}
+				>
 					<div class="si-icon-box"><span class="si-icon">🎵</span></div>
 					<div class="si-text">
 						<span class="si-label">Alert Sound</span>
@@ -419,7 +496,18 @@
 
 	<!-- Sign Out -->
 	<button class="s-btn s-btn-danger s-btn-block s-btn-lg logout-btn" onclick={handleLogout}>
-		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+		<svg
+			width="20"
+			height="20"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2.5"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"
+			></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg
+		>
 		Sign Out
 	</button>
 
@@ -429,8 +517,20 @@
 
 	<!-- Permission Denied Modal -->
 	{#if showDeniedModal}
-		<div class="modal-backdrop" onclick={() => (showDeniedModal = false)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showDeniedModal = false)}>
-			<div class="modal-content s-card" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
+		<div
+			class="modal-backdrop"
+			onclick={() => (showDeniedModal = false)}
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => e.key === 'Enter' && (showDeniedModal = false)}
+		>
+			<div
+				class="modal-content s-card"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				tabindex="-1"
+				aria-modal="true"
+			>
 				<div class="modal-header">
 					<h3>Notifications Blocked</h3>
 				</div>
@@ -455,8 +555,20 @@
 
 	<!-- Sound Selector Modal -->
 	{#if showSoundSelector}
-		<div class="modal-backdrop" onclick={() => showSoundSelector = false} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showSoundSelector = false)}>
-			<div class="modal-content s-card sound-modal" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
+		<div
+			class="modal-backdrop"
+			onclick={() => (showSoundSelector = false)}
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => e.key === 'Enter' && (showSoundSelector = false)}
+		>
+			<div
+				class="modal-content s-card sound-modal"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				tabindex="-1"
+				aria-modal="true"
+			>
 				<div class="modal-header">
 					<h3>Choose Alert Sound</h3>
 				</div>
@@ -483,7 +595,11 @@
 					</p>
 				</div>
 				<div class="modal-footer">
-					<button class="s-btn s-btn-secondary s-btn-block" onclick={() => showSoundSelector = false} type="button">
+					<button
+						class="s-btn s-btn-secondary s-btn-block"
+						onclick={() => (showSoundSelector = false)}
+						type="button"
+					>
 						Close
 					</button>
 				</div>
@@ -493,8 +609,20 @@
 
 	<!-- Edit Profile Modal -->
 	{#if showEditModal}
-		<div class="modal-backdrop" onclick={() => showEditModal = false} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showEditModal = false)}>
-			<div class="modal-content s-card" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1" aria-modal="true">
+		<div
+			class="modal-backdrop"
+			onclick={() => (showEditModal = false)}
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => e.key === 'Enter' && (showEditModal = false)}
+		>
+			<div
+				class="modal-content s-card"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				tabindex="-1"
+				aria-modal="true"
+			>
 				<div class="modal-header">
 					<h3>Edit Profile</h3>
 				</div>
@@ -503,59 +631,109 @@
 					<div class="avatar-edit-section">
 						<div class="avatar-preview">
 							{#if $staffUser?.photoURL && !avatarError}
-								<img src={$staffUser.photoURL} alt="Profile" referrerpolicy="no-referrer" onerror={() => avatarError = true} />
+								<img
+									src={$staffUser.photoURL}
+									alt="Profile"
+									referrerpolicy="no-referrer"
+									onerror={() => (avatarError = true)}
+								/>
 							{:else}
 								<span class="avatar-initials">{initials}</span>
 							{/if}
 							{#if isUploadingAvatar}
 								<div class="upload-overlay">
-									<svg class="spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
+									<svg class="spinner" viewBox="0 0 50 50"
+										><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"
+										></circle></svg
+									>
 								</div>
 							{/if}
 						</div>
-						<button class="s-btn s-btn-outline s-btn-sm upload-btn" onclick={() => fileInput.click()} disabled={isUploadingAvatar}>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+						<button
+							class="s-btn s-btn-outline s-btn-sm upload-btn"
+							onclick={() => fileInput.click()}
+							disabled={isUploadingAvatar}
+						>
+							<svg
+								width="14"
+								height="14"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline
+									points="17 8 12 3 7 8"
+								></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg
+							>
 							{isUploadingAvatar ? 'Uploading...' : 'Change Picture'}
 						</button>
-						<input type="file" accept="image/*" bind:this={fileInput} onchange={handleAvatarUpload} style="display: none;" />
+						<input
+							type="file"
+							accept="image/*"
+							bind:this={fileInput}
+							onchange={handleAvatarUpload}
+							style="display: none;"
+						/>
 					</div>
 
 					<div class="form-group" style="margin-bottom: 16px;">
-						<label for="profileName" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--s-text-primary);">Display Name</label>
-						<input 
+						<label
+							for="profileName"
+							style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--s-text-primary);"
+							>Display Name</label
+						>
+						<input
 							id="profileName"
-							type="text" 
-							class="s-input" 
-							bind:value={editName} 
-							placeholder="Enter your name" 
+							type="text"
+							class="s-input"
+							bind:value={editName}
+							placeholder="Enter your name"
 						/>
 					</div>
 					<div class="form-group" style="margin-bottom: 16px;">
-						<label for="profileEmail" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--s-text-primary);">Email Address</label>
-						<input 
+						<label
+							for="profileEmail"
+							style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--s-text-primary);"
+							>Email Address</label
+						>
+						<input
 							id="profileEmail"
-							type="email" 
-							class="s-input" 
-							bind:value={editEmail} 
-							placeholder="Enter email address" 
+							type="email"
+							class="s-input"
+							bind:value={editEmail}
+							placeholder="Enter email address"
 						/>
 					</div>
 					<div class="form-group" style="margin-bottom: 16px;">
-						<label for="profilePhone" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--s-text-primary);">Phone Number</label>
-						<input 
+						<label
+							for="profilePhone"
+							style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--s-text-primary);"
+							>Phone Number</label
+						>
+						<input
 							id="profilePhone"
-							type="tel" 
-							class="s-input" 
-							bind:value={editPhone} 
-							placeholder="Enter phone number" 
+							type="tel"
+							class="s-input"
+							bind:value={editPhone}
+							placeholder="Enter phone number"
 						/>
 					</div>
 				</div>
 				<div class="modal-footer" style="display: flex; gap: 12px;">
-					<button class="s-btn s-btn-outline s-btn-block" onclick={() => showEditModal = false} disabled={isSavingProfile}>
+					<button
+						class="s-btn s-btn-outline s-btn-block"
+						onclick={() => (showEditModal = false)}
+						disabled={isSavingProfile}
+					>
 						Cancel
 					</button>
-					<button class="s-btn s-btn-primary s-btn-block" onclick={saveProfile} disabled={isSavingProfile || !editName.trim()}>
+					<button
+						class="s-btn s-btn-primary s-btn-block"
+						onclick={saveProfile}
+						disabled={isSavingProfile || !editName.trim()}
+					>
 						{isSavingProfile ? 'Saving...' : 'Save Changes'}
 					</button>
 				</div>
@@ -694,7 +872,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 		border: 4px solid var(--s-surface);
 	}
 
@@ -836,10 +1014,22 @@
 		font-size: 1.4rem;
 	}
 
-	.ps-icon-wrapper.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-	.ps-icon-wrapper.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-	.ps-icon-wrapper.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
-	.ps-icon-wrapper.orange { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+	.ps-icon-wrapper.blue {
+		background: rgba(59, 130, 246, 0.1);
+		color: #3b82f6;
+	}
+	.ps-icon-wrapper.green {
+		background: rgba(16, 185, 129, 0.1);
+		color: #10b981;
+	}
+	.ps-icon-wrapper.purple {
+		background: rgba(139, 92, 246, 0.1);
+		color: #8b5cf6;
+	}
+	.ps-icon-wrapper.orange {
+		background: rgba(249, 115, 22, 0.1);
+		color: #f97316;
+	}
 
 	.ps-data {
 		display: flex;
@@ -1009,7 +1199,7 @@
 		background: var(--s-border-strong);
 		position: relative;
 		cursor: pointer;
-		transition: background 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+		transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.toggle-switch.on {
@@ -1024,8 +1214,8 @@
 		height: 20px;
 		border-radius: 50%;
 		background: white;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-		transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.toggle-switch.on .toggle-thumb {
@@ -1043,7 +1233,7 @@
 		justify-content: space-between;
 		align-items: center;
 	}
-	
+
 	.ai-left {
 		display: flex;
 		align-items: center;
@@ -1176,7 +1366,7 @@
 	.upload-overlay {
 		position: absolute;
 		inset: 0;
-		background: rgba(0,0,0,0.5);
+		background: rgba(0, 0, 0, 0.5);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1197,13 +1387,24 @@
 	}
 
 	@keyframes rotate {
-		100% { transform: rotate(360deg); }
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	@keyframes dash {
-		0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
-		50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
-		100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+		0% {
+			stroke-dasharray: 1, 150;
+			stroke-dashoffset: 0;
+		}
+		50% {
+			stroke-dasharray: 90, 150;
+			stroke-dashoffset: -35;
+		}
+		100% {
+			stroke-dasharray: 90, 150;
+			stroke-dashoffset: -124;
+		}
 	}
 
 	.upload-btn {
@@ -1214,9 +1415,15 @@
 		font-size: 0.85rem;
 	}
 
-	.text-center { text-align: center; }
-	.mt-2 { margin-top: 8px; }
-	.modal-footer { margin-top: var(--s-space-lg); }
+	.text-center {
+		text-align: center;
+	}
+	.mt-2 {
+		margin-top: 8px;
+	}
+	.modal-footer {
+		margin-top: var(--s-space-lg);
+	}
 
 	/* Sound Selector Styles */
 	.sound-options {
@@ -1249,8 +1456,10 @@
 		border-color: var(--s-accent);
 	}
 
-	.sound-icon { font-size: 1.5rem; }
-	
+	.sound-icon {
+		font-size: 1.5rem;
+	}
+
 	.sound-name {
 		flex: 1;
 		font-weight: 700;

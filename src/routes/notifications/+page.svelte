@@ -155,10 +155,13 @@
 
 							<div class="cards-stack">
 								{#each items as item (item.id)}
-									<div
+									<svelte:element
+										this={item.clickUrl ? 'a' : 'div'}
+										href={item.clickUrl ? item.clickUrl : undefined}
 										class="notification-card {item.type}"
 										class:unread={item.unread}
 										class:high-priority={item.priority === 'high'}
+										class:clickable={!!item.clickUrl}
 										animate:fly={{ y: 20, duration: 400 }}
 									>
 										{#if item.unread}
@@ -235,6 +238,12 @@
 												</div>
 											{/if}
 
+											{#if item.imageUrl}
+												<div class="card-image">
+													<img src={item.imageUrl} alt="Notification attachment" loading="lazy" />
+												</div>
+											{/if}
+
 											{#if item.points}
 												<div class="points-badge">{item.points}</div>
 											{/if}
@@ -264,7 +273,7 @@
 												<line x1="6" y1="6" x2="18" y2="18"></line>
 											</svg>
 										</button>
-									</div>
+									</svelte:element>
 								{/each}
 							</div>
 						</div>
@@ -496,6 +505,12 @@
 		border-color: var(--color-border-hover);
 		box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 	}
+	
+	.notification-card.clickable {
+		text-decoration: none;
+		color: inherit;
+		cursor: pointer;
+	}
 
 	/* Unread State - Theme Aware */
 	.notification-card.unread {
@@ -620,6 +635,21 @@
 		font-size: 12px;
 		padding: 4px 10px;
 		border-radius: 20px;
+	}
+
+	.card-image {
+		margin-top: 8px;
+		margin-bottom: 12px;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+	
+	.card-image img {
+		width: 100%;
+		height: auto;
+		display: block;
+		border-radius: 10px;
+		border: 1px solid var(--color-border);
 	}
 
 	.card-meta {

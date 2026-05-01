@@ -71,8 +71,7 @@
 
 	const managedUsers = $derived(
 		$allUsers.filter(
-			(user) =>
-				(user.role === 'admin' || user.role === 'staff') && user.accountStatus !== 'merged'
+			(user) => (user.role === 'admin' || user.role === 'staff') && user.accountStatus !== 'merged'
 		)
 	);
 	const adminCount = $derived(managedUsers.filter((user) => user.role === 'admin').length);
@@ -167,15 +166,21 @@
 	}
 
 	function commissionLabel(user: AppUser) {
-		if (user.commissionRate === undefined || user.commissionRate === null || user.commissionRate === '') {
+		if (
+			user.commissionRate === undefined ||
+			user.commissionRate === null ||
+			user.commissionRate === ''
+		) {
 			return null;
 		}
 		return `${user.commissionRate}% commission`;
 	}
 
 	function changeGuard(user: AppUser, nextRole: NextRole) {
-		if (user.role === nextRole) return `${getUserDisplayName(user)} already has ${formatRole(nextRole)} access.`;
-		if (isCurrentUser(user) && nextRole !== 'admin') return 'You cannot change your own role from this page.';
+		if (user.role === nextRole)
+			return `${getUserDisplayName(user)} already has ${formatRole(nextRole)} access.`;
+		if (isCurrentUser(user) && nextRole !== 'admin')
+			return 'You cannot change your own role from this page.';
 		if (user.role === 'admin' && nextRole !== 'admin' && adminCount <= 1) {
 			return 'At least one admin must remain assigned at all times.';
 		}
@@ -184,7 +189,8 @@
 
 	function memberNote(user: AppUser) {
 		if (isCurrentUser(user)) return 'Your role can only be changed by another admin.';
-		if (isProtectedAdmin(user)) return `${getUserDisplayName(user)} is the last admin and is protected.`;
+		if (isProtectedAdmin(user))
+			return `${getUserDisplayName(user)} is the last admin and is protected.`;
 		return null;
 	}
 
@@ -360,7 +366,11 @@
 
 <div class="role-header-row">
 	<div class="admin-segmented role-tabs">
-		<button class="admin-segment-btn" class:active={activeTab === 'directory'} onclick={() => (activeTab = 'directory')}>
+		<button
+			class="admin-segment-btn"
+			class:active={activeTab === 'directory'}
+			onclick={() => (activeTab = 'directory')}
+		>
 			<Shield size={15} />
 			Team Roles
 		</button>
@@ -384,9 +394,21 @@
 			</div>
 		</div>
 		<div class="role-filter-row">
-			<button class="admin-filter-chip" class:active={roleFilter === 'all'} onclick={() => (roleFilter = 'all')}>All</button>
-			<button class="admin-filter-chip" class:active={roleFilter === 'admin'} onclick={() => (roleFilter = 'admin')}>Admins</button>
-			<button class="admin-filter-chip" class:active={roleFilter === 'staff'} onclick={() => (roleFilter = 'staff')}>Staff</button>
+			<button
+				class="admin-filter-chip"
+				class:active={roleFilter === 'all'}
+				onclick={() => (roleFilter = 'all')}>All</button
+			>
+			<button
+				class="admin-filter-chip"
+				class:active={roleFilter === 'admin'}
+				onclick={() => (roleFilter = 'admin')}>Admins</button
+			>
+			<button
+				class="admin-filter-chip"
+				class:active={roleFilter === 'staff'}
+				onclick={() => (roleFilter = 'staff')}>Staff</button
+			>
 			<button class="role-add-member-btn" onclick={() => (activeTab = 'add')}>
 				<UserPlus size={14} />
 				Add Member
@@ -419,7 +441,9 @@
 								{#if photo}
 									<img src={photo} alt={name} class="role-avatar" />
 								{:else}
-									<div class="role-avatar fallback" style="background: {getAvatarColor(name)};">{name.charAt(0).toUpperCase()}</div>
+									<div class="role-avatar fallback" style="background: {getAvatarColor(name)};">
+										{name.charAt(0).toUpperCase()}
+									</div>
 								{/if}
 								<div class="role-card-main">
 									<div class="role-card-title">
@@ -430,7 +454,9 @@
 									<div class="role-pill-row">
 										<span class="role-pill admin"><Crown size={12} /> Admin</span>
 										{#if user.specialty}<span class="role-pill neutral">{user.specialty}</span>{/if}
-										{#if commissionLabel(user)}<span class="role-pill neutral">{commissionLabel(user)}</span>{/if}
+										{#if commissionLabel(user)}<span class="role-pill neutral"
+												>{commissionLabel(user)}</span
+											>{/if}
 									</div>
 									<div class="role-meta">
 										<span><Clock size={12} /> Joined {joinedDate(user)}</span>
@@ -441,15 +467,26 @@
 								</div>
 							</div>
 							<div class="role-actions">
-								<button class="role-btn role-btn-secondary role-btn-wide" onclick={() => startEditing(user)}>
+								<button
+									class="role-btn role-btn-secondary role-btn-wide"
+									onclick={() => startEditing(user)}
+								>
 									<Pencil size={14} />
 									{editingMember?.id === user.id ? 'Close Details' : 'Details & Edit'}
 								</button>
-								<button class="role-btn role-btn-secondary" onclick={() => openConfirm(user, 'staff')} disabled={Boolean(changeGuard(user, 'staff'))}>
+								<button
+									class="role-btn role-btn-secondary"
+									onclick={() => openConfirm(user, 'staff')}
+									disabled={Boolean(changeGuard(user, 'staff'))}
+								>
 									<ShieldX size={14} />
 									Make Staff
 								</button>
-								<button class="role-btn role-btn-danger" onclick={() => openConfirm(user, 'user')} disabled={Boolean(changeGuard(user, 'user'))}>
+								<button
+									class="role-btn role-btn-danger"
+									onclick={() => openConfirm(user, 'user')}
+									disabled={Boolean(changeGuard(user, 'user'))}
+								>
 									<Trash2 size={14} />
 									Remove Role
 								</button>
@@ -460,19 +497,38 @@
 									<div class="role-editor-grid">
 										<label>
 											<span>Specialty</span>
-											<input type="text" bind:value={editSpecialty} placeholder="Hair stylist, operations lead, makeup artist" />
+											<input
+												type="text"
+												bind:value={editSpecialty}
+												placeholder="Hair stylist, operations lead, makeup artist"
+											/>
 										</label>
 										<label>
 											<span>Commission Rate (%)</span>
-											<input type="number" bind:value={editCommission} placeholder="30" min="0" max="100" />
+											<input
+												type="number"
+												bind:value={editCommission}
+												placeholder="30"
+												min="0"
+												max="100"
+											/>
 										</label>
 									</div>
 									<div class="role-editor-tools">
-										{#if user.email}<a class="role-link" href="mailto:{user.email}"><Mail size={13} /> Email</a>{/if}
-										{#if phone}<a class="role-link" href="tel:{phone}"><Phone size={13} /> Call</a>{/if}
-										<button class="role-link" onclick={() => copyUserId(user.id)}><Copy size={13} /> Copy ID</button>
+										{#if user.email}<a class="role-link" href="mailto:{user.email}"
+												><Mail size={13} /> Email</a
+											>{/if}
+										{#if phone}<a class="role-link" href="tel:{phone}"><Phone size={13} /> Call</a
+											>{/if}
+										<button class="role-link" onclick={() => copyUserId(user.id)}
+											><Copy size={13} /> Copy ID</button
+										>
 									</div>
-									<button class="role-btn role-btn-primary role-save" onclick={() => saveMemberDetails(user)} disabled={isProcessing}>
+									<button
+										class="role-btn role-btn-primary role-save"
+										onclick={() => saveMemberDetails(user)}
+										disabled={isProcessing}
+									>
 										{#if isProcessing}Saving...{:else}<Save size={14} /> Save Details{/if}
 									</button>
 								</div>
@@ -502,7 +558,9 @@
 								{#if photo}
 									<img src={photo} alt={name} class="role-avatar" />
 								{:else}
-									<div class="role-avatar fallback" style="background: {getAvatarColor(name)};">{name.charAt(0).toUpperCase()}</div>
+									<div class="role-avatar fallback" style="background: {getAvatarColor(name)};">
+										{name.charAt(0).toUpperCase()}
+									</div>
 								{/if}
 								<div class="role-card-main">
 									<div class="role-card-title">
@@ -512,7 +570,9 @@
 									<div class="role-pill-row">
 										<span class="role-pill staff"><ShieldCheck size={12} /> Staff</span>
 										{#if user.specialty}<span class="role-pill neutral">{user.specialty}</span>{/if}
-										{#if commissionLabel(user)}<span class="role-pill neutral">{commissionLabel(user)}</span>{/if}
+										{#if commissionLabel(user)}<span class="role-pill neutral"
+												>{commissionLabel(user)}</span
+											>{/if}
 									</div>
 									<div class="role-meta">
 										<span><Clock size={12} /> Joined {joinedDate(user)}</span>
@@ -523,15 +583,26 @@
 								</div>
 							</div>
 							<div class="role-actions">
-								<button class="role-btn role-btn-secondary role-btn-wide" onclick={() => startEditing(user)}>
+								<button
+									class="role-btn role-btn-secondary role-btn-wide"
+									onclick={() => startEditing(user)}
+								>
 									<Pencil size={14} />
 									{editingMember?.id === user.id ? 'Close Details' : 'Details & Edit'}
 								</button>
-								<button class="role-btn role-btn-primary" onclick={() => openConfirm(user, 'admin')} disabled={Boolean(changeGuard(user, 'admin'))}>
+								<button
+									class="role-btn role-btn-primary"
+									onclick={() => openConfirm(user, 'admin')}
+									disabled={Boolean(changeGuard(user, 'admin'))}
+								>
 									<Crown size={14} />
 									Make Admin
 								</button>
-								<button class="role-btn role-btn-danger" onclick={() => openConfirm(user, 'user')} disabled={Boolean(changeGuard(user, 'user'))}>
+								<button
+									class="role-btn role-btn-danger"
+									onclick={() => openConfirm(user, 'user')}
+									disabled={Boolean(changeGuard(user, 'user'))}
+								>
 									<Trash2 size={14} />
 									Remove Role
 								</button>
@@ -542,19 +613,38 @@
 									<div class="role-editor-grid">
 										<label>
 											<span>Specialty</span>
-											<input type="text" bind:value={editSpecialty} placeholder="Hair stylist, nail artist, makeup artist" />
+											<input
+												type="text"
+												bind:value={editSpecialty}
+												placeholder="Hair stylist, nail artist, makeup artist"
+											/>
 										</label>
 										<label>
 											<span>Commission Rate (%)</span>
-											<input type="number" bind:value={editCommission} placeholder="30" min="0" max="100" />
+											<input
+												type="number"
+												bind:value={editCommission}
+												placeholder="30"
+												min="0"
+												max="100"
+											/>
 										</label>
 									</div>
 									<div class="role-editor-tools">
-										{#if user.email}<a class="role-link" href="mailto:{user.email}"><Mail size={13} /> Email</a>{/if}
-										{#if phone}<a class="role-link" href="tel:{phone}"><Phone size={13} /> Call</a>{/if}
-										<button class="role-link" onclick={() => copyUserId(user.id)}><Copy size={13} /> Copy ID</button>
+										{#if user.email}<a class="role-link" href="mailto:{user.email}"
+												><Mail size={13} /> Email</a
+											>{/if}
+										{#if phone}<a class="role-link" href="tel:{phone}"><Phone size={13} /> Call</a
+											>{/if}
+										<button class="role-link" onclick={() => copyUserId(user.id)}
+											><Copy size={13} /> Copy ID</button
+										>
 									</div>
-									<button class="role-btn role-btn-primary role-save" onclick={() => saveMemberDetails(user)} disabled={isProcessing}>
+									<button
+										class="role-btn role-btn-primary role-save"
+										onclick={() => saveMemberDetails(user)}
+										disabled={isProcessing}
+									>
 										{#if isProcessing}Saving...{:else}<Save size={14} /> Save Details{/if}
 									</button>
 								</div>
@@ -571,33 +661,60 @@
 			<div class="role-section-head slim">
 				<div>
 					<h3>{addMethod === 'existing' ? 'Assign Existing User' : 'Create New Member'}</h3>
-					<p>{addMethod === 'existing' ? 'Pick an existing user and grant access.' : 'Create a placeholder admin or staff profile.'}</p>
+					<p>
+						{addMethod === 'existing'
+							? 'Pick an existing user and grant access.'
+							: 'Create a placeholder admin or staff profile.'}
+					</p>
 				</div>
 			</div>
 			<div class="admin-segmented role-methods">
-				<button class="admin-segment-btn" class:active={addMethod === 'existing'} onclick={() => (addMethod = 'existing')}>Existing</button>
-				<button class="admin-segment-btn" class:active={addMethod === 'new'} onclick={() => (addMethod = 'new')}>New</button>
+				<button
+					class="admin-segment-btn"
+					class:active={addMethod === 'existing'}
+					onclick={() => (addMethod = 'existing')}>Existing</button
+				>
+				<button
+					class="admin-segment-btn"
+					class:active={addMethod === 'new'}
+					onclick={() => (addMethod = 'new')}>New</button
+				>
 			</div>
 
 			{#if addMethod === 'existing'}
-				
 				<div class="staff-form-group">
 					<label for="eligible-user-search">Search eligible users</label>
 					<div style="position: relative;">
 						<Search size={16} class="admin-search-icon" />
-						<input id="eligible-user-search" type="text" bind:value={existingUserSearch} placeholder="Type name, email or phone" style="width: 100%; padding-left: 36px;" />
+						<input
+							id="eligible-user-search"
+							type="text"
+							bind:value={existingUserSearch}
+							placeholder="Type name, email or phone"
+							style="width: 100%; padding-left: 36px;"
+						/>
 					</div>
 				</div>
 				{#if selectedExistingUser}
 					<div class="role-selected-user">
 						<div>
 							<strong>{getUserDisplayName(selectedExistingUser)}</strong>
-							<small>{selectedExistingUser.email || getUserPhone(selectedExistingUser) || 'No contact info'}</small>
+							<small
+								>{selectedExistingUser.email ||
+									getUserPhone(selectedExistingUser) ||
+									'No contact info'}</small
+							>
 						</div>
 						<button class="role-link" onclick={() => (selectedExistingUser = null)}>Clear</button>
 					</div>
-					<button class="role-btn role-btn-primary role-save" onclick={() => openConfirm(selectedExistingUser!, existingRole)} disabled={isProcessing}>
-						{#if isProcessing}Processing...{:else}{existingRole === 'admin' ? 'Grant Admin Access' : 'Grant Staff Access'}{/if}
+					<button
+						class="role-btn role-btn-primary role-save"
+						onclick={() => openConfirm(selectedExistingUser!, existingRole)}
+						disabled={isProcessing}
+					>
+						{#if isProcessing}Processing...{:else}{existingRole === 'admin'
+								? 'Grant Admin Access'
+								: 'Grant Staff Access'}{/if}
 					</button>
 				{:else if filteredEligibleUsers.length > 0}
 					<div class="role-results">
@@ -617,25 +734,64 @@
 					<div class="role-empty-inline">Type at least 2 characters to search eligible users.</div>
 				{/if}
 			{:else}
-				
-				<div class="staff-form-group"><label for="new-member-name">Full Name</label><input id="new-member-name" type="text" bind:value={newMemberName} placeholder="Enter full name" /></div>
-				<div class="staff-form-group"><label for="new-member-email">Email</label><input id="new-member-email" type="email" bind:value={newMemberEmail} placeholder="member@example.com" /></div>
-				<div class="staff-form-group"><label for="new-member-phone">Phone</label><input id="new-member-phone" type="tel" bind:value={newMemberPhone} placeholder="+91 XXXXX XXXXX" /></div>
-				<div class="staff-form-group"><label for="new-member-specialty">Specialty</label><input id="new-member-specialty" type="text" bind:value={newMemberSpecialty} placeholder="Optional role note or specialty" /></div>
-				<p class="role-helper">Email or phone is required. This creates a placeholder profile that can be linked later.</p>
-				<button class="role-btn role-btn-primary role-save" onclick={createMember} disabled={isProcessing}>
-					{#if isProcessing}Creating...{:else}{newMemberRole === 'admin' ? 'Create Admin Profile' : 'Create Staff Profile'}{/if}
+				<div class="staff-form-group">
+					<label for="new-member-name">Full Name</label><input
+						id="new-member-name"
+						type="text"
+						bind:value={newMemberName}
+						placeholder="Enter full name"
+					/>
+				</div>
+				<div class="staff-form-group">
+					<label for="new-member-email">Email</label><input
+						id="new-member-email"
+						type="email"
+						bind:value={newMemberEmail}
+						placeholder="member@example.com"
+					/>
+				</div>
+				<div class="staff-form-group">
+					<label for="new-member-phone">Phone</label><input
+						id="new-member-phone"
+						type="tel"
+						bind:value={newMemberPhone}
+						placeholder="+91 XXXXX XXXXX"
+					/>
+				</div>
+				<div class="staff-form-group">
+					<label for="new-member-specialty">Specialty</label><input
+						id="new-member-specialty"
+						type="text"
+						bind:value={newMemberSpecialty}
+						placeholder="Optional role note or specialty"
+					/>
+				</div>
+				<p class="role-helper">
+					Email or phone is required. This creates a placeholder profile that can be linked later.
+				</p>
+				<button
+					class="role-btn role-btn-primary role-save"
+					onclick={createMember}
+					disabled={isProcessing}
+				>
+					{#if isProcessing}Creating...{:else}{newMemberRole === 'admin'
+							? 'Create Admin Profile'
+							: 'Create Staff Profile'}{/if}
 				</button>
 			{/if}
 		</section>
-
 	</div>
 {/if}
 
 {#if showRoleInfoModal}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<div class="role-info-overlay" onclick={() => (showRoleInfoModal = false)} role="dialog" tabindex="-1">
+	<div
+		class="role-info-overlay"
+		onclick={() => (showRoleInfoModal = false)}
+		role="dialog"
+		tabindex="-1"
+	>
 		<div class="role-info-modal" onclick={(event) => event.stopPropagation()} role="document">
 			<div class="role-info-head">
 				<div class="role-info-title">
@@ -645,7 +801,11 @@
 						<p>Quick access guide.</p>
 					</div>
 				</div>
-				<button class="role-info-close" onclick={() => (showRoleInfoModal = false)} aria-label="Close role info">
+				<button
+					class="role-info-close"
+					onclick={() => (showRoleInfoModal = false)}
+					aria-label="Close role info"
+				>
 					✕
 				</button>
 			</div>
@@ -679,7 +839,9 @@
 			</div>
 
 			<div class="role-info-footer">
-				<button class="role-btn role-btn-secondary" onclick={() => (showRoleInfoModal = false)}>Got it</button>
+				<button class="role-btn role-btn-secondary" onclick={() => (showRoleInfoModal = false)}
+					>Got it</button
+				>
 			</div>
 		</div>
 	</div>
@@ -697,7 +859,12 @@
 			<p>{confirmAction.message}</p>
 			<div class="role-confirm-actions">
 				<button class="role-btn role-btn-secondary" onclick={closeConfirm}>Cancel</button>
-				<button class="role-btn role-btn-primary" class:role-btn-danger={confirmAction.danger} onclick={() => applyRoleChange(confirmAction!.user, confirmAction!.nextRole)} disabled={isProcessing}>
+				<button
+					class="role-btn role-btn-primary"
+					class:role-btn-danger={confirmAction.danger}
+					onclick={() => applyRoleChange(confirmAction!.user, confirmAction!.nextRole)}
+					disabled={isProcessing}
+				>
 					{isProcessing ? 'Processing...' : confirmAction.submitLabel}
 				</button>
 			</div>
@@ -706,7 +873,11 @@
 {/if}
 
 {#if showScrollTop}
-	<button class="scroll-to-top-btn" onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Scroll to top">
+	<button
+		class="scroll-to-top-btn"
+		onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+		aria-label="Scroll to top"
+	>
 		<ArrowUp size={20} strokeWidth={2.5} />
 	</button>
 {/if}
@@ -985,9 +1156,11 @@
 	.role-card::before {
 		content: '';
 		position: absolute;
-		top: 0; left: 0; right: 0;
+		top: 0;
+		left: 0;
+		right: 0;
 		height: 2px;
-		background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
 		opacity: 0;
 		transition: opacity 0.3s ease;
 	}
@@ -1003,7 +1176,9 @@
 
 	.role-card.admin-card:hover {
 		border-color: rgba(212, 175, 55, 0.6);
-		box-shadow: 0 16px 32px rgba(212, 175, 55, 0.15), inset 0 0 60px rgba(212, 175, 55, 0.05);
+		box-shadow:
+			0 16px 32px rgba(212, 175, 55, 0.15),
+			inset 0 0 60px rgba(212, 175, 55, 0.05);
 	}
 
 	.role-card.staff-card {
@@ -1013,11 +1188,15 @@
 
 	.role-card.staff-card:hover {
 		border-color: rgba(48, 209, 88, 0.5);
-		box-shadow: 0 16px 32px rgba(48, 209, 88, 0.1), inset 0 0 60px rgba(48, 209, 88, 0.05);
+		box-shadow:
+			0 16px 32px rgba(48, 209, 88, 0.1),
+			inset 0 0 60px rgba(48, 209, 88, 0.05);
 	}
 
 	.role-card.protected-card {
-		box-shadow: 0 0 0 1px rgba(255, 159, 10, 0.3), inset 0 0 40px rgba(255, 159, 10, 0.05);
+		box-shadow:
+			0 0 0 1px rgba(255, 159, 10, 0.3),
+			inset 0 0 40px rgba(255, 159, 10, 0.05);
 	}
 
 	.role-card-head,
@@ -1222,8 +1401,14 @@
 	}
 
 	@keyframes editDrop {
-		from { opacity: 0; transform: scaleY(0.95); }
-		to { opacity: 1; transform: scaleY(1); }
+		from {
+			opacity: 0;
+			transform: scaleY(0.95);
+		}
+		to {
+			opacity: 1;
+			transform: scaleY(1);
+		}
 	}
 
 	.role-editor-grid,
@@ -1387,8 +1572,12 @@
 	}
 
 	@keyframes overlayFadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.role-info-modal {
@@ -1400,13 +1589,21 @@
 		border-radius: 24px;
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		background: linear-gradient(160deg, rgba(32, 32, 34, 0.95), rgba(20, 20, 22, 0.95));
-		box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+		box-shadow:
+			0 32px 80px rgba(0, 0, 0, 0.6),
+			inset 0 1px 0 rgba(255, 255, 255, 0.1);
 		animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 	}
 
 	@keyframes modalPop {
-		from { opacity: 0; transform: scale(0.95) translateY(20px); }
-		to { opacity: 1; transform: scale(1) translateY(0); }
+		from {
+			opacity: 0;
+			transform: scale(0.95) translateY(20px);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
 	}
 
 	.role-info-head {
@@ -1513,7 +1710,9 @@
 		padding: 32px 24px;
 		border-radius: 24px;
 		background: linear-gradient(160deg, rgba(32, 32, 34, 0.95), rgba(20, 20, 22, 0.95));
-		box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+		box-shadow:
+			0 32px 80px rgba(0, 0, 0, 0.6),
+			inset 0 1px 0 rgba(255, 255, 255, 0.1);
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		text-align: center;
 		animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -1554,8 +1753,14 @@
 	}
 
 	@keyframes slideUp {
-		from { opacity: 0; transform: translateY(15px); }
-		to { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(15px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	@media (min-width: 720px) {
@@ -1695,7 +1900,9 @@
 	:global([data-theme='clean']) .role-info-modal,
 	:global([data-theme='clean']) .role-confirm-modal {
 		background: linear-gradient(160deg, #ffffff, #f5f5f7);
-		box-shadow: 0 32px 80px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+		box-shadow:
+			0 32px 80px rgba(0, 0, 0, 0.12),
+			inset 0 1px 0 rgba(255, 255, 255, 0.9);
 		border-color: rgba(0, 0, 0, 0.07);
 	}
 

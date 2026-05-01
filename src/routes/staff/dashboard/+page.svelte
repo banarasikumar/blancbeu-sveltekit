@@ -237,10 +237,7 @@
 			<span class="qa-icon">📅</span>
 			<span class="qa-label">Schedule</span>
 		</button>
-		<button
-			class="qa-btn qa-clients"
-			onclick={() => goto('/staff/clients')}
-		>
+		<button class="qa-btn qa-clients" onclick={() => goto('/staff/clients')}>
 			<span class="qa-icon">👥</span>
 			<span class="qa-label">Clients</span>
 		</button>

@@ -27,7 +27,11 @@
 	export let bookingId = '';
 
 	const fmt = (n: number) =>
-		new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+		new Intl.NumberFormat('en-IN', {
+			style: 'currency',
+			currency: 'INR',
+			maximumFractionDigits: 0
+		}).format(n);
 
 	function barcode(node: SVGElement | HTMLCanvasElement, text: string) {
 		if (text) {
@@ -165,13 +169,15 @@
 
 		try {
 			const canvas = await generateTicketCanvas();
-			
+
 			// Convert canvas to Blob
-			const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+			const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
 			if (!blob) throw new Error('Blob creation failed');
 
 			// Create a File object from the blob
-			const file = new File([blob], `Blancbeu-Ticket-${bookingId || 'Booking'}.png`, { type: 'image/png' });
+			const file = new File([blob], `Blancbeu-Ticket-${bookingId || 'Booking'}.png`, {
+				type: 'image/png'
+			});
 
 			// Check if this file can be shared natively
 			if (navigator.canShare({ files: [file] })) {
@@ -181,7 +187,9 @@
 					files: [file]
 				});
 			} else {
-				alert('Your system does not support sharing images directly. Please download the ticket instead.');
+				alert(
+					'Your system does not support sharing images directly. Please download the ticket instead.'
+				);
 			}
 		} catch (err: any) {
 			// Don't show an error if the user just cancelled the share sheet
@@ -293,7 +301,9 @@
 				<div class="card-body">
 					<div class="ticket-header">
 						<div class="brand-info">
-							<span class="brand-small">{isConfirmed ? 'CONFIRMED APPOINTMENT' : 'AWAITING CONFIRMATION'}</span>
+							<span class="brand-small"
+								>{isConfirmed ? 'CONFIRMED APPOINTMENT' : 'AWAITING CONFIRMATION'}</span
+							>
 							<h2 class="salon-name">Blancbeu Beauty Salon</h2>
 						</div>
 						<!-- Holographic Badge Moved Here -->
@@ -388,8 +398,8 @@
 				<span>Return Home</span>
 			</a>
 			<div class="secondary-actions">
-				<button 
-					class="icon-btn" 
+				<button
+					class="icon-btn"
 					aria-label="Share appointment"
 					on:click={shareTicket}
 					disabled={isSharing}
@@ -1120,7 +1130,7 @@
 		z-index: 100;
 		display: flex;
 		justify-content: center;
-		box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+		box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.08);
 	}
 	/* Light theme: actions bar needs solid bg */
 	:global([data-theme='clean']) .actions-container {

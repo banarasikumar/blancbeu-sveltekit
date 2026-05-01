@@ -39,7 +39,9 @@
 					b.userName?.toLowerCase().includes(q) ||
 					b.userEmail?.toLowerCase().includes(q) ||
 					b.id.toLowerCase().includes(q) ||
-					JSON.stringify(b.servicesList || '').toLowerCase().includes(q) ||
+					JSON.stringify(b.servicesList || '')
+						.toLowerCase()
+						.includes(q) ||
 					(b.serviceName || '').toLowerCase().includes(q)
 			);
 		}
@@ -116,11 +118,7 @@
 
 	async function handlePermanentDelete() {
 		if (selectedIds.size === 0) return;
-		if (
-			!confirm(
-				`Permanently delete ${selectedIds.size} booking(s)? This cannot be undone!`
-			)
-		)
+		if (!confirm(`Permanently delete ${selectedIds.size} booking(s)? This cannot be undone!`))
 			return;
 		isProcessing = true;
 		try {
@@ -165,11 +163,7 @@
 		</button>
 		<h2 class="admin-view-title" style="margin: 0;">Recycle Bin</h2>
 	</div>
-	<button
-		class="admin-manage-btn"
-		class:active={isManageMode}
-		onclick={toggleManageMode}
-	>
+	<button class="admin-manage-btn" class:active={isManageMode} onclick={toggleManageMode}>
 		{isManageMode ? 'Cancel' : 'Manage'}
 	</button>
 </div>
@@ -182,11 +176,7 @@
 <!-- Search -->
 <div class="admin-search-bar">
 	<Search size={16} class="admin-search-icon" />
-	<input
-		type="text"
-		placeholder="Search deleted bookings..."
-		bind:value={searchQuery}
-	/>
+	<input type="text" placeholder="Search deleted bookings..." bind:value={searchQuery} />
 </div>
 
 <!-- Manage Toolbar -->
@@ -241,9 +231,7 @@
 		{@const days = daysRemaining(item.deletedAt)}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-		<div
-			class="admin-swipe-container"
-		>
+		<div class="admin-swipe-container">
 			<div
 				class="admin-booking-card cancelled recycle-card"
 				class:admin-card-selected={isManageMode && selectedIds.has(item.id)}
@@ -255,7 +243,10 @@
 						<button
 							class="admin-select-checkbox"
 							class:checked={selectedIds.has(item.id)}
-							onclick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
+							onclick={(e) => {
+								e.stopPropagation();
+								toggleSelect(item.id);
+							}}
 						>
 							{#if selectedIds.has(item.id)}
 								<CheckSquare size={20} />
@@ -287,7 +278,10 @@
 							<span class="admin-detail-label">Services</span>
 							<div class="admin-service-chips" style="margin-top: 4px;">
 								{#each services as service}
-									<span class="admin-service-chip" style="background: rgba(255,69,58,0.1); color: #dc2626;">
+									<span
+										class="admin-service-chip"
+										style="background: rgba(255,69,58,0.1); color: #dc2626;"
+									>
 										{service}
 									</span>
 								{/each}
@@ -314,7 +308,10 @@
 					<div class="recycle-card-actions">
 						<button
 							class="recycle-action-restore"
-							onclick={(e) => { e.stopPropagation(); restoreSingle(item); }}
+							onclick={(e) => {
+								e.stopPropagation();
+								restoreSingle(item);
+							}}
 						>
 							<RotateCcw size={14} />
 							Restore
@@ -354,7 +351,7 @@
 	}
 
 	.recycle-days-badge.urgent {
-		background: linear-gradient(135deg, #FF453A, #dc2626);
+		background: linear-gradient(135deg, #ff453a, #dc2626);
 		color: #fff;
 		border: none;
 		box-shadow: 0 2px 6px rgba(255, 69, 58, 0.3);
@@ -374,7 +371,7 @@
 		gap: 6px;
 		padding: 8px 16px;
 		border-radius: var(--admin-radius-md);
-		background: linear-gradient(135deg, #30D158 0%, #28a745 100%);
+		background: linear-gradient(135deg, #30d158 0%, #28a745 100%);
 		color: #fff;
 		border: none;
 		font-size: 13px;
@@ -394,7 +391,7 @@
 		gap: 5px;
 		padding: 7px 14px;
 		border-radius: var(--admin-radius-md, 8px);
-		background: linear-gradient(135deg, #30D158 0%, #28a745 100%);
+		background: linear-gradient(135deg, #30d158 0%, #28a745 100%);
 		color: #fff;
 		border: none;
 		font-size: 12px;

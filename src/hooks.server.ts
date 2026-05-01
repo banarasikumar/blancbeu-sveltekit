@@ -54,10 +54,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 
 	// HSTS: Tell browsers to ALWAYS use HTTPS for this domain (1 year, include subdomains)
-	response.headers.set(
-		'Strict-Transport-Security',
-		'max-age=31536000; includeSubDomains; preload'
-	);
+	response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
 
 	return response;
 };

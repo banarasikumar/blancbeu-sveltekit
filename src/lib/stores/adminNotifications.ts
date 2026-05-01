@@ -39,7 +39,9 @@ function createSoundStore() {
 
 // Selected sound type store
 function createSoundTypeStore() {
-	const initial: SoundType = browser ? (localStorage.getItem(ADMIN_SOUND_TYPE_KEY) as SoundType) || 'chime' : 'chime';
+	const initial: SoundType = browser
+		? (localStorage.getItem(ADMIN_SOUND_TYPE_KEY) as SoundType) || 'chime'
+		: 'chime';
 	const { subscribe, set } = writable<SoundType>(initial);
 	return {
 		subscribe,
@@ -79,7 +81,7 @@ export function getSelectedSoundPath(): string {
 	if (type === 'custom') {
 		return get(customSoundPath) || AVAILABLE_SOUNDS[0].path;
 	}
-	const sound = AVAILABLE_SOUNDS.find(s => s.id === type);
+	const sound = AVAILABLE_SOUNDS.find((s) => s.id === type);
 	return sound?.path || AVAILABLE_SOUNDS[0].path;
 }
 

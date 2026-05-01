@@ -14,6 +14,7 @@ import { browser } from '$app/environment';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Browser } from '@capacitor/browser';
+import { saveToken } from '$lib/capacitor/pushService';
 
 const WHATSAPP_NUMBER = '919229915277';
 const WHATSAPP_MESSAGE = '*Hi BlancBeu, please help me log in.*';
@@ -30,7 +31,7 @@ export async function handleGoogleLogin(): Promise<boolean> {
 
 	try {
 		let resultUser: any;
-		
+
 		if (Capacitor.isNativePlatform()) {
 			console.log('Triggering Native Android Google Sign-In...');
 			const result = await FirebaseAuthentication.signInWithGoogle();
@@ -47,7 +48,7 @@ export async function handleGoogleLogin(): Promise<boolean> {
 			const result = await signInWithPopup(auth, provider);
 			resultUser = result.user;
 		}
-		
+
 		await handleLoginSuccess(resultUser);
 		return true;
 	} catch (error: any) {
@@ -209,6 +210,16 @@ async function handleLoginSuccess(user: any): Promise<void> {
 			provider: 'google',
 			lastLogin: serverTimestamp()
 		});
+
+		// Check for pending FCM token
+		if (typeof window !== 'undefined') {
+			const pendingToken = localStorage.getItem('pending_user_fcm_token');
+			if (pendingToken) {
+				await saveToken(user.uid, pendingToken, 'web', 'user');
+				localStorage.removeItem('pending_user_fcm_token');
+				console.log('Merged pending FCM token to user profile.');
+			}
+		}
 	} catch (saveError) {
 		// Log but don't block — the user is already authenticated
 		console.warn('Could not update profile data in Firestore:', saveError);
@@ -285,6 +296,20 @@ export async function checkMagicLink(
 
 		// Extract phone from UID (format: wa:+XXXXXXXXXXXX)
 		const phone = user.uid.replace('wa:', '');
+
+		// Check for pending FCM token
+		if (typeof window !== 'undefined') {
+			const pendingToken = localStorage.getItem('pending_user_fcm_token');
+			if (pendingToken) {
+				// Fire and forget
+				saveToken(user.uid, pendingToken, 'web', 'user')
+					.then(() => {
+						localStorage.removeItem('pending_user_fcm_token');
+						console.log('Merged pending FCM token to user profile after magic link login.');
+					})
+					.catch((err) => console.error('Error merging token:', err));
+			}
+		}
 
 		// Check if profile is complete
 		const userDoc = await getDoc(doc(db, 'users', user.uid));

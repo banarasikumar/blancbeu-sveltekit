@@ -2,7 +2,13 @@
 	import { auth, storage } from '$lib/firebase';
 	import Loader from '$lib/components/ui/Loader.svelte';
 	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-	import { allUsers, getUserDisplayName, getUserPhoto, getUserPhone, type AppUser } from '$lib/stores/adminData';
+	import {
+		allUsers,
+		getUserDisplayName,
+		getUserPhoto,
+		getUserPhone,
+		type AppUser
+	} from '$lib/stores/adminData';
 	import { showToast } from '$lib/stores/toast';
 	import { requestUserNotificationPermission } from '$lib/stores/userNotifications';
 	import {
@@ -39,7 +45,19 @@
 		Palette
 	} from 'lucide-svelte';
 	import { onMount } from 'svelte';
-	import { collection, query, orderBy, limit as firestoreLimit, getDocs, doc, setDoc, deleteDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+	import {
+		collection,
+		query,
+		orderBy,
+		limit as firestoreLimit,
+		getDocs,
+		doc,
+		setDoc,
+		deleteDoc,
+		addDoc,
+		serverTimestamp,
+		getDoc
+	} from 'firebase/firestore';
 	import { db } from '$lib/firebase';
 
 	// --- Tabs ---
@@ -52,7 +70,9 @@
 	let notifBody = $state('');
 	let notifUrl = $state('');
 	let isSending = $state(false);
-	let sendResult = $state<{ success: boolean; sentCount: number; targetUserCount: number } | null>(null);
+	let sendResult = $state<{ success: boolean; sentCount: number; targetUserCount: number } | null>(
+		null
+	);
 
 	// --- Image State ---
 	let imageFile = $state<File | null>(null);
@@ -79,13 +99,16 @@
 		console.log('[Notify] Total users:', $allUsers.length, '| With FCM tokens:', result.length);
 		if (result.length === 0 && $allUsers.length > 0) {
 			// Debug: log first few users to check fcmTokens field
-			console.log('[Notify] Sample user fields:', $allUsers.slice(0, 5).map(u => ({
-				id: u.id,
-				fcmTokens: u.fcmTokens,
-				fcmTokensType: typeof u.fcmTokens,
-				role: u.role,
-				displayName: u.displayName || u.name || 'Unknown'
-			})));
+			console.log(
+				'[Notify] Sample user fields:',
+				$allUsers.slice(0, 5).map((u) => ({
+					id: u.id,
+					fcmTokens: u.fcmTokens,
+					fcmTokensType: typeof u.fcmTokens,
+					role: u.role,
+					displayName: u.displayName || u.name || 'Unknown'
+				}))
+			);
 		}
 		return result;
 	});
@@ -94,10 +117,12 @@
 		if (targetAudience === 'test_self') {
 			const me = auth.currentUser;
 			if (!me) return [];
-			return subscribers.filter(u => u.id === me.uid);
+			return subscribers.filter((u) => u.id === me.uid);
 		}
-		if (targetAudience === 'users_only') return subscribers.filter(u => u.role !== 'staff' && u.role !== 'admin');
-		if (targetAudience === 'staff_only') return subscribers.filter(u => u.role === 'staff' || u.role === 'admin');
+		if (targetAudience === 'users_only')
+			return subscribers.filter((u) => u.role !== 'staff' && u.role !== 'admin');
+		if (targetAudience === 'staff_only')
+			return subscribers.filter((u) => u.role === 'staff' || u.role === 'admin');
 		return subscribers;
 	});
 
@@ -120,7 +145,12 @@
 	);
 
 	// Check if any field has content
-	const hasContent = $derived(notifTitle.trim() !== '' || notifBody.trim() !== '' || notifUrl.trim() !== '' || imageFile !== null);
+	const hasContent = $derived(
+		notifTitle.trim() !== '' ||
+			notifBody.trim() !== '' ||
+			notifUrl.trim() !== '' ||
+			imageFile !== null
+	);
 
 	// --- Notification History ---
 	interface NotifHistoryItem {
@@ -141,9 +171,7 @@
 	let isLoadingHistory = $state(false);
 	let showAllHistory = $state(false);
 
-	const displayedHistory = $derived(
-		showAllHistory ? history : history.slice(0, 5)
-	);
+	const displayedHistory = $derived(showAllHistory ? history : history.slice(0, 5));
 
 	// --- Templates ---
 	interface NotifTemplate {
@@ -158,18 +186,67 @@
 	}
 
 	const templateColors = [
-		'var(--admin-accent)', 'var(--admin-pink)', 'var(--admin-green)',
-		'var(--admin-purple)', 'var(--admin-orange)', 'var(--admin-indigo)',
-		'#0A84FF', '#FF375F', '#30D158', '#BF5AF2'
+		'var(--admin-accent)',
+		'var(--admin-pink)',
+		'var(--admin-green)',
+		'var(--admin-purple)',
+		'var(--admin-orange)',
+		'var(--admin-indigo)',
+		'#0A84FF',
+		'#FF375F',
+		'#30D158',
+		'#BF5AF2'
 	];
 
 	const defaultTemplates: NotifTemplate[] = [
-		{ id: '_offer', label: 'New Offer', color: 'var(--admin-accent)', title: '\u2728 Special Offer Just For You!', body: 'Get exclusive discounts on our premium services. Book now and save!', builtIn: true },
-		{ id: '_promo', label: 'Promo', color: 'var(--admin-pink)', title: '\uD83C\uDF81 Limited Time Promotion!', body: 'Enjoy special prices on selected services this week. Don\'t miss out!', builtIn: true },
-		{ id: '_reminder', label: 'Reminder', color: 'var(--admin-green)', title: '\uD83D\uDCC5 Appointment Reminder', body: 'Just a friendly reminder about your upcoming appointment at Blancbeu Salon.', builtIn: true },
-		{ id: '_service', label: 'New Service', color: 'var(--admin-purple)', title: '\u2B50 New Service Available!', body: 'We\'ve added an exciting new service to our menu. Check it out and book today!', builtIn: true },
-		{ id: '_update', label: 'Update', color: 'var(--admin-orange)', title: '\uD83D\uDCE2 Important Update', body: 'We have an important update regarding our services. Please check the app for details.', builtIn: true },
-		{ id: '_general', label: 'General', color: 'var(--admin-indigo)', title: '\uD83D\uDD14 Hello from Blancbeu!', body: 'We miss you! It\'s been a while since your last visit. Book your next appointment today.', builtIn: true }
+		{
+			id: '_offer',
+			label: 'New Offer',
+			color: 'var(--admin-accent)',
+			title: '\u2728 Special Offer Just For You!',
+			body: 'Get exclusive discounts on our premium services. Book now and save!',
+			builtIn: true
+		},
+		{
+			id: '_promo',
+			label: 'Promo',
+			color: 'var(--admin-pink)',
+			title: '\uD83C\uDF81 Limited Time Promotion!',
+			body: "Enjoy special prices on selected services this week. Don't miss out!",
+			builtIn: true
+		},
+		{
+			id: '_reminder',
+			label: 'Reminder',
+			color: 'var(--admin-green)',
+			title: '\uD83D\uDCC5 Appointment Reminder',
+			body: 'Just a friendly reminder about your upcoming appointment at Blancbeu Salon.',
+			builtIn: true
+		},
+		{
+			id: '_service',
+			label: 'New Service',
+			color: 'var(--admin-purple)',
+			title: '\u2B50 New Service Available!',
+			body: "We've added an exciting new service to our menu. Check it out and book today!",
+			builtIn: true
+		},
+		{
+			id: '_update',
+			label: 'Update',
+			color: 'var(--admin-orange)',
+			title: '\uD83D\uDCE2 Important Update',
+			body: 'We have an important update regarding our services. Please check the app for details.',
+			builtIn: true
+		},
+		{
+			id: '_general',
+			label: 'General',
+			color: 'var(--admin-indigo)',
+			title: '\uD83D\uDD14 Hello from Blancbeu!',
+			body: "We miss you! It's been a while since your last visit. Book your next appointment today.",
+			builtIn: true
+		}
 	];
 
 	let savedTemplates = $state<NotifTemplate[]>([]);
@@ -201,7 +278,7 @@
 		try {
 			const q = query(collection(db, 'notificationTemplates'), orderBy('createdAt', 'desc'));
 			const snap = await getDocs(q);
-			savedTemplates = snap.docs.map(d => ({ id: d.id, ...d.data() } as NotifTemplate));
+			savedTemplates = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as NotifTemplate);
 		} catch (err) {
 			console.error('[Notify] Templates load error:', err);
 		} finally {
@@ -352,7 +429,11 @@
 	let currentTime = $state('');
 	function updateTime() {
 		const now = new Date();
-		currentTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+		currentTime = now.toLocaleTimeString('en-US', {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: true
+		});
 	}
 
 	// --- Send Broadcast ---
@@ -367,8 +448,20 @@
 			return;
 		}
 
-		const audienceLabel = targetAudience === 'test_self' ? 'yourself (test)' : targetAudience === 'all' ? 'all' : targetAudience === 'users_only' ? 'user' : 'staff';
-		if (!confirm(`Send this notification to ${targetAudience === 'test_self' ? audienceLabel : audienceFilteredSubscribers.length + ' ' + audienceLabel + ' subscriber(s)'}?`)) return;
+		const audienceLabel =
+			targetAudience === 'test_self'
+				? 'yourself (test)'
+				: targetAudience === 'all'
+					? 'all'
+					: targetAudience === 'users_only'
+						? 'user'
+						: 'staff';
+		if (
+			!confirm(
+				`Send this notification to ${targetAudience === 'test_self' ? audienceLabel : audienceFilteredSubscribers.length + ' ' + audienceLabel + ' subscriber(s)'}?`
+			)
+		)
+			return;
 
 		isSending = true;
 		sendResult = null;
@@ -381,10 +474,11 @@
 			}
 
 			const idToken = await auth.currentUser.getIdToken();
-			const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
-				? 'https://blancbeu-sveltekit.vercel.app/api/notifications/broadcast' 
-				: '/api/notifications/broadcast';
-			
+			const apiUrl =
+				typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform()
+					? 'https://blancbeu-sveltekit.vercel.app/api/notifications/broadcast'
+					: '/api/notifications/broadcast';
+
 			const res = await fetch(apiUrl, {
 				method: 'POST',
 				headers: {
@@ -395,7 +489,8 @@
 					title: notifTitle.trim(),
 					body: notifBody.trim(),
 					targetAudience: targetAudience === 'test_self' ? 'specific' : targetAudience,
-					...(targetAudience === 'test_self' && auth.currentUser && { userIds: [auth.currentUser.uid] }),
+					...(targetAudience === 'test_self' &&
+						auth.currentUser && { userIds: [auth.currentUser.uid] }),
 					...(imageUrl && { imageUrl }),
 					...(notifUrl.trim() && { clickUrl: notifUrl.trim() })
 				})
@@ -440,7 +535,7 @@
 				firestoreLimit(50)
 			);
 			const snap = await getDocs(q);
-			history = snap.docs.map((d) => ({ id: d.id, ...d.data() } as NotifHistoryItem));
+			history = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as NotifHistoryItem);
 		} catch (err) {
 			console.error('[Notify] History load error:', err);
 		} finally {
@@ -450,9 +545,7 @@
 
 	function formatDate(timestamp: any): string {
 		if (!timestamp) return 'Unknown';
-		const date = timestamp.seconds
-			? new Date(timestamp.seconds * 1000)
-			: new Date(timestamp);
+		const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
 		if (isNaN(date.getTime())) return 'Unknown';
 		const now = new Date();
 		const diffMs = now.getTime() - date.getTime();
@@ -467,7 +560,16 @@
 	}
 
 	// Avatar colors
-	const avatarColors = ['#FF9F0A', '#30D158', '#0A84FF', '#BF5AF2', '#FF375F', '#AC8E68', '#5E5CE6', '#32ADE6'];
+	const avatarColors = [
+		'#FF9F0A',
+		'#30D158',
+		'#0A84FF',
+		'#BF5AF2',
+		'#FF375F',
+		'#AC8E68',
+		'#5E5CE6',
+		'#32ADE6'
+	];
 	function getColor(name: string): string {
 		return avatarColors[(name || '?').charCodeAt(0) % avatarColors.length];
 	}
@@ -479,17 +581,25 @@
 		const interval = setInterval(updateTime, 30000);
 
 		// Debug: check subscriber data after store loads
-		const debugUnsub = allUsers.subscribe(users => {
+		const debugUnsub = allUsers.subscribe((users) => {
 			console.log('[Notify Debug] allUsers store updated. Total:', users.length);
-			const withTokens = users.filter(u => u.fcmTokens && Array.isArray(u.fcmTokens) && u.fcmTokens.length > 0);
+			const withTokens = users.filter(
+				(u) => u.fcmTokens && Array.isArray(u.fcmTokens) && u.fcmTokens.length > 0
+			);
 			console.log('[Notify Debug] Users with fcmTokens:', withTokens.length);
 
 			// Detailed breakdown
-			const withTokensArray = users.filter(u => Array.isArray(u.fcmTokens) && u.fcmTokens.length > 0);
-			const withEmptyTokens = users.filter(u => Array.isArray(u.fcmTokens) && u.fcmTokens.length === 0);
-			const withUndefinedTokens = users.filter(u => u.fcmTokens === undefined);
-			const withNullTokens = users.filter(u => u.fcmTokens === null);
-			const withOtherType = users.filter(u => u.fcmTokens !== undefined && !Array.isArray(u.fcmTokens));
+			const withTokensArray = users.filter(
+				(u) => Array.isArray(u.fcmTokens) && u.fcmTokens.length > 0
+			);
+			const withEmptyTokens = users.filter(
+				(u) => Array.isArray(u.fcmTokens) && u.fcmTokens.length === 0
+			);
+			const withUndefinedTokens = users.filter((u) => u.fcmTokens === undefined);
+			const withNullTokens = users.filter((u) => u.fcmTokens === null);
+			const withOtherType = users.filter(
+				(u) => u.fcmTokens !== undefined && !Array.isArray(u.fcmTokens)
+			);
 
 			console.log('[Notify Debug] Breakdown:', {
 				total: users.length,
@@ -501,7 +611,16 @@
 			});
 
 			if (withTokens.length > 0) {
-				console.log('[Notify Debug] Subscriber sample:', withTokens.slice(0, 3).map(u => ({ id: u.id, name: u.displayName || u.name, tokenCount: u.fcmTokens?.length })));
+				console.log(
+					'[Notify Debug] Subscriber sample:',
+					withTokens
+						.slice(0, 3)
+						.map((u) => ({
+							id: u.id,
+							name: u.displayName || u.name,
+							tokenCount: u.fcmTokens?.length
+						}))
+				);
 			} else if (users.length > 0) {
 				console.log('[Notify Debug] Sample user keys:', Object.keys(users[0]));
 				console.log('[Notify Debug] First user fcmTokens value:', users[0].fcmTokens);
@@ -548,7 +667,10 @@
 	<button
 		class="notify-tab"
 		class:active={activeTab === 'history'}
-		onclick={() => { activeTab = 'history'; loadHistory(); }}
+		onclick={() => {
+			activeTab = 'history';
+			loadHistory();
+		}}
 	>
 		<Clock size={16} />
 		<span>History</span>
@@ -561,8 +683,19 @@
 	<div class="notify-section">
 		<div class="notify-tpl-header-row">
 			<div class="notify-tpl-toggle">
-				<button class="notify-tpl-toggle-btn" class:active={!showAllTemplates} onclick={() => (showAllTemplates = false)}>Quick Templates</button>
-				<button class="notify-tpl-toggle-btn" class:active={showAllTemplates} onclick={() => { showAllTemplates = true; loadTemplates(); }}>All Templates</button>
+				<button
+					class="notify-tpl-toggle-btn"
+					class:active={!showAllTemplates}
+					onclick={() => (showAllTemplates = false)}>Quick Templates</button
+				>
+				<button
+					class="notify-tpl-toggle-btn"
+					class:active={showAllTemplates}
+					onclick={() => {
+						showAllTemplates = true;
+						loadTemplates();
+					}}>All Templates</button
+				>
 			</div>
 			{#if showAllTemplates}
 				<button class="notify-add-tpl-btn" onclick={() => openTemplateEditor()}>
@@ -619,7 +752,11 @@
 					<span style="font-size: 12px; color: var(--admin-text-tertiary);">
 						Compose a notification and save it, or create one here
 					</span>
-					<button class="notify-add-tpl-btn" style="margin-top: 8px;" onclick={() => openTemplateEditor()}>
+					<button
+						class="notify-add-tpl-btn"
+						style="margin-top: 8px;"
+						onclick={() => openTemplateEditor()}
+					>
 						<Plus size={14} />
 						<span>Create Template</span>
 					</button>
@@ -640,7 +777,11 @@
 							<button class="notify-tpl-use-btn" onclick={() => applyTemplate(tpl)} title="Use">
 								<Send size={13} />
 							</button>
-							<button class="notify-tpl-edit-btn" onclick={() => openTemplateEditor(tpl)} title="Edit">
+							<button
+								class="notify-tpl-edit-btn"
+								onclick={() => openTemplateEditor(tpl)}
+								title="Edit"
+							>
 								<Pencil size={13} />
 							</button>
 							<button class="notify-tpl-del-btn" onclick={() => deleteTemplate(tpl)} title="Delete">
@@ -654,327 +795,389 @@
 	</div>
 
 	{#if !showAllTemplates}
-	<!-- Compose Form -->
-	<div class="notify-section">
-		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-			<h3 class="notify-section-title" style="margin-bottom: 0;">Compose Notification</h3>
-			{#if hasContent}
-				<button class="notify-clear-btn" onclick={clearAllFields} title="Clear all fields">
-					<Trash2 size={14} />
-					<span>Clear All</span>
-				</button>
-			{/if}
-		</div>
-		<div class="notify-compose-card">
-			<!-- Title Input -->
-			<div class="notify-input-group">
-				<div class="notify-label-row">
-					<label for="notif-title">Title</label>
-					{#if notifTitle}
-						<button class="notify-field-clear" onclick={() => (notifTitle = '')} title="Clear title">
-							<X size={12} />
-						</button>
-					{/if}
-				</div>
-				<input
-					id="notif-title"
-					type="text"
-					placeholder="e.g. Special Offer This Weekend!"
-					bind:value={notifTitle}
-					maxlength="100"
-				/>
-				<span class="notify-char-count" class:warn={notifTitle.length > 80}>{notifTitle.length}/100</span>
-			</div>
-
-			<!-- Message Input -->
-			<div class="notify-input-group">
-				<div class="notify-label-row">
-					<label for="notif-body">Message</label>
-					{#if notifBody}
-						<button class="notify-field-clear" onclick={() => (notifBody = '')} title="Clear message">
-							<X size={12} />
-						</button>
-					{/if}
-				</div>
-				<textarea
-					id="notif-body"
-					placeholder="Write your notification message..."
-					bind:value={notifBody}
-					rows="4"
-					maxlength="500"
-				></textarea>
-				<span class="notify-char-count" class:warn={notifBody.length > 400}>{notifBody.length}/500</span>
-			</div>
-
-			<!-- Image Upload -->
-			<div class="notify-input-group">
-				<div class="notify-label-row">
-					<label>Image <span style="font-weight: 500; text-transform: none; letter-spacing: 0;">(optional)</span></label>
-					{#if imageFile}
-						<button class="notify-field-clear" onclick={removeImage} title="Remove image">
-							<X size={12} />
-						</button>
-					{/if}
-				</div>
-				{#if imagePreview}
-					<div class="notify-image-preview-wrapper">
-						<img src={imagePreview} alt="Notification" class="notify-image-preview" />
-						<button class="notify-image-remove" onclick={removeImage}>
-							<X size={14} />
-						</button>
-					</div>
-				{:else}
-					<label class="notify-image-upload">
-						<Image size={20} color="var(--admin-text-tertiary)" />
-						<span>Tap to add an image</span>
-						<span class="notify-image-hint">JPG, PNG, WebP &middot; Max 5MB</span>
-						<input
-							type="file"
-							accept="image/*"
-							onchange={handleImageSelect}
-							bind:this={imageInputRef}
-							style="display: none;"
-						/>
-					</label>
+		<!-- Compose Form -->
+		<div class="notify-section">
+			<div
+				style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"
+			>
+				<h3 class="notify-section-title" style="margin-bottom: 0;">Compose Notification</h3>
+				{#if hasContent}
+					<button class="notify-clear-btn" onclick={clearAllFields} title="Clear all fields">
+						<Trash2 size={14} />
+						<span>Clear All</span>
+					</button>
 				{/if}
 			</div>
+			<div class="notify-compose-card">
+				<!-- Title Input -->
+				<div class="notify-input-group">
+					<div class="notify-label-row">
+						<label for="notif-title">Title</label>
+						{#if notifTitle}
+							<button
+								class="notify-field-clear"
+								onclick={() => (notifTitle = '')}
+								title="Clear title"
+							>
+								<X size={12} />
+							</button>
+						{/if}
+					</div>
+					<input
+						id="notif-title"
+						type="text"
+						placeholder="e.g. Special Offer This Weekend!"
+						bind:value={notifTitle}
+						maxlength="100"
+					/>
+					<span class="notify-char-count" class:warn={notifTitle.length > 80}
+						>{notifTitle.length}/100</span
+					>
+				</div>
 
-			<!-- Click URL -->
-			<div class="notify-input-group">
-				<div class="notify-label-row">
-					<label>Click URL <span style="font-weight: 500; text-transform: none; letter-spacing: 0;">(optional)</span></label>
-					{#if notifUrl}
-						<button class="notify-field-clear" onclick={() => (notifUrl = '')} title="Clear URL">
-							<X size={12} />
-						</button>
+				<!-- Message Input -->
+				<div class="notify-input-group">
+					<div class="notify-label-row">
+						<label for="notif-body">Message</label>
+						{#if notifBody}
+							<button
+								class="notify-field-clear"
+								onclick={() => (notifBody = '')}
+								title="Clear message"
+							>
+								<X size={12} />
+							</button>
+						{/if}
+					</div>
+					<textarea
+						id="notif-body"
+						placeholder="Write your notification message..."
+						bind:value={notifBody}
+						rows="4"
+						maxlength="500"
+					></textarea>
+					<span class="notify-char-count" class:warn={notifBody.length > 400}
+						>{notifBody.length}/500</span
+					>
+				</div>
+
+				<!-- Image Upload -->
+				<div class="notify-input-group">
+					<div class="notify-label-row">
+						<label
+							>Image <span style="font-weight: 500; text-transform: none; letter-spacing: 0;"
+								>(optional)</span
+							></label
+						>
+						{#if imageFile}
+							<button class="notify-field-clear" onclick={removeImage} title="Remove image">
+								<X size={12} />
+							</button>
+						{/if}
+					</div>
+					{#if imagePreview}
+						<div class="notify-image-preview-wrapper">
+							<img src={imagePreview} alt="Notification" class="notify-image-preview" />
+							<button class="notify-image-remove" onclick={removeImage}>
+								<X size={14} />
+							</button>
+						</div>
+					{:else}
+						<label class="notify-image-upload">
+							<Image size={20} color="var(--admin-text-tertiary)" />
+							<span>Tap to add an image</span>
+							<span class="notify-image-hint">JPG, PNG, WebP &middot; Max 5MB</span>
+							<input
+								type="file"
+								accept="image/*"
+								onchange={handleImageSelect}
+								bind:this={imageInputRef}
+								style="display: none;"
+							/>
+						</label>
 					{/if}
 				</div>
-				<div class="notify-url-input-wrapper">
-					<Link2 size={16} class="notify-url-icon" />
-					<input
-						id="notif-url"
-						type="url"
-						placeholder="https://blancbeu.in/booking"
-						bind:value={notifUrl}
-						maxlength="500"
-					/>
-				</div>
-				<span class="notify-url-hint">Opens when user taps the notification</span>
-			</div>
 
-			<!-- Save as Template (bottom of compose part) -->
-			{#if hasContent && notifTitle.trim() && notifBody.trim()}
-				<div style="display: flex; justify-content: flex-end; padding-top: 4px;">
-					<button class="notify-save-tpl-inline" onclick={openSaveAsTemplate}>
-						<BookmarkPlus size={13} />
-						<span>Save as Template</span>
-					</button>
-				</div>
-			{/if}
-
-			<!-- Divider -->
-			<div class="notify-card-divider">
-				<span>Send To</span>
-			</div>
-
-			<!-- Target Audience -->
-			<div class="notify-input-group">
-				<div class="notify-audience-pills">
-					<button
-						class="notify-pill"
-						class:active={targetAudience === 'all'}
-						onclick={() => (targetAudience = 'all')}
-					>
-						<Users size={13} />
-						All ({subscribers.length})
-					</button>
-					<button
-						class="notify-pill"
-						class:active={targetAudience === 'users_only'}
-						onclick={() => (targetAudience = 'users_only')}
-					>
-						<Bell size={13} />
-						Users Only
-					</button>
-					<button
-						class="notify-pill"
-						class:active={targetAudience === 'staff_only'}
-						onclick={() => (targetAudience = 'staff_only')}
-					>
-						<Star size={13} />
-						Staff Only
-					</button>
-					<button
-						class="notify-pill test"
-						class:active={targetAudience === 'test_self'}
-						onclick={() => (targetAudience = 'test_self')}
-					>
-						<Smartphone size={13} />
-						Test (Me)
-					</button>
-				</div>
-			</div>
-
-			<!-- Realistic Phone Preview -->
-			{#if notifTitle || notifBody}
-				<div class="notify-preview-section">
-					<button class="notify-preview-toggle" onclick={() => (showPhonePreview = !showPhonePreview)}>
-						<Eye size={14} />
-						<span>{showPhonePreview ? 'Hide' : 'Show'} Device Preview</span>
-						{#if showPhonePreview}
-							<ChevronUp size={14} />
-						{:else}
-							<ChevronDown size={14} />
+				<!-- Click URL -->
+				<div class="notify-input-group">
+					<div class="notify-label-row">
+						<label
+							>Click URL <span style="font-weight: 500; text-transform: none; letter-spacing: 0;"
+								>(optional)</span
+							></label
+						>
+						{#if notifUrl}
+							<button class="notify-field-clear" onclick={() => (notifUrl = '')} title="Clear URL">
+								<X size={12} />
+							</button>
 						{/if}
-					</button>
+					</div>
+					<div class="notify-url-input-wrapper">
+						<Link2 size={16} class="notify-url-icon" />
+						<input
+							id="notif-url"
+							type="url"
+							placeholder="https://blancbeu.in/booking"
+							bind:value={notifUrl}
+							maxlength="500"
+						/>
+					</div>
+					<span class="notify-url-hint">Opens when user taps the notification</span>
+				</div>
 
-					{#if showPhonePreview}
-						<div class="phone-frame">
-							<!-- Phone Status Bar -->
-							<div class="phone-statusbar">
-								<span class="phone-time">{currentTime || '9:41 AM'}</span>
-								<div class="phone-statusbar-icons">
-									<Wifi size={12} />
-									<Battery size={12} />
-								</div>
-							</div>
+				<!-- Save as Template (bottom of compose part) -->
+				{#if hasContent && notifTitle.trim() && notifBody.trim()}
+					<div style="display: flex; justify-content: flex-end; padding-top: 4px;">
+						<button class="notify-save-tpl-inline" onclick={openSaveAsTemplate}>
+							<BookmarkPlus size={13} />
+							<span>Save as Template</span>
+						</button>
+					</div>
+				{/if}
 
-							<!-- Notification Card on Lock Screen -->
-							<div class="phone-lockscreen">
-								<div class="phone-notif-card">
-									<div class="phone-notif-top">
-										<img src="/favicon.png" alt="App" width="18" height="18" style="border-radius: 4px;" />
-										<span class="phone-notif-app">
-											{#if notifUrl}
-												Chrome &bull; {notifUrl.replace(/^https?:\/\//, '').split('/')[0]} &bull; now
-											{:else}
-												BLANCBEU
-											{/if}
-										</span>
-										<span class="phone-notif-time">{notifUrl ? '' : 'now'}</span>
+				<!-- Divider -->
+				<div class="notify-card-divider">
+					<span>Send To</span>
+				</div>
+
+				<!-- Target Audience -->
+				<div class="notify-input-group">
+					<div class="notify-audience-pills">
+						<button
+							class="notify-pill"
+							class:active={targetAudience === 'all'}
+							onclick={() => (targetAudience = 'all')}
+						>
+							<Users size={13} />
+							All ({subscribers.length})
+						</button>
+						<button
+							class="notify-pill"
+							class:active={targetAudience === 'users_only'}
+							onclick={() => (targetAudience = 'users_only')}
+						>
+							<Bell size={13} />
+							Users Only
+						</button>
+						<button
+							class="notify-pill"
+							class:active={targetAudience === 'staff_only'}
+							onclick={() => (targetAudience = 'staff_only')}
+						>
+							<Star size={13} />
+							Staff Only
+						</button>
+						<button
+							class="notify-pill test"
+							class:active={targetAudience === 'test_self'}
+							onclick={() => (targetAudience = 'test_self')}
+						>
+							<Smartphone size={13} />
+							Test (Me)
+						</button>
+					</div>
+				</div>
+
+				<!-- Realistic Phone Preview -->
+				{#if notifTitle || notifBody}
+					<div class="notify-preview-section">
+						<button
+							class="notify-preview-toggle"
+							onclick={() => (showPhonePreview = !showPhonePreview)}
+						>
+							<Eye size={14} />
+							<span>{showPhonePreview ? 'Hide' : 'Show'} Device Preview</span>
+							{#if showPhonePreview}
+								<ChevronUp size={14} />
+							{:else}
+								<ChevronDown size={14} />
+							{/if}
+						</button>
+
+						{#if showPhonePreview}
+							<div class="phone-frame">
+								<!-- Phone Status Bar -->
+								<div class="phone-statusbar">
+									<span class="phone-time">{currentTime || '9:41 AM'}</span>
+									<div class="phone-statusbar-icons">
+										<Wifi size={12} />
+										<Battery size={12} />
 									</div>
-									<div class="phone-notif-body">
-										<div class="phone-notif-text">
-											<strong>{notifTitle || 'Notification Title'}</strong>
-											<p>{notifBody || 'Notification message...'}</p>
+								</div>
+
+								<!-- Notification Card on Lock Screen -->
+								<div class="phone-lockscreen">
+									<div class="phone-notif-card">
+										<div class="phone-notif-top">
+											<img
+												src="/favicon.png"
+												alt="App"
+												width="18"
+												height="18"
+												style="border-radius: 4px;"
+											/>
+											<span class="phone-notif-app">
+												{#if notifUrl}
+													Chrome &bull; {notifUrl.replace(/^https?:\/\//, '').split('/')[0]} &bull; now
+												{:else}
+													BLANCBEU
+												{/if}
+											</span>
+											<span class="phone-notif-time">{notifUrl ? '' : 'now'}</span>
+										</div>
+										<div class="phone-notif-body">
+											<div class="phone-notif-text">
+												<strong>{notifTitle || 'Notification Title'}</strong>
+												<p>{notifBody || 'Notification message...'}</p>
+											</div>
+											{#if imagePreview}
+												<img src={imagePreview} alt="" class="phone-notif-thumb" />
+											{/if}
 										</div>
 										{#if imagePreview}
-											<img src={imagePreview} alt="" class="phone-notif-thumb" />
+											<img src={imagePreview} alt="" class="phone-notif-bigimage" />
 										{/if}
 									</div>
-									{#if imagePreview}
-										<img src={imagePreview} alt="" class="phone-notif-bigimage" />
+									{#if notifUrl}
+										<div class="phone-url-hint">
+											<Link2 size={10} />
+											Opens: <span>{notifUrl}</span>
+										</div>
 									{/if}
 								</div>
-							{#if notifUrl}
-								<div class="phone-url-hint">
-									<Link2 size={10} />
-									Opens: <span>{notifUrl}</span>
-								</div>
-							{/if}
 							</div>
+						{/if}
+					</div>
+
+					<!-- Inline mini preview (always visible) -->
+					{#if !showPhonePreview}
+						<div class="notify-mini-preview">
+							<img
+								src="/favicon.png"
+								alt="App"
+								width="22"
+								height="22"
+								style="border-radius: 5px; flex-shrink: 0;"
+							/>
+							<div style="flex: 1; min-width: 0;">
+								<strong>{notifTitle || 'Title'}</strong>
+								<p>{notifBody || 'Message...'}</p>
+							</div>
+							{#if imagePreview}
+								<img src={imagePreview} alt="" class="notify-mini-thumb" />
+							{/if}
 						</div>
 					{/if}
+				{/if}
+
+				<!-- Audience Info -->
+				<div class="notify-audience-info">
+					<Megaphone size={16} color="var(--admin-accent)" />
+					<span>
+						{#if targetAudience === 'test_self'}
+							Sending test to <strong>yourself</strong>
+						{:else}
+							Sending to <strong>{audienceFilteredSubscribers.length}</strong>
+							{targetAudience === 'users_only'
+								? 'user'
+								: targetAudience === 'staff_only'
+									? 'staff'
+									: ''}
+							subscriber{audienceFilteredSubscribers.length !== 1 ? 's' : ''}
+						{/if}
+					</span>
 				</div>
 
-				<!-- Inline mini preview (always visible) -->
-				{#if !showPhonePreview}
-					<div class="notify-mini-preview">
-						<img src="/favicon.png" alt="App" width="22" height="22" style="border-radius: 5px; flex-shrink: 0;" />
-						<div style="flex: 1; min-width: 0;">
-							<strong>{notifTitle || 'Title'}</strong>
-							<p>{notifBody || 'Message...'}</p>
-						</div>
-						{#if imagePreview}
-							<img src={imagePreview} alt="" class="notify-mini-thumb" />
+				<!-- Action Buttons -->
+				<div class="notify-action-row">
+					<button
+						class="notify-send-btn"
+						onclick={sendBroadcast}
+						disabled={isSending || !notifTitle.trim() || !notifBody.trim()}
+					>
+						{#if isSending}
+							<div class="notify-btn-spinner"></div>
+							{isUploadingImage ? 'Uploading...' : 'Sending...'}
+						{:else}
+							<Send size={18} />
+							Send Now
+						{/if}
+					</button>
+				</div>
+
+				<!-- Send Result -->
+				{#if sendResult}
+					<div
+						class="notify-result"
+						class:success={sendResult.success}
+						class:error={!sendResult.success}
+					>
+						{#if sendResult.success}
+							<CheckCircle2 size={18} />
+							<span
+								>Sent to {sendResult.sentCount} device(s) across {sendResult.targetUserCount} user(s)</span
+							>
+						{:else}
+							<XCircle size={18} />
+							<span>Failed to send notification. Please try again.</span>
 						{/if}
 					</div>
 				{/if}
-			{/if}
-
-			<!-- Audience Info -->
-			<div class="notify-audience-info">
-				<Megaphone size={16} color="var(--admin-accent)" />
-				<span>
-					{#if targetAudience === 'test_self'}
-						Sending test to <strong>yourself</strong>
-					{:else}
-						Sending to <strong>{audienceFilteredSubscribers.length}</strong>
-						{targetAudience === 'users_only' ? 'user' : targetAudience === 'staff_only' ? 'staff' : ''}
-						subscriber{audienceFilteredSubscribers.length !== 1 ? 's' : ''}
-					{/if}
-				</span>
 			</div>
-
-			<!-- Action Buttons -->
-			<div class="notify-action-row">
-				<button
-					class="notify-send-btn"
-					onclick={sendBroadcast}
-					disabled={isSending || !notifTitle.trim() || !notifBody.trim()}
-				>
-					{#if isSending}
-						<div class="notify-btn-spinner"></div>
-						{isUploadingImage ? 'Uploading...' : 'Sending...'}
-					{:else}
-						<Send size={18} />
-						Send Now
-					{/if}
-				</button>
-			</div>
-
-			<!-- Send Result -->
-			{#if sendResult}
-				<div class="notify-result" class:success={sendResult.success} class:error={!sendResult.success}>
-					{#if sendResult.success}
-						<CheckCircle2 size={18} />
-						<span>Sent to {sendResult.sentCount} device(s) across {sendResult.targetUserCount} user(s)</span>
-					{:else}
-						<XCircle size={18} />
-						<span>Failed to send notification. Please try again.</span>
-					{/if}
-				</div>
-			{/if}
 		</div>
-	</div>
 	{/if}
 
-<!-- ===================== SUBSCRIBERS TAB ===================== -->
+	<!-- ===================== SUBSCRIBERS TAB ===================== -->
 {:else if activeTab === 'subscribers'}
 	<div class="notify-section">
 		<!-- Debug Panel -->
-		<div class="notify-debug-panel" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+		<div
+			class="notify-debug-panel"
+			style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; margin-bottom: 16px;"
+		>
+			<div
+				style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"
+			>
 				<h4 style="margin: 0; font-size: 14px; color: #495057;">Debug Tools</h4>
 				<div style="display: flex; gap: 8px;">
 					<button
 						onclick={async () => {
 							console.log('[Notify Debug] Fetching users directly from Firestore...');
 							const snapshot = await getDocs(collection(db, 'users'));
-							const users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+							const users = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 							console.log('[Notify Debug] Raw Firestore users count:', users.length);
 
-							const withTokens = users.filter((u: any) => u.fcmTokens && Array.isArray(u.fcmTokens) && u.fcmTokens.length > 0);
+							const withTokens = users.filter(
+								(u: any) => u.fcmTokens && Array.isArray(u.fcmTokens) && u.fcmTokens.length > 0
+							);
 							console.log('[Notify Debug] Users with fcmTokens in Firestore:', withTokens.length);
 
 							if (withTokens.length > 0) {
-								console.log('[Notify Debug] Sample subscribers from Firestore:', withTokens.slice(0, 3).map((u: any) => ({
-									id: u.id,
-									name: u.displayName || u.name || 'Unknown',
-									tokenCount: u.fcmTokens.length,
-									tokens: u.fcmTokens.map((t: string) => t.substring(0, 20) + '...')
-								})));
+								console.log(
+									'[Notify Debug] Sample subscribers from Firestore:',
+									withTokens.slice(0, 3).map((u: any) => ({
+										id: u.id,
+										name: u.displayName || u.name || 'Unknown',
+										tokenCount: u.fcmTokens.length,
+										tokens: u.fcmTokens.map((t: string) => t.substring(0, 20) + '...')
+									}))
+								);
 							} else {
 								console.log('[Notify Debug] No users with fcmTokens found in Firestore');
-								console.log('[Notify Debug] First 3 users sample:', users.slice(0, 3).map((u: any) => ({
-									id: u.id,
-									fcmTokens: u.fcmTokens,
-									fcmTokensType: typeof u.fcmTokens,
-									role: u.role,
-									name: u.displayName || u.name || 'Unknown'
-								})));
+								console.log(
+									'[Notify Debug] First 3 users sample:',
+									users.slice(0, 3).map((u: any) => ({
+										id: u.id,
+										fcmTokens: u.fcmTokens,
+										fcmTokensType: typeof u.fcmTokens,
+										role: u.role,
+										name: u.displayName || u.name || 'Unknown'
+									}))
+								);
 							}
-							alert(`Firestore check complete. ${withTokens.length} users with tokens. Check console.`);
+							alert(
+								`Firestore check complete. ${withTokens.length} users with tokens. Check console.`
+							);
 						}}
 						style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;"
 					>
@@ -988,8 +1191,14 @@
 								alert('No current user logged in!');
 								return;
 							}
-							console.log('[Notify Debug] Starting subscription process for user:', auth.currentUser.uid);
-							console.log('[Notify Debug] Notification.permission before request:', Notification.permission);
+							console.log(
+								'[Notify Debug] Starting subscription process for user:',
+								auth.currentUser.uid
+							);
+							console.log(
+								'[Notify Debug] Notification.permission before request:',
+								Notification.permission
+							);
 							try {
 								const result = await requestUserNotificationPermission(auth.currentUser.uid);
 								console.log('[Notify Debug] Manual subscription result:', result);
@@ -1011,8 +1220,16 @@
 			</div>
 			<div style="font-size: 12px; color: #6c757d; font-family: monospace;">
 				<div>Current User: {auth.currentUser?.uid || 'Not logged in'}</div>
-				<div>Notification Permission: {typeof Notification !== 'undefined' ? Notification.permission : 'N/A'}</div>
-				<div>Service Worker API: {typeof navigator !== 'undefined' && navigator.serviceWorker ? 'Supported' : 'Not Supported'}</div>
+				<div>
+					Notification Permission: {typeof Notification !== 'undefined'
+						? Notification.permission
+						: 'N/A'}
+				</div>
+				<div>
+					Service Worker API: {typeof navigator !== 'undefined' && navigator.serviceWorker
+						? 'Supported'
+						: 'Not Supported'}
+				</div>
 				{#await (async () => {
 					if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
 						try {
@@ -1044,7 +1261,9 @@
 								role: data.role,
 								displayName: data.displayName || data.name
 							});
-							alert(`User doc found! fcmTokens: ${Array.isArray(data.fcmTokens) ? data.fcmTokens.length : 'not array'} tokens. Check console.`);
+							alert(
+								`User doc found! fcmTokens: ${Array.isArray(data.fcmTokens) ? data.fcmTokens.length : 'not array'} tokens. Check console.`
+							);
 						} else {
 							console.log('[Notify Debug] User doc NOT found for:', userId);
 							alert('User document not found in Firestore!');
@@ -1060,7 +1279,10 @@
 		<!-- Stats Row -->
 		<div class="notify-stats-row">
 			<div class="notify-stat-card">
-				<div class="notify-stat-icon" style="background: var(--admin-green-light); color: var(--admin-green);">
+				<div
+					class="notify-stat-icon"
+					style="background: var(--admin-green-light); color: var(--admin-green);"
+				>
 					<BellRing size={20} />
 				</div>
 				<div>
@@ -1069,7 +1291,10 @@
 				</div>
 			</div>
 			<div class="notify-stat-card">
-				<div class="notify-stat-icon" style="background: var(--admin-accent-light); color: var(--admin-accent);">
+				<div
+					class="notify-stat-icon"
+					style="background: var(--admin-accent-light); color: var(--admin-accent);"
+				>
 					<Users size={20} />
 				</div>
 				<div>
@@ -1170,10 +1395,12 @@
 		{/if}
 	</div>
 
-<!-- ===================== HISTORY TAB ===================== -->
+	<!-- ===================== HISTORY TAB ===================== -->
 {:else if activeTab === 'history'}
 	<div class="notify-section">
-		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+		<div
+			style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"
+		>
 			<h3 class="notify-section-title" style="margin-bottom: 0;">Sent Notifications</h3>
 			<button class="notify-refresh-btn" onclick={loadHistory} disabled={isLoadingHistory}>
 				<RefreshCw size={16} class={isLoadingHistory ? 'spinning' : ''} />
@@ -1196,7 +1423,12 @@
 			{#each displayedHistory as item (item.id)}
 				<div class="notify-history-card">
 					<div class="notify-history-header">
-						<div class="notify-history-status" class:sent={item.status === 'sent'} class:failed={item.status === 'failed'} class:no-subs={item.status === 'no_subscribers'}>
+						<div
+							class="notify-history-status"
+							class:sent={item.status === 'sent'}
+							class:failed={item.status === 'failed'}
+							class:no-subs={item.status === 'no_subscribers'}
+						>
 							{#if item.status === 'sent'}
 								<CheckCircle2 size={14} />
 							{:else if item.status === 'failed'}
@@ -1205,7 +1437,11 @@
 								<AlertTriangle size={14} />
 							{/if}
 							<span>
-								{item.status === 'sent' ? 'Sent' : item.status === 'failed' ? 'Failed' : 'No Subscribers'}
+								{item.status === 'sent'
+									? 'Sent'
+									: item.status === 'failed'
+										? 'Failed'
+										: 'No Subscribers'}
 							</span>
 						</div>
 						<span class="notify-history-time">{formatDate(item.sentAt)}</span>
@@ -1278,22 +1514,50 @@
 			<div class="tpl-editor-body">
 				<div class="notify-input-group">
 					<label for="tpl-label">Template Name</label>
-					<input id="tpl-label" type="text" placeholder="e.g. Weekend Offer" bind:value={tplLabel} maxlength="40" />
+					<input
+						id="tpl-label"
+						type="text"
+						placeholder="e.g. Weekend Offer"
+						bind:value={tplLabel}
+						maxlength="40"
+					/>
 				</div>
 
 				<div class="notify-input-group">
 					<label for="tpl-title">Notification Title</label>
-					<input id="tpl-title" type="text" placeholder="e.g. ✨ Special Offer!" bind:value={tplTitle} maxlength="100" />
+					<input
+						id="tpl-title"
+						type="text"
+						placeholder="e.g. ✨ Special Offer!"
+						bind:value={tplTitle}
+						maxlength="100"
+					/>
 				</div>
 
 				<div class="notify-input-group">
 					<label for="tpl-body">Notification Message</label>
-					<textarea id="tpl-body" placeholder="Write message..." bind:value={tplBody} rows="3" maxlength="500"></textarea>
+					<textarea
+						id="tpl-body"
+						placeholder="Write message..."
+						bind:value={tplBody}
+						rows="3"
+						maxlength="500"
+					></textarea>
 				</div>
 
 				<div class="notify-input-group">
-					<label for="tpl-url">Click URL <span style="font-weight: 500; text-transform: none; letter-spacing: 0;">(optional)</span></label>
-					<input id="tpl-url" type="url" placeholder="https://blancbeu.in/booking" bind:value={tplUrl} maxlength="500" />
+					<label for="tpl-url"
+						>Click URL <span style="font-weight: 500; text-transform: none; letter-spacing: 0;"
+							>(optional)</span
+						></label
+					>
+					<input
+						id="tpl-url"
+						type="url"
+						placeholder="https://blancbeu.in/booking"
+						bind:value={tplUrl}
+						maxlength="500"
+					/>
 				</div>
 
 				<!-- Color Picker -->
@@ -1539,7 +1803,9 @@
 		font-family: var(--admin-font);
 		color: var(--admin-text-primary);
 		outline: none;
-		transition: border-color 0.2s, box-shadow 0.2s;
+		transition:
+			border-color 0.2s,
+			box-shadow 0.2s;
 		resize: vertical;
 	}
 
@@ -1586,7 +1852,9 @@
 		font-family: var(--admin-font);
 		color: var(--admin-text-primary);
 		outline: none;
-		transition: border-color 0.2s, box-shadow 0.2s;
+		transition:
+			border-color 0.2s,
+			box-shadow 0.2s;
 	}
 
 	.notify-url-input-wrapper input:focus {
@@ -2808,16 +3076,28 @@
 
 	/* --- Animations --- */
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	@keyframes fadeIn {
-		from { opacity: 0; transform: translateY(6px); }
-		to { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	@keyframes slideUp {
-		from { transform: translateY(100%); }
-		to { transform: translateY(0); }
+		from {
+			transform: translateY(100%);
+		}
+		to {
+			transform: translateY(0);
+		}
 	}
 </style>

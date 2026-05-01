@@ -28,10 +28,10 @@ export interface AdminNotificationPreferences {
 	completedBookings: boolean;
 	walkInOrders: boolean;
 	paymentReceived: boolean;
-	
+
 	// User-related notifications
 	newUsers: boolean;
-	
+
 	// Sound settings
 	soundEnabled: boolean;
 	selectedSoundType: SoundType;
@@ -67,7 +67,7 @@ function createNotificationPrefsStore() {
 
 	return {
 		subscribe,
-		
+
 		// Toggle a specific notification type
 		toggle(type: keyof AdminNotificationPreferences) {
 			update((prefs) => {
@@ -78,7 +78,7 @@ function createNotificationPrefsStore() {
 				return newPrefs;
 			});
 		},
-		
+
 		// Set a specific preference value
 		setPreference(type: keyof AdminNotificationPreferences, value: any) {
 			update((prefs) => {
@@ -89,12 +89,12 @@ function createNotificationPrefsStore() {
 				return newPrefs;
 			});
 		},
-		
+
 		// Check if a specific notification type is enabled
 		isEnabled(type: keyof AdminNotificationPreferences): boolean {
 			return get(this)[type] as boolean;
 		},
-		
+
 		// Reset to defaults
 		reset() {
 			set(DEFAULT_PREFS);
@@ -102,7 +102,7 @@ function createNotificationPrefsStore() {
 				localStorage.setItem(ADMIN_NOTIFICATION_PREFS_KEY, JSON.stringify(DEFAULT_PREFS));
 			}
 		},
-		
+
 		// Get all prefs
 		getAll(): AdminNotificationPreferences {
 			return get(this);
@@ -116,8 +116,7 @@ export const adminNotificationPrefs = createNotificationPrefsStore();
 function createIndividualStore(key: keyof AdminNotificationPreferences) {
 	const { subscribe } = adminNotificationPrefs;
 	return {
-		subscribe: (cb: (value: any) => void) => 
-			subscribe((prefs) => cb(prefs[key])),
+		subscribe: (cb: (value: any) => void) => subscribe((prefs) => cb(prefs[key])),
 		toggle() {
 			adminNotificationPrefs.toggle(key);
 		},
@@ -142,23 +141,27 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '$lib/firebase';
 
 export async function saveAdminPreferredSound(userId: string, type: SoundType) {
-    adminSelectedSoundType.set(type);
-    try {
-        const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, {
-            preferredSound: type,
-            updatedAt: new Date().toISOString()
-        }, { merge: true });
-        console.log('[AdminNotifications] Saved preferred sound to Firestore:', type);
-    } catch (e) {
-        console.error('[AdminNotifications] Failed to save preferred sound to Firestore:', e);
-    }
+	adminSelectedSoundType.set(type);
+	try {
+		const userRef = doc(db, 'users', userId);
+		await setDoc(
+			userRef,
+			{
+				preferredSound: type,
+				updatedAt: new Date().toISOString()
+			},
+			{ merge: true }
+		);
+		console.log('[AdminNotifications] Saved preferred sound to Firestore:', type);
+	} catch (e) {
+		console.error('[AdminNotifications] Failed to save preferred sound to Firestore:', e);
+	}
 }
 
 // Get selected sound path
 export function getAdminSelectedSoundPath(): string {
 	const prefs = get(adminNotificationPrefs);
-	const sound = AVAILABLE_SOUNDS.find(s => s.id === prefs.selectedSoundType);
+	const sound = AVAILABLE_SOUNDS.find((s) => s.id === prefs.selectedSoundType);
 	return sound?.path || AVAILABLE_SOUNDS[0].path;
 }
 

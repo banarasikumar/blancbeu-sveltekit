@@ -10,8 +10,23 @@
 		updateBookingStatus,
 		type Booking
 	} from '$lib/stores/adminData';
-	import { Search, Calendar, Check, Ban, ClipboardCheck, Trash2, SquareCheck, Square, CheckSquare, ArrowUp } from 'lucide-svelte';
-	import { softDeleteBookings, recycledCount, initRecycleBinListener } from '$lib/stores/adminRecycleBin';
+	import {
+		Search,
+		Calendar,
+		Check,
+		Ban,
+		ClipboardCheck,
+		Trash2,
+		SquareCheck,
+		Square,
+		CheckSquare,
+		ArrowUp
+	} from 'lucide-svelte';
+	import {
+		softDeleteBookings,
+		recycledCount,
+		initRecycleBinListener
+	} from '$lib/stores/adminRecycleBin';
 	import { adminUser } from '$lib/stores/adminAuth';
 	import { onMount } from 'svelte';
 
@@ -104,7 +119,8 @@
 	let showScrollTop = $state(false);
 
 	function handleScroll() {
-		const scrollTop = document.documentElement.scrollTop || document.body.scrollTop || window.scrollY || 0;
+		const scrollTop =
+			document.documentElement.scrollTop || document.body.scrollTop || window.scrollY || 0;
 		showScrollTop = scrollTop > 100;
 	}
 
@@ -378,11 +394,7 @@
 <div class="admin-view-header">
 	<h2 class="admin-view-title">Bookings</h2>
 	<div style="display: flex; align-items: center; gap: 8px;">
-		<button
-			class="admin-manage-btn"
-			class:active={isManageMode}
-			onclick={toggleManageMode}
-		>
+		<button class="admin-manage-btn" class:active={isManageMode} onclick={toggleManageMode}>
 			{isManageMode ? 'Cancel' : 'Manage'}
 		</button>
 		<button
@@ -559,7 +571,7 @@
 				ontouchstart={(e) => !isManageMode && onTouchStart(e, booking.id)}
 				ontouchmove={(e) => !isManageMode && onTouchMove(e, booking.id)}
 				ontouchend={(e) => !isManageMode && onTouchEnd(e, booking.id)}
-				onclick={() => isManageMode ? toggleSelect(booking.id) : closeSwipe(booking.id)}
+				onclick={() => (isManageMode ? toggleSelect(booking.id) : closeSwipe(booking.id))}
 			>
 				{#if isProcessing}
 					<div class="admin-processing-overlay">
@@ -574,7 +586,10 @@
 						<button
 							class="admin-select-checkbox"
 							class:checked={selectedIds.has(booking.id)}
-							onclick={(e) => { e.stopPropagation(); toggleSelect(booking.id); }}
+							onclick={(e) => {
+								e.stopPropagation();
+								toggleSelect(booking.id);
+							}}
 						>
 							{#if selectedIds.has(booking.id)}
 								<CheckSquare size={20} />

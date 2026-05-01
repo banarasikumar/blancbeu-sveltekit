@@ -76,10 +76,10 @@
 	<section class="search-section">
 		<div class="search-box">
 			<span class="search-icon">🔍</span>
-			<input 
-				type="text" 
-				class="search-input" 
-				placeholder="Search by name or phone..." 
+			<input
+				type="text"
+				class="search-input"
+				placeholder="Search by name or phone..."
 				bind:value={searchQuery}
 				oninput={handleSearch}
 			/>
@@ -118,16 +118,16 @@
 				</div>
 			{/each}
 		{:else if !isSearching && searchQuery}
-			<EmptyState 
-				icon="🕵️" 
-				title="No clients found" 
-				description="We couldn't find anyone matching '{searchQuery}'." 
+			<EmptyState
+				icon="🕵️"
+				title="No clients found"
+				description="We couldn't find anyone matching '{searchQuery}'."
 			/>
 		{:else if !isSearching && !searchQuery}
-			<EmptyState 
-				icon="👥" 
-				title="No clients yet" 
-				description="Your recent clients will appear here." 
+			<EmptyState
+				icon="👥"
+				title="No clients yet"
+				description="Your recent clients will appear here."
 			/>
 		{/if}
 	</section>
@@ -218,7 +218,9 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	/* Clients List */
@@ -264,7 +266,7 @@
 		color: white;
 		font-weight: 700;
 		font-size: 1.2rem;
-		box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 	}
 
 	.client-avatar img {
@@ -311,11 +313,11 @@
 			align-items: flex-start;
 			gap: var(--s-space-md);
 		}
-		
+
 		.client-actions {
 			width: 100%;
 		}
-		
+
 		.client-actions .s-btn {
 			width: 100%;
 		}

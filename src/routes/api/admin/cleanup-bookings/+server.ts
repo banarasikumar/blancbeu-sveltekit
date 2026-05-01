@@ -19,10 +19,7 @@ export async function POST({ request }) {
 		const oneHour = 60 * 60 * 1000;
 
 		// 2. Query Pending Bookings using Admin SDK
-		const snapshot = await adminDb
-			.collection('bookings')
-			.where('status', '==', 'pending')
-			.get();
+		const snapshot = await adminDb.collection('bookings').where('status', '==', 'pending').get();
 
 		const overdueBookings = [];
 

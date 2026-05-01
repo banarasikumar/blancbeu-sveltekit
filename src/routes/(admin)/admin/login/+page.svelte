@@ -19,7 +19,7 @@
 			denied = true;
 			loading = false;
 		}
-		
+
 		// Reactively check for magic links when the URL parameters update (Deep Link fix)
 		if (page.url.searchParams.has('token')) {
 			checkMagicLink('admin');

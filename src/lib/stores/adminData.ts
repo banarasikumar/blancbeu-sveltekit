@@ -104,9 +104,9 @@ export function initBookingListener() {
 				id: d.id,
 				...d.data()
 			})) as Booking[];
-			
-			const newBookingsMap = new Map(bookings.map(b => [b.id, b]));
-			
+
+			const newBookingsMap = new Map(bookings.map((b) => [b.id, b]));
+
 			// On initial load, just populate the map — no toasts or notifications
 			if (isBookingsInitialLoad) {
 				console.log('[AdminData] Initial bookings load:', bookings.length, 'bookings (no toasts)');
@@ -115,17 +115,18 @@ export function initBookingListener() {
 				allBookings.set(bookings);
 				return;
 			}
-			
+
 			const prefs = get(adminNotificationPrefs);
-			
+
 			// Check for new bookings and status changes (real-time only)
 			for (const booking of bookings) {
 				const prevBooking = previousBookings.get(booking.id);
-				
+
 				if (!prevBooking) {
 					// This is a genuinely new booking (arrived in real-time)
-					const isWalkIn = booking.accountType === 'walkin' || booking.createdBy?.startsWith('staff_');
-					
+					const isWalkIn =
+						booking.accountType === 'walkin' || booking.createdBy?.startsWith('staff_');
+
 					if ((isWalkIn && prefs.walkInOrders) || (!isWalkIn && prefs.newBookings)) {
 						adminNotifications.addNewBookingNotification({
 							id: booking.id,
@@ -138,16 +139,18 @@ export function initBookingListener() {
 							status: booking.status,
 							source: isWalkIn ? 'staff_walkin' : 'user'
 						});
-						
+
 						// Silent update: in-app notification list only.
 					}
 				} else if (prevBooking.status !== booking.status) {
 					// Status changed
-					const shouldNotify = 
-						(prefs.statusChanges && booking.status !== 'cancelled' && booking.status !== 'completed') ||
+					const shouldNotify =
+						(prefs.statusChanges &&
+							booking.status !== 'cancelled' &&
+							booking.status !== 'completed') ||
 						(prefs.cancelledBookings && booking.status === 'cancelled') ||
 						(prefs.completedBookings && booking.status === 'completed');
-					
+
 					if (shouldNotify) {
 						adminNotifications.addStatusChangeNotification({
 							id: booking.id,
@@ -162,7 +165,7 @@ export function initBookingListener() {
 					}
 				}
 			}
-			
+
 			// Update previous bookings reference
 			previousBookings = newBookingsMap;
 			allBookings.set(bookings);
@@ -185,7 +188,7 @@ export function initUserListener() {
 				id: d.id,
 				...d.data()
 			})) as AppUser[];
-			
+
 			// On initial load, just set data — no toasts
 			if (isUsersInitialLoad) {
 				console.log('[AdminData] Initial users load:', users.length, 'users (no toasts)');
@@ -194,7 +197,7 @@ export function initUserListener() {
 				allUsers.set(users);
 				return;
 			}
-			
+
 			// Check for new users (real-time only)
 			if (users.length > previousUserCount) {
 				const prefs = get(adminNotificationPrefs);
@@ -202,13 +205,13 @@ export function initUserListener() {
 					// Find the new user(s)
 					// Get the most recent user (last in array since we don't track by ID)
 					const newUser = users[users.length - 1];
-					
+
 					if (newUser && newUser.createdAt) {
-						const userCreatedTime = newUser.createdAt?.seconds 
-							? newUser.createdAt.seconds * 1000 
+						const userCreatedTime = newUser.createdAt?.seconds
+							? newUser.createdAt.seconds * 1000
 							: new Date(newUser.createdAt).getTime();
 						const timeSinceCreated = Date.now() - userCreatedTime;
-						
+
 						// Only notify if user was created in the last 30 seconds
 						if (timeSinceCreated < 30000) {
 							adminNotifications.addNewUserNotification({
@@ -216,13 +219,13 @@ export function initUserListener() {
 								name: getUserDisplayName(newUser),
 								phone: getUserPhone(newUser) ?? undefined,
 								email: newUser.email,
-								signupMethod: newUser.providerId as any || 'phone'
+								signupMethod: (newUser.providerId as any) || 'phone'
 							});
 						}
 					}
 				}
 			}
-			
+
 			previousUserCount = users.length;
 			allUsers.set(users);
 		},

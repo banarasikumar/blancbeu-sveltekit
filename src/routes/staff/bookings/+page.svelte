@@ -85,10 +85,10 @@
 
 	// Auto-open booking from URL query param
 	let urlBookingId = $derived(page.url.searchParams.get('bookingId'));
-	
+
 	$effect(() => {
 		if (urlBookingId && $staffBookings.length > 0) {
-			const booking = $staffBookings.find(b => b.id === urlBookingId);
+			const booking = $staffBookings.find((b) => b.id === urlBookingId);
 			if (booking) {
 				selectedBooking = booking;
 				modalMode = 'edit';
@@ -239,12 +239,12 @@
 			cancelled: 0,
 			all: $staffBookings.length
 		};
-		
+
 		for (const b of $staffBookings) {
 			if (b.status === 'pending') counts.pending++;
 			if (b.status === 'completed') counts.completed++;
 			if (b.status === 'cancelled') counts.cancelled++;
-			
+
 			if (b.date === today) {
 				counts.upcoming++;
 			} else if (b.date > today && b.status !== 'completed' && b.status !== 'cancelled') {
@@ -315,7 +315,7 @@
 				icon="📅"
 				title="No bookings for today"
 				description={searchQuery ? 'Try a different search' : 'No upcoming bookings'}
-				actionLabel={searchQuery ? "Clear Filters" : ""}
+				actionLabel={searchQuery ? 'Clear Filters' : ''}
 				onAction={() => {
 					searchQuery = '';
 				}}

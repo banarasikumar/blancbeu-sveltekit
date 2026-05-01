@@ -1,302 +1,364 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-	<title>Blancbeu - Offline</title>
-	<style>
-		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+		/>
+		<title>Blancbeu - Offline</title>
+		<style>
+			@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
-		/* LIGHT MODE (Default) */
-		:root {
-			--bg-color: #fdfcfd;
-			--text-main: #121217;
-			--text-muted: #6b6b7b;
-			--glass-bg: rgba(255, 255, 255, 0.75);
-			--glass-border: rgba(255, 255, 255, 0.6);
-			--glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
-			
-			--orb-1: rgba(124, 58, 237, 0.15); /* Purple */
-			--orb-2: rgba(232, 167, 48, 0.15); /* Gold */
-			--orb-3: rgba(244, 63, 94, 0.12); /* Rose */
-			
-			--accent: #121217;
-			--pulse-bg: rgba(0, 0, 0, 0.04);
-			--pulse-dot: #121217;
-		}
-
-		/* DARK MODE (Auto-Switch) */
-		@media (prefers-color-scheme: dark) {
+			/* LIGHT MODE (Default) */
 			:root {
-				--bg-color: #09090b;
-				--text-main: #fcfcfd;
-				--text-muted: #a1a1aa;
-				--glass-bg: rgba(24, 24, 27, 0.55);
-				--glass-border: rgba(255, 255, 255, 0.06);
-				--glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
-				
-				--orb-1: rgba(124, 58, 237, 0.22);
-				--orb-2: rgba(232, 167, 48, 0.16);
-				--orb-3: rgba(244, 63, 94, 0.12);
-				
-				--accent: #ffffff;
-				--pulse-bg: rgba(255, 255, 255, 0.08);
-				--pulse-dot: #ffffff;
+				--bg-color: #fdfcfd;
+				--text-main: #121217;
+				--text-muted: #6b6b7b;
+				--glass-bg: rgba(255, 255, 255, 0.75);
+				--glass-border: rgba(255, 255, 255, 0.6);
+				--glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+
+				--orb-1: rgba(124, 58, 237, 0.15); /* Purple */
+				--orb-2: rgba(232, 167, 48, 0.15); /* Gold */
+				--orb-3: rgba(244, 63, 94, 0.12); /* Rose */
+
+				--accent: #121217;
+				--pulse-bg: rgba(0, 0, 0, 0.04);
+				--pulse-dot: #121217;
 			}
-		}
 
-		* { box-sizing: border-box; margin: 0; padding: 0; }
-		
-		body {
-			font-family: 'Inter', -apple-system, sans-serif;
-			background-color: var(--bg-color);
-			color: var(--text-main);
-			-webkit-font-smoothing: antialiased;
-			height: 100vh;
-			width: 100vw;
-			overflow: hidden;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-			position: relative;
-			transition: background-color 0.4s ease, color 0.4s ease;
-		}
+			/* DARK MODE (Auto-Switch) */
+			@media (prefers-color-scheme: dark) {
+				:root {
+					--bg-color: #09090b;
+					--text-main: #fcfcfd;
+					--text-muted: #a1a1aa;
+					--glass-bg: rgba(24, 24, 27, 0.55);
+					--glass-border: rgba(255, 255, 255, 0.06);
+					--glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
 
-		/* --- Mesh Ambient Background --- */
-		.ambient-background {
-			position: absolute;
-			top: 0; left: 0; width: 100%; height: 100%;
-			overflow: hidden;
-			z-index: 0;
-			pointer-events: none;
-		}
-		.orb {
-			position: absolute;
-			border-radius: 50%;
-			filter: blur(80px);
-			animation: float 20s ease-in-out infinite alternate;
-		}
-		.orb-1 {
-			width: 70vw; height: 70vw;
-			background-color: var(--orb-1);
-			top: -10%; left: -10%;
-			animation-delay: 0s;
-		}
-		.orb-2 {
-			width: 60vw; height: 60vw;
-			background-color: var(--orb-2);
-			bottom: 10%; right: -10%;
-			animation-delay: -5s;
-		}
-		.orb-3 {
-			width: 50vw; height: 50vw;
-			background-color: var(--orb-3);
-			top: 40%; left: 40%;
-			animation-delay: -10s;
-		}
+					--orb-1: rgba(124, 58, 237, 0.22);
+					--orb-2: rgba(232, 167, 48, 0.16);
+					--orb-3: rgba(244, 63, 94, 0.12);
 
-		@keyframes float {
-			0% { transform: translate(0, 0) scale(1); }
-			33% { transform: translate(30px, -50px) scale(1.1); }
-			66% { transform: translate(-20px, 20px) scale(0.9); }
-			100% { transform: translate(0, 0) scale(1); }
-		}
-
-		/* --- Glass Card --- */
-		.glass-card {
-			position: relative;
-			z-index: 10;
-			background: var(--glass-bg);
-			backdrop-filter: blur(28px);
-			-webkit-backdrop-filter: blur(28px);
-			border: 1px solid var(--glass-border);
-			border-radius: 36px;
-			padding: 48px 32px;
-			width: 88%;
-			max-width: 420px;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			text-align: center;
-			box-shadow: var(--glass-shadow);
-			transform: translateY(20px);
-			opacity: 0;
-			animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-		}
-
-		@keyframes slideUp {
-			to { transform: translateY(0); opacity: 1; }
-		}
-
-		/* --- Icon --- */
-		.icon-container {
-			width: 80px;
-			height: 80px;
-			border-radius: 24px;
-			background: var(--pulse-bg);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 28px;
-			color: var(--accent);
-			position: relative;
-		}
-
-		.icon-container svg {
-			width: 36px;
-			height: 36px;
-			stroke-width: 1.5;
-		}
-
-		/* --- Typography --- */
-		h1 {
-			font-family: 'Outfit', sans-serif;
-			font-size: 1.8rem;
-			font-weight: 700;
-			letter-spacing: -0.03em;
-			margin-bottom: 12px;
-			line-height: 1.2;
-		}
-
-		p {
-			font-size: 0.95rem;
-			color: var(--text-muted);
-			line-height: 1.6;
-			margin-bottom: 36px;
-			font-weight: 400;
-		}
-
-		/* --- Status Pulse --- */
-		.status-badge {
-			display: flex;
-			align-items: center;
-			gap: 12px;
-			padding: 12px 20px;
-			background: var(--pulse-bg);
-			border-radius: 100px;
-			font-size: 0.85rem;
-			font-weight: 500;
-			color: var(--text-main);
-			transition: all 0.3s ease;
-		}
-
-		.pulse-dot {
-			width: 8px;
-			height: 8px;
-			background-color: var(--pulse-dot);
-			border-radius: 50%;
-			position: relative;
-		}
-
-		.pulse-dot::after {
-			content: '';
-			position: absolute;
-			top: -4px; left: -4px; right: -4px; bottom: -4px;
-			border-radius: 50%;
-			border: 2px solid var(--pulse-dot);
-			opacity: 0;
-			animation: ripple 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-		}
-
-		@keyframes ripple {
-			0% { transform: scale(0.5); opacity: 1; }
-			100% { transform: scale(2.5); opacity: 0; }
-		}
-	</style>
-</head>
-<body>
-	<div class="ambient-background">
-		<div class="orb orb-1"></div>
-		<div class="orb orb-2"></div>
-		<div class="orb orb-3"></div>
-	</div>
-
-	<div class="glass-card">
-		<div class="icon-container">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-				<line x1="12" y1="20" x2="12.01" y2="20"/>
-				<path d="M4.42 11.86a11 11 0 0 1 15.16 0"/>
-				<path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-				<line x1="2" y1="2" x2="22" y2="22" stroke-width="2"/>
-			</svg>
-		</div>
-		
-		<h1>Connection Lost</h1>
-		<p id="descText">We can't seem to reach the servers right now. We'll automatically reconnect you when the internet is back.</p>
-		
-		<div class="status-badge" id="statusBadge">
-			<div class="pulse-dot"></div>
-			<span id="statusText">Waiting for network...</span>
-		</div>
-	</div>
-
-	<script>
-		// --- Sync Status Bar Color with System Theme ---
-		function updateThemeMeta() {
-			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-			let metaThemeColor = document.querySelector("meta[name=theme-color]");
-			if (!metaThemeColor) {
-				metaThemeColor = document.createElement("meta");
-				metaThemeColor.name = "theme-color";
-				document.head.appendChild(metaThemeColor);
+					--accent: #ffffff;
+					--pulse-bg: rgba(255, 255, 255, 0.08);
+					--pulse-dot: #ffffff;
+				}
 			}
-			metaThemeColor.content = isDark ? "#09090b" : "#fcfcfd";
-		}
-		
-		updateThemeMeta();
-		if (window.matchMedia) {
-			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeMeta);
-		}
 
-		// --- Auto-Reconnect Logic (Robust Fetch Method) ---
-		let isReconnecting = false;
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
 
-		function checkConnection() {
-			if (!navigator.onLine || isReconnecting) return;
-			
-			// Test real connection
-			fetch('https://blancbeu-sveltekit.vercel.app/favicon.ico', { mode: 'no-cors', cache: 'no-store' })
-				.then(() => reconnect())
-				.catch(() => { /* Still offline */ });
-		}
+			body {
+				font-family:
+					'Inter',
+					-apple-system,
+					sans-serif;
+				background-color: var(--bg-color);
+				color: var(--text-main);
+				-webkit-font-smoothing: antialiased;
+				height: 100vh;
+				width: 100vw;
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				position: relative;
+				transition:
+					background-color 0.4s ease,
+					color 0.4s ease;
+			}
 
-		checkConnection();
-		setInterval(checkConnection, 3000);
-		window.addEventListener('online', checkConnection);
+			/* --- Mesh Ambient Background --- */
+			.ambient-background {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				z-index: 0;
+				pointer-events: none;
+			}
+			.orb {
+				position: absolute;
+				border-radius: 50%;
+				filter: blur(80px);
+				animation: float 20s ease-in-out infinite alternate;
+			}
+			.orb-1 {
+				width: 70vw;
+				height: 70vw;
+				background-color: var(--orb-1);
+				top: -10%;
+				left: -10%;
+				animation-delay: 0s;
+			}
+			.orb-2 {
+				width: 60vw;
+				height: 60vw;
+				background-color: var(--orb-2);
+				bottom: 10%;
+				right: -10%;
+				animation-delay: -5s;
+			}
+			.orb-3 {
+				width: 50vw;
+				height: 50vw;
+				background-color: var(--orb-3);
+				top: 40%;
+				left: 40%;
+				animation-delay: -10s;
+			}
 
-		function reconnect() {
-			isReconnecting = true;
-			const statusText = document.getElementById('statusText');
-			const statusBadge = document.getElementById('statusBadge');
-			const dot = document.querySelector('.pulse-dot');
-			
-			if (statusText) statusText.innerText = 'Reconnecting...';
-			
-			// Green success pulse
-			const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-			const successColor = isDark ? '#30d158' : '#34c759';
-			
-			if (dot) {
-				dot.style.backgroundColor = successColor;
-				
-				// Re-inject the keyframe pseudo-element with the success color
-				const style = document.createElement('style');
-				style.innerHTML = `
+			@keyframes float {
+				0% {
+					transform: translate(0, 0) scale(1);
+				}
+				33% {
+					transform: translate(30px, -50px) scale(1.1);
+				}
+				66% {
+					transform: translate(-20px, 20px) scale(0.9);
+				}
+				100% {
+					transform: translate(0, 0) scale(1);
+				}
+			}
+
+			/* --- Glass Card --- */
+			.glass-card {
+				position: relative;
+				z-index: 10;
+				background: var(--glass-bg);
+				backdrop-filter: blur(28px);
+				-webkit-backdrop-filter: blur(28px);
+				border: 1px solid var(--glass-border);
+				border-radius: 36px;
+				padding: 48px 32px;
+				width: 88%;
+				max-width: 420px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				text-align: center;
+				box-shadow: var(--glass-shadow);
+				transform: translateY(20px);
+				opacity: 0;
+				animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+			}
+
+			@keyframes slideUp {
+				to {
+					transform: translateY(0);
+					opacity: 1;
+				}
+			}
+
+			/* --- Icon --- */
+			.icon-container {
+				width: 80px;
+				height: 80px;
+				border-radius: 24px;
+				background: var(--pulse-bg);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				margin-bottom: 28px;
+				color: var(--accent);
+				position: relative;
+			}
+
+			.icon-container svg {
+				width: 36px;
+				height: 36px;
+				stroke-width: 1.5;
+			}
+
+			/* --- Typography --- */
+			h1 {
+				font-family: 'Outfit', sans-serif;
+				font-size: 1.8rem;
+				font-weight: 700;
+				letter-spacing: -0.03em;
+				margin-bottom: 12px;
+				line-height: 1.2;
+			}
+
+			p {
+				font-size: 0.95rem;
+				color: var(--text-muted);
+				line-height: 1.6;
+				margin-bottom: 36px;
+				font-weight: 400;
+			}
+
+			/* --- Status Pulse --- */
+			.status-badge {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 12px 20px;
+				background: var(--pulse-bg);
+				border-radius: 100px;
+				font-size: 0.85rem;
+				font-weight: 500;
+				color: var(--text-main);
+				transition: all 0.3s ease;
+			}
+
+			.pulse-dot {
+				width: 8px;
+				height: 8px;
+				background-color: var(--pulse-dot);
+				border-radius: 50%;
+				position: relative;
+			}
+
+			.pulse-dot::after {
+				content: '';
+				position: absolute;
+				top: -4px;
+				left: -4px;
+				right: -4px;
+				bottom: -4px;
+				border-radius: 50%;
+				border: 2px solid var(--pulse-dot);
+				opacity: 0;
+				animation: ripple 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+			}
+
+			@keyframes ripple {
+				0% {
+					transform: scale(0.5);
+					opacity: 1;
+				}
+				100% {
+					transform: scale(2.5);
+					opacity: 0;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="ambient-background">
+			<div class="orb orb-1"></div>
+			<div class="orb orb-2"></div>
+			<div class="orb orb-3"></div>
+		</div>
+
+		<div class="glass-card">
+			<div class="icon-container">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+					<line x1="12" y1="20" x2="12.01" y2="20" />
+					<path d="M4.42 11.86a11 11 0 0 1 15.16 0" />
+					<path d="M1.42 9a16 16 0 0 1 21.16 0" />
+					<line x1="2" y1="2" x2="22" y2="22" stroke-width="2" />
+				</svg>
+			</div>
+
+			<h1>Connection Lost</h1>
+			<p id="descText">
+				We can't seem to reach the servers right now. We'll automatically reconnect you when the
+				internet is back.
+			</p>
+
+			<div class="status-badge" id="statusBadge">
+				<div class="pulse-dot"></div>
+				<span id="statusText">Waiting for network...</span>
+			</div>
+		</div>
+
+		<script>
+			// --- Sync Status Bar Color with System Theme ---
+			function updateThemeMeta() {
+				const isDark =
+					window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+				let metaThemeColor = document.querySelector('meta[name=theme-color]');
+				if (!metaThemeColor) {
+					metaThemeColor = document.createElement('meta');
+					metaThemeColor.name = 'theme-color';
+					document.head.appendChild(metaThemeColor);
+				}
+				metaThemeColor.content = isDark ? '#09090b' : '#fcfcfd';
+			}
+
+			updateThemeMeta();
+			if (window.matchMedia) {
+				window
+					.matchMedia('(prefers-color-scheme: dark)')
+					.addEventListener('change', updateThemeMeta);
+			}
+
+			// --- Auto-Reconnect Logic (Robust Fetch Method) ---
+			let isReconnecting = false;
+
+			function checkConnection() {
+				if (!navigator.onLine || isReconnecting) return;
+
+				// Test real connection
+				fetch('https://blancbeu-sveltekit.vercel.app/favicon.ico', {
+					mode: 'no-cors',
+					cache: 'no-store'
+				})
+					.then(() => reconnect())
+					.catch(() => {
+						/* Still offline */
+					});
+			}
+
+			checkConnection();
+			setInterval(checkConnection, 3000);
+			window.addEventListener('online', checkConnection);
+
+			function reconnect() {
+				isReconnecting = true;
+				const statusText = document.getElementById('statusText');
+				const statusBadge = document.getElementById('statusBadge');
+				const dot = document.querySelector('.pulse-dot');
+
+				if (statusText) statusText.innerText = 'Reconnecting...';
+
+				// Green success pulse
+				const isDark =
+					window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+				const successColor = isDark ? '#30d158' : '#34c759';
+
+				if (dot) {
+					dot.style.backgroundColor = successColor;
+
+					// Re-inject the keyframe pseudo-element with the success color
+					const style = document.createElement('style');
+					style.innerHTML = `
 					.pulse-dot::after { border-color: ${successColor} !important; }
 				`;
-				document.head.appendChild(style);
-			}
-			if (statusBadge) {
-				statusBadge.style.color = successColor;
-				statusBadge.style.background = isDark ? 'rgba(48, 209, 88, 0.15)' : 'rgba(52, 199, 89, 0.12)';
-			}
+					document.head.appendChild(style);
+				}
+				if (statusBadge) {
+					statusBadge.style.color = successColor;
+					statusBadge.style.background = isDark
+						? 'rgba(48, 209, 88, 0.15)'
+						: 'rgba(52, 199, 89, 0.12)';
+				}
 
-			setTimeout(() => {
-				window.location.href = 'https://blancbeu-sveltekit.vercel.app/staff';
-			}, 800);
-		}
-	</script>
-</body>
+				setTimeout(() => {
+					window.location.href = 'https://blancbeu-sveltekit.vercel.app/staff';
+				}, 800);
+			}
+		</script>
+	</body>
 </html>

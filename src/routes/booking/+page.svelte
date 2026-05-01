@@ -7,7 +7,11 @@
 	import { db, auth } from '$lib/firebase';
 	import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 	import { requestUserNotificationPermission } from '$lib/stores/userNotifications';
-	import { appSettings, initAppSettingsListener, destroyAppSettingsListener } from '$lib/stores/appSettings';
+	import {
+		appSettings,
+		initAppSettingsListener,
+		destroyAppSettingsListener
+	} from '$lib/stores/appSettings';
 	import { env } from '$env/dynamic/public';
 
 	import { goto } from '$app/navigation';
@@ -115,7 +119,7 @@
 				userName = user.displayName || 'Guest';
 				userEmail = user.email || '';
 				userPhone = user.phoneNumber || '';
-				
+
 				// Fetch Beu Cash Balance
 				try {
 					const docRef = doc(db, 'users', user.uid);
@@ -124,7 +128,7 @@
 						beuCashBalance = docSnap.data().beuCash || 0;
 					}
 				} catch (err) {
-					console.error("Error fetching Beu Cash balance:", err);
+					console.error('Error fetching Beu Cash balance:', err);
 				}
 			} else {
 				if (browser) goto('/login');
@@ -492,7 +496,7 @@
 	// Computed totals
 	$: offersDiscount = originalTotal - offerTotal;
 	$: subTotalAfterCoupon = Math.max(0, offerTotal - couponDiscount);
-	$: maxBeuCashAllowed = subTotalAfterCoupon * 0.30;
+	$: maxBeuCashAllowed = subTotalAfterCoupon * 0.3;
 	$: actualBeuCashApplied = useBeuCash ? Math.min(beuCashBalance, maxBeuCashAllowed) : 0;
 	$: totalSavings = offersDiscount + couponDiscount + actualBeuCashApplied;
 	$: finalTotal = Math.max(0, subTotalAfterCoupon - actualBeuCashApplied);
@@ -509,21 +513,24 @@
 			let finalPaymentStatus = 'unpaid';
 
 			// RAZORPAY ONLINE FLOW
-			if ($appSettings.defaultPaymentGateway === 'razorpay' && (paymentType === 'token' || paymentType === 'full')) {
+			if (
+				$appSettings.defaultPaymentGateway === 'razorpay' &&
+				(paymentType === 'token' || paymentType === 'full')
+			) {
 				const checkoutAmount = paymentType === 'token' ? 50 : finalTotal;
-				
+
 				// 1. Create order on server
 				const orderRes = await fetch('/api/razorpay/create-order', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ amount: checkoutAmount, receipt: `rcpt_${Date.now()}` })
 				});
-				
+
 				if (!orderRes.ok) {
 					throw new Error('Failed to create Razorpay order');
 				}
 				const orderData = await orderRes.json();
-				
+
 				// 2. Open Razorpay Checkout Modal
 				await new Promise((resolve, reject) => {
 					const options = {
@@ -553,7 +560,7 @@
 										razorpay_signature: response.razorpay_signature
 									})
 								});
-								
+
 								if (!verifyRes.ok) {
 									reject(new Error('Payment verification failed'));
 									return;
@@ -568,7 +575,7 @@
 							}
 						},
 						modal: {
-							ondismiss: function() {
+							ondismiss: function () {
 								reject(new Error('Payment cancelled by user'));
 							}
 						}
@@ -604,7 +611,12 @@
 				},
 				payment: {
 					type: paymentType,
-					method: paymentType === 'free' ? 'pay_at_salon' : ($appSettings.defaultPaymentGateway === 'razorpay' ? 'razorpay' : selectedPaymentMethod),
+					method:
+						paymentType === 'free'
+							? 'pay_at_salon'
+							: $appSettings.defaultPaymentGateway === 'razorpay'
+								? 'razorpay'
+								: selectedPaymentMethod,
 					amount: paymentType === 'token' ? 50 : paymentType === 'full' ? finalTotal : 0,
 					status: finalPaymentStatus,
 					razorpay_payment_id: razorpayPaymentId,
@@ -613,7 +625,7 @@
 				},
 				userId: auth.currentUser?.uid || null, // Save User ID for fetching
 				createdAt: serverTimestamp(),
-				status: (paymentType === 'full' || paymentType === 'token') ? 'confirmed' : 'pending',
+				status: paymentType === 'full' || paymentType === 'token' ? 'confirmed' : 'pending',
 				source: 'web_app_v2'
 			};
 
@@ -633,10 +645,11 @@
 				if (auth.currentUser) {
 					const idToken = await auth.currentUser.getIdToken();
 					const serviceNames = $cart.map((s) => s.name).join(', ');
-					const apiUrl = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform() 
-						? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyStaff' 
-						: '/api/notifications/notifyStaff';
-					
+					const apiUrl =
+						typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform()
+							? 'https://blancbeu-sveltekit.vercel.app/api/notifications/notifyStaff'
+							: '/api/notifications/notifyStaff';
+
 					const notifyRes = await fetch(apiUrl, {
 						method: 'POST',
 						headers: {
@@ -681,7 +694,7 @@
 		} catch (error: any) {
 			console.error('Booking failed:', error);
 			isSubmitting = false;
-			
+
 			// Don't show scary alerts if the user just closed the payment popup
 			if (error && error.message !== 'Payment cancelled by user') {
 				alert('Failed to book: ' + (error.message || 'Please try again.'));
@@ -1094,7 +1107,7 @@
 						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
 							Offers & Rewards
 						</h4>
-						
+
 						<!-- View Coupons Button / Applied Coupon -->
 						<div class="coupon-input-wrapper mb-3">
 							{#if couponApplied}
@@ -1108,7 +1121,7 @@
 									</button>
 								</div>
 							{:else}
-								<button class="view-coupons-btn" on:click={() => showCouponsModal = true}>
+								<button class="view-coupons-btn" on:click={() => (showCouponsModal = true)}>
 									<div class="view-coupons-left">
 										<Ticket size={18} class="text-gold" />
 										<span>View all coupons & offers</span>
@@ -1126,14 +1139,23 @@
 									<span class="font-bold">Beu Cash Balance: {fmt(beuCashBalance)}</span>
 								</div>
 								{#if beuCashBalance > 0}
-									<p class="beu-cash-subtext">Use up to 30% ({fmt(maxBeuCashAllowed)}) of your subtotal.</p>
+									<p class="beu-cash-subtext">
+										Use up to 30% ({fmt(maxBeuCashAllowed)}) of your subtotal.
+									</p>
 								{:else}
 									<p class="beu-cash-subtext">Earn Beu Cash on your bookings to use here!</p>
 								{/if}
 							</div>
 							<div class="beu-cash-action">
-								<label class="switch-container" style={beuCashBalance === 0 ? 'opacity: 0.5; pointer-events: none;' : ''}>
-									<input type="checkbox" bind:checked={useBeuCash} disabled={beuCashBalance === 0} />
+								<label
+									class="switch-container"
+									style={beuCashBalance === 0 ? 'opacity: 0.5; pointer-events: none;' : ''}
+								>
+									<input
+										type="checkbox"
+										bind:checked={useBeuCash}
+										disabled={beuCashBalance === 0}
+									/>
 									<span class="slider round"></span>
 								</label>
 							</div>
@@ -1145,43 +1167,43 @@
 						<div class="receipt-box">
 							<div class="price-breakdown">
 								<div class="breakdown-row">
-								<span>Original Amount</span>
-								<span>{fmt(originalTotal)}</span>
+									<span>Original Amount</span>
+									<span>{fmt(originalTotal)}</span>
+								</div>
+
+								{#if offersDiscount > 0}
+									<div class="breakdown-row discount">
+										<span>Offers Discount</span>
+										<span class="text-green">-{fmt(offersDiscount)}</span>
+									</div>
+								{/if}
+
+								{#if couponDiscount > 0}
+									<div class="breakdown-row discount">
+										<span>Coupon Discount</span>
+										<span class="text-green">-{fmt(couponDiscount)}</span>
+									</div>
+								{/if}
+
+								{#if actualBeuCashApplied > 0}
+									<div class="breakdown-row discount">
+										<span>Beu Cash Used</span>
+										<span class="text-green">-{fmt(actualBeuCashApplied)}</span>
+									</div>
+								{/if}
+
+								{#if totalSavings > 0}
+									<div class="savings-row">
+										<Sparkles size={14} class="text-gold" />
+										<span>You Saved {fmt(totalSavings)}</span>
+									</div>
+								{/if}
+
+								<div class="total-row">
+									<span>Total Amount</span>
+									<span class="text-gold">{fmt(finalTotal)}</span>
+								</div>
 							</div>
-
-							{#if offersDiscount > 0}
-								<div class="breakdown-row discount">
-									<span>Offers Discount</span>
-									<span class="text-green">-{fmt(offersDiscount)}</span>
-								</div>
-							{/if}
-
-							{#if couponDiscount > 0}
-								<div class="breakdown-row discount">
-									<span>Coupon Discount</span>
-									<span class="text-green">-{fmt(couponDiscount)}</span>
-								</div>
-							{/if}
-
-							{#if actualBeuCashApplied > 0}
-								<div class="breakdown-row discount">
-									<span>Beu Cash Used</span>
-									<span class="text-green">-{fmt(actualBeuCashApplied)}</span>
-								</div>
-							{/if}
-
-							{#if totalSavings > 0}
-								<div class="savings-row">
-									<Sparkles size={14} class="text-gold" />
-									<span>You Saved {fmt(totalSavings)}</span>
-								</div>
-							{/if}
-
-							<div class="total-row">
-								<span>Total Amount</span>
-								<span class="text-gold">{fmt(finalTotal)}</span>
-							</div>
-						</div>
 						</div>
 					</div>
 
@@ -1214,7 +1236,11 @@
 								<div class="option-content">
 									<span class="option-label">Book with ₹50</span>
 									{#if paymentType === 'token'}
-										<span class="option-sub-info" transition:slide|local={{ duration: 200 }}>Adjusted in final bill • Pay <strong>{fmt(Math.max(0, finalTotal - 50))}</strong> at salon</span>
+										<span class="option-sub-info" transition:slide|local={{ duration: 200 }}
+											>Adjusted in final bill • Pay <strong
+												>{fmt(Math.max(0, finalTotal - 50))}</strong
+											> at salon</span
+										>
 									{/if}
 								</div>
 								<div class="price-tag-badge">₹50</div>
@@ -1241,64 +1267,66 @@
 									<div class="section-label-sm">
 										<h4>Select Payment Method</h4>
 									</div>
-								<div class="detailed-payment-grid">
-									<button
-										class="method-card {selectedPaymentMethod === 'upi' ? 'active' : ''}"
-										on:click={() => handlePaymentMethodSelect('upi')}
-									>
-										<Smartphone size={20} />
-										<span>UPI</span>
-									</button>
-									<button
-										class="method-card {selectedPaymentMethod === 'qr' ? 'active' : ''}"
-										on:click={() => handlePaymentMethodSelect('qr')}
-									>
-										<QrCode size={20} />
-										<span>QR</span>
-									</button>
-									<button
-										class="method-card {bouncingMethod === 'card' ? 'shake-anim' : ''}"
-										on:click={() => handlePaymentMethodSelect('card')}
-									>
-										<CreditCard size={20} />
-										<span>Card</span>
-									</button>
-									<button
-										class="method-card {bouncingMethod === 'erupee' ? 'shake-anim' : ''}"
-										on:click={() => handlePaymentMethodSelect('erupee')}
-									>
-										<Banknote size={20} />
-										<span>e-Rupee</span>
-									</button>
-									<button
-										class="method-card {bouncingMethod === 'crypto' ? 'shake-anim' : ''}"
-										on:click={() => handlePaymentMethodSelect('crypto')}
-									>
-										<Bitcoin size={20} />
-										<span>Crypto</span>
-									</button>
-									<button
-										class="method-card {bouncingMethod === 'paylater' ? 'shake-anim' : ''}"
-										on:click={() => handlePaymentMethodSelect('paylater')}
-									>
-										<Clock size={20} />
-										<span>Pay Later</span>
-									</button>
-								</div>
-
-								{#if showUPIApps && selectedPaymentMethod === 'upi'}
-									<div class="upi-apps-row" transition:slide>
-										<div class="upi-app-icon">GPay</div>
-										<div class="upi-app-icon">PhonePe</div>
-										<div class="upi-app-icon">Paytm</div>
-										<div class="upi-app-icon">BHIM</div>
+									<div class="detailed-payment-grid">
+										<button
+											class="method-card {selectedPaymentMethod === 'upi' ? 'active' : ''}"
+											on:click={() => handlePaymentMethodSelect('upi')}
+										>
+											<Smartphone size={20} />
+											<span>UPI</span>
+										</button>
+										<button
+											class="method-card {selectedPaymentMethod === 'qr' ? 'active' : ''}"
+											on:click={() => handlePaymentMethodSelect('qr')}
+										>
+											<QrCode size={20} />
+											<span>QR</span>
+										</button>
+										<button
+											class="method-card {bouncingMethod === 'card' ? 'shake-anim' : ''}"
+											on:click={() => handlePaymentMethodSelect('card')}
+										>
+											<CreditCard size={20} />
+											<span>Card</span>
+										</button>
+										<button
+											class="method-card {bouncingMethod === 'erupee' ? 'shake-anim' : ''}"
+											on:click={() => handlePaymentMethodSelect('erupee')}
+										>
+											<Banknote size={20} />
+											<span>e-Rupee</span>
+										</button>
+										<button
+											class="method-card {bouncingMethod === 'crypto' ? 'shake-anim' : ''}"
+											on:click={() => handlePaymentMethodSelect('crypto')}
+										>
+											<Bitcoin size={20} />
+											<span>Crypto</span>
+										</button>
+										<button
+											class="method-card {bouncingMethod === 'paylater' ? 'shake-anim' : ''}"
+											on:click={() => handlePaymentMethodSelect('paylater')}
+										>
+											<Clock size={20} />
+											<span>Pay Later</span>
+										</button>
 									</div>
-								{/if}
-							</div>
+
+									{#if showUPIApps && selectedPaymentMethod === 'upi'}
+										<div class="upi-apps-row" transition:slide>
+											<div class="upi-app-icon">GPay</div>
+											<div class="upi-app-icon">PhonePe</div>
+											<div class="upi-app-icon">Paytm</div>
+											<div class="upi-app-icon">BHIM</div>
+										</div>
+									{/if}
+								</div>
 							{:else}
-								<p style="color: var(--color-text-secondary); font-weight: 500; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; margin: 8px 0 0; opacity: 0.75;">
-								<ShieldCheck size={15} /> Secure Online Checkout
-							</p>
+								<p
+									style="color: var(--color-text-secondary); font-weight: 500; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; margin: 8px 0 0; opacity: 0.75;"
+								>
+									<ShieldCheck size={15} /> Secure Online Checkout
+								</p>
 							{/if}
 						{/if}
 
@@ -1316,7 +1344,9 @@
 									<span>Pay at Salon</span>
 									<span>{fmt(Math.max(0, finalTotal - 50))}</span>
 								</div>
-								<p class="token-adjust-note">₹50 will be adjusted in your final bill. No extra charges.</p>
+								<p class="token-adjust-note">
+									₹50 will be adjusted in your final bill. No extra charges.
+								</p>
 							</div>
 						{/if}
 					</div>
@@ -1327,7 +1357,9 @@
 						class="btn-primary-shiny w-full text-lg py-4"
 						disabled={isSubmitting ||
 							paymentType === '' ||
-							(paymentType !== 'free' && $appSettings.defaultPaymentGateway !== 'razorpay' && !selectedPaymentMethod)}
+							(paymentType !== 'free' &&
+								$appSettings.defaultPaymentGateway !== 'razorpay' &&
+								!selectedPaymentMethod)}
 						on:click={submitBooking}
 					>
 						{#if isSubmitting}
@@ -1348,7 +1380,11 @@
 
 	<!-- COUPONS MODAL -->
 	{#if showCouponsModal}
-		<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={() => showCouponsModal = false}>
+		<div
+			class="modal-backdrop"
+			transition:fade={{ duration: 200 }}
+			on:click={() => (showCouponsModal = false)}
+		>
 			<div
 				class="summary-modal glass-panel coupons-modal"
 				transition:fly={{ y: 50, duration: 300, easing: cubicOut }}
@@ -1362,7 +1398,7 @@
 							<p class="text-xs text-secondary">Unlock special offers</p>
 						</div>
 					</div>
-					<button class="close-btn" on:click={() => showCouponsModal = false}>
+					<button class="close-btn" on:click={() => (showCouponsModal = false)}>
 						<X size={20} />
 					</button>
 				</div>
@@ -1410,7 +1446,13 @@
 									<div class="coupon-desc-sub">{coupon.description}</div>
 								</div>
 								<div class="coupon-card-right">
-									<button class="apply-text-btn" on:click={() => { couponCode = coupon.code; applyCoupon(); }}>
+									<button
+										class="apply-text-btn"
+										on:click={() => {
+											couponCode = coupon.code;
+											applyCoupon();
+										}}
+									>
 										APPLY
 									</button>
 								</div>
@@ -3483,7 +3525,7 @@
 		font-size: 0.75rem;
 		color: var(--color-text-secondary);
 	}
-	
+
 	/* TOGGLE SWITCH */
 	.switch-container {
 		position: relative;
@@ -3499,21 +3541,24 @@
 	.slider {
 		position: absolute;
 		cursor: pointer;
-		top: 0; left: 0; right: 0; bottom: 0;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
 		background-color: rgba(255, 255, 255, 0.2);
 		border: 1px solid rgba(255, 255, 255, 0.3);
-		transition: .4s;
+		transition: 0.4s;
 	}
 	.slider:before {
 		position: absolute;
-		content: "";
+		content: '';
 		height: 18px;
 		width: 18px;
 		left: 2px;
 		bottom: 2px;
 		background-color: white;
-		transition: .4s;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+		transition: 0.4s;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 	}
 	input:checked + .slider {
 		background-color: var(--color-accent-gold);
@@ -3546,7 +3591,7 @@
 		border: 1px solid rgba(0, 0, 0, 0.05);
 		border-radius: 12px;
 		padding: 16px 12px;
-		box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+		box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 	}
 	:global([data-theme='clean']) .receipt-box,
 	:global([data-theme='glitch']) .receipt-box {
@@ -3564,7 +3609,7 @@
 		background: #ffffff;
 		border: 1px solid rgba(0, 0, 0, 0.08);
 		border-radius: 12px;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 		transition: all 0.2s ease;
 		cursor: pointer;
 	}
@@ -3601,7 +3646,8 @@
 		margin-bottom: 12px;
 		position: relative;
 	}
-	.coupon-card::before, .coupon-card::after {
+	.coupon-card::before,
+	.coupon-card::after {
 		content: '';
 		position: absolute;
 		width: 16px;

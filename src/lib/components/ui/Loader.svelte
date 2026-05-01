@@ -37,12 +37,7 @@
 	<div class="loader-inner">
 		{#if mounted && DotLottieSvelte}
 			<div class="lottie-wrapper" style="width: {size}px; height: {size}px;">
-				<svelte:component
-					this={DotLottieSvelte}
-					src="/LoadingDotsInYellow.lottie"
-					autoplay
-					loop
-				/>
+				<svelte:component this={DotLottieSvelte} src="/LoadingDotsInYellow.lottie" autoplay loop />
 			</div>
 		{:else}
 			<!-- CSS Fallback spinner (shows immediately, before Lottie loads) -->

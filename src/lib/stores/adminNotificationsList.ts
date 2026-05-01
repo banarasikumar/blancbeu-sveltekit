@@ -3,14 +3,14 @@ import { browser } from '$app/environment';
 
 const ADMIN_NOTIFICATIONS_KEY = 'blancbeu_admin_notifications';
 
-export type AdminNotificationType = 
-	| 'new_booking' 
-	| 'status_change' 
-	| 'new_user' 
-	| 'walk_in_order' 
-	| 'payment_received' 
-	| 'cancelled' 
-	| 'completed' 
+export type AdminNotificationType =
+	| 'new_booking'
+	| 'status_change'
+	| 'new_user'
+	| 'walk_in_order'
+	| 'payment_received'
+	| 'cancelled'
+	| 'completed'
 	| 'system';
 
 export interface AdminNotification {
@@ -58,9 +58,7 @@ function createAdminNotificationsStore() {
 
 		markAsRead(id: string) {
 			update((notifications) => {
-				const updated = notifications.map((n) =>
-					n.id === id ? { ...n, read: true } : n
-				);
+				const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
 				if (browser) {
 					localStorage.setItem(ADMIN_NOTIFICATIONS_KEY, JSON.stringify(updated));
 				}
@@ -110,17 +108,19 @@ function createAdminNotificationsStore() {
 		}) {
 			const customerName = booking.userName || 'Guest';
 			const serviceName = booking.serviceName || 'Service';
-			const formattedDate = booking.date ? new Date(booking.date).toLocaleDateString('en-IN', { 
-				weekday: 'short', 
-				day: 'numeric', 
-				month: 'short' 
-			}) : 'Today';
-			
+			const formattedDate = booking.date
+				? new Date(booking.date).toLocaleDateString('en-IN', {
+						weekday: 'short',
+						day: 'numeric',
+						month: 'short'
+					})
+				: 'Today';
+
 			const isWalkIn = booking.source === 'staff_walkin';
-			
+
 			return this.add({
 				type: isWalkIn ? 'walk_in_order' : 'new_booking',
-				title: isWalkIn 
+				title: isWalkIn
 					? `🚶 Walk-in Order from ${customerName}`
 					: `📅 New Booking from ${customerName}`,
 				message: isWalkIn
@@ -130,8 +130,8 @@ function createAdminNotificationsStore() {
 				userId: booking.userId,
 				userName: booking.userName,
 				userPhone: booking.userPhone,
-				data: { 
-					amount: booking.totalAmount, 
+				data: {
+					amount: booking.totalAmount,
 					status: booking.status,
 					source: booking.source || 'user'
 				}
@@ -150,15 +150,21 @@ function createAdminNotificationsStore() {
 			serviceName?: string;
 			totalAmount?: number;
 		}) {
-			const statusText = booking.status === 'completed' ? '✅ Completed' : 
-				booking.status === 'cancelled' ? '❌ Cancelled' : 
-				booking.status === 'confirmed' ? '✓ Confirmed' : 
-				booking.status === 'pending' ? '⏳ Pending' : 'Updated';
-			
+			const statusText =
+				booking.status === 'completed'
+					? '✅ Completed'
+					: booking.status === 'cancelled'
+						? '❌ Cancelled'
+						: booking.status === 'confirmed'
+							? '✓ Confirmed'
+							: booking.status === 'pending'
+								? '⏳ Pending'
+								: 'Updated';
+
 			const customerName = booking.userName || 'Guest';
 			const serviceInfo = booking.serviceName ? ` for ${booking.serviceName}` : '';
 			const timeInfo = booking.time ? ` at ${booking.time}` : '';
-			
+
 			let message = `${customerName}'s${serviceInfo} booking${timeInfo} is now ${booking.status}`;
 			if (booking.previousStatus) {
 				message += ` (was ${booking.previousStatus})`;
@@ -166,7 +172,7 @@ function createAdminNotificationsStore() {
 			if (booking.totalAmount && booking.status === 'completed') {
 				message += `. Payment: ₹${booking.totalAmount}`;
 			}
-			
+
 			return this.add({
 				type: 'status_change',
 				title: statusText,
@@ -174,8 +180,8 @@ function createAdminNotificationsStore() {
 				bookingId: booking.id,
 				userId: booking.userId,
 				userName: booking.userName,
-				data: { 
-					status: booking.status, 
+				data: {
+					status: booking.status,
 					previousStatus: booking.previousStatus,
 					amount: booking.totalAmount
 				}
@@ -193,7 +199,7 @@ function createAdminNotificationsStore() {
 			const userName = user.name || 'New User';
 			const signupMethod = user.signupMethod || 'phone';
 			const methodIcon = signupMethod === 'google' ? '🔵' : signupMethod === 'phone' ? '📱' : '📧';
-			
+
 			return this.add({
 				type: 'new_user',
 				title: `${methodIcon} New User: ${userName}`,
@@ -201,7 +207,7 @@ function createAdminNotificationsStore() {
 				userId: user.id,
 				userName: user.name,
 				userPhone: user.phone,
-				data: { 
+				data: {
 					signupMethod: user.signupMethod,
 					email: user.email
 				}
@@ -222,7 +228,7 @@ function createAdminNotificationsStore() {
 				message: `₹${payment.amount} received${payment.userName ? ` from ${payment.userName}` : ''}${payment.method ? ` via ${payment.method}` : ''}.`,
 				bookingId: payment.bookingId,
 				userName: payment.userName,
-				data: { 
+				data: {
 					amount: payment.amount,
 					method: payment.method,
 					status: payment.status
@@ -236,10 +242,9 @@ export const adminNotifications = createAdminNotificationsStore();
 
 export const adminUnreadCount = derived(
 	adminNotifications,
-	$notifications => $notifications.filter(n => !n.read).length
+	($notifications) => $notifications.filter((n) => !n.read).length
 );
 
-export const recentAdminNotifications = derived(
-	adminNotifications,
-	$notifications => $notifications.slice(0, 20)
+export const recentAdminNotifications = derived(adminNotifications, ($notifications) =>
+	$notifications.slice(0, 20)
 );

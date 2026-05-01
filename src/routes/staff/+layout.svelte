@@ -13,9 +13,19 @@
 		upcomingBookings
 	} from '$lib/stores/staffData';
 	import { initTheme, destroyTheme, resolvedTheme } from '$lib/stores/staffTheme';
-	import { soundEnabled, selectedSoundType, AVAILABLE_SOUNDS, showListeningNotification, closeListeningNotification } from '$lib/stores/staffNotifications';
+	import {
+		soundEnabled,
+		selectedSoundType,
+		AVAILABLE_SOUNDS,
+		showListeningNotification,
+		closeListeningNotification
+	} from '$lib/stores/staffNotifications';
 	import { notifications } from '$lib/stores/staffNotificationsList';
-	import { playNotificationChime, playNotificationSound, playSelectedNotificationSound } from '$lib/utils/notificationSound';
+	import {
+		playNotificationChime,
+		playNotificationSound,
+		playSelectedNotificationSound
+	} from '$lib/utils/notificationSound';
 	import StaffNav from '$lib/components/staff/StaffNav.svelte';
 	import StaffHeader from '$lib/components/staff/StaffHeader.svelte';
 	import StaffBgAnimation from '$lib/components/staff/StaffBgAnimation.svelte';
@@ -138,7 +148,9 @@
 						// ── Regular push-notification / other deep-link path ─────
 						const path = url.pathname + url.search;
 						if (url.hostname.includes('staff.blancbeu.in')) {
-							const routedPath = path.startsWith('/staff') ? path : `/staff${path === '/' ? '' : path}`;
+							const routedPath = path.startsWith('/staff')
+								? path
+								: `/staff${path === '/' ? '' : path}`;
 							goto(routedPath);
 						} else if (path.startsWith('/staff')) {
 							goto(path);
@@ -321,7 +333,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 8px 32px rgba(124, 58, 237, 0.45), 0 0 0 1px rgba(255,255,255,0.1);
+		box-shadow:
+			0 8px 32px rgba(124, 58, 237, 0.45),
+			0 0 0 1px rgba(255, 255, 255, 0.1);
 		animation: s-float 3s ease-in-out infinite;
 	}
 
@@ -343,8 +357,12 @@
 		border-radius: 28px;
 		border: 2px solid transparent;
 		background: var(--s-grad-aurora) border-box;
-		-webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-		mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+		-webkit-mask:
+			linear-gradient(#fff 0 0) padding-box,
+			linear-gradient(#fff 0 0);
+		mask:
+			linear-gradient(#fff 0 0) padding-box,
+			linear-gradient(#fff 0 0);
 		-webkit-mask-composite: destination-out;
 		mask-composite: exclude;
 		animation: s-spin 4s linear infinite;

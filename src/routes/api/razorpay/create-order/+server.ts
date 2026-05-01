@@ -34,7 +34,10 @@ export async function POST({ request }) {
 
 		if (!response.ok) {
 			console.error('[Razorpay Order Error]', data);
-			return json({ error: data.error?.description || 'Failed to create order' }, { status: response.status });
+			return json(
+				{ error: data.error?.description || 'Failed to create order' },
+				{ status: response.status }
+			);
 		}
 
 		return json({

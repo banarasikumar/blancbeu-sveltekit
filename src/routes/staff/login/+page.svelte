@@ -192,7 +192,10 @@
 	}
 
 	:global(.staff-app.dark) .brand h1 {
-		background: var(--s-grad-aurora, linear-gradient(135deg, #a78bfa 0%, #fb7185 50%, #f5c040 100%));
+		background: var(
+			--s-grad-aurora,
+			linear-gradient(135deg, #a78bfa 0%, #fb7185 50%, #f5c040 100%)
+		);
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		background-clip: text;
@@ -324,14 +327,27 @@
 	}
 
 	@keyframes s-fadeInUp {
-		from { opacity: 0; transform: translateY(20px); }
-		to { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(20px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 	@keyframes s-spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 	@keyframes s-float {
-		0%, 100% { transform: translateY(0px); }
-		50% { transform: translateY(-8px); }
+		0%,
+		100% {
+			transform: translateY(0px);
+		}
+		50% {
+			transform: translateY(-8px);
+		}
 	}
 </style>

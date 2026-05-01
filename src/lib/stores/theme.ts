@@ -19,7 +19,7 @@ const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
 function getTimeBasedTheme(): Theme {
 	const hour = new Date().getHours();
 	// Daytime: 6 AM to 6 PM -> light theme
-	return (hour >= 6 && hour < 18) ? 'clean' : 'gold';
+	return hour >= 6 && hour < 18 ? 'clean' : 'gold';
 }
 
 const getInitialTheme = (): Theme => {
@@ -63,7 +63,7 @@ if (browser) {
 		// Dynamically update Capacitor Status Bar natively
 		if (browser && Capacitor.isNativePlatform()) {
 			StatusBar.setBackgroundColor({ color: THEME_COLORS[value] }).catch(console.warn);
-			
+
 			// Style.Dark = white/light status bar icons (used in Dark mode like 'gold')
 			// Style.Light = dark status bar icons (used in Light modes like 'glitch'/'clean')
 			const style = value === 'gold' ? Style.Dark : Style.Light;

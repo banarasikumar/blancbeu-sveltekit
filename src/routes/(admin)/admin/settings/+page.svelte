@@ -5,7 +5,12 @@
 	import { UserCircle, Bell, LogOut, ChevronRight, Database, CreditCard } from 'lucide-svelte';
 	import { migrateServices } from '$lib/migrateServices';
 	import { onMount, onDestroy } from 'svelte';
-	import { appSettings, initAppSettingsListener, destroyAppSettingsListener, updateAppSetting } from '$lib/stores/appSettings';
+	import {
+		appSettings,
+		initAppSettingsListener,
+		destroyAppSettingsListener,
+		updateAppSetting
+	} from '$lib/stores/appSettings';
 
 	let userName = $derived($adminUser?.displayName || 'Admin User');
 	let userEmail = $derived($adminUser?.email || '');
@@ -184,7 +189,12 @@
 					class:on={$adminNotificationPrefs.newBookings}
 					onclick={() => {
 						adminNotificationPrefs.toggle('newBookings');
-						showToast($adminNotificationPrefs.newBookings ? 'New bookings enabled' : 'New bookings disabled', 'success');
+						showToast(
+							$adminNotificationPrefs.newBookings
+								? 'New bookings enabled'
+								: 'New bookings disabled',
+							'success'
+						);
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
@@ -198,7 +208,12 @@
 					class:on={$adminNotificationPrefs.walkInOrders}
 					onclick={() => {
 						adminNotificationPrefs.toggle('walkInOrders');
-						showToast($adminNotificationPrefs.walkInOrders ? 'Walk-in orders enabled' : 'Walk-in orders disabled', 'success');
+						showToast(
+							$adminNotificationPrefs.walkInOrders
+								? 'Walk-in orders enabled'
+								: 'Walk-in orders disabled',
+							'success'
+						);
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
@@ -212,7 +227,12 @@
 					class:on={$adminNotificationPrefs.statusChanges}
 					onclick={() => {
 						adminNotificationPrefs.toggle('statusChanges');
-						showToast($adminNotificationPrefs.statusChanges ? 'Status changes enabled' : 'Status changes disabled', 'success');
+						showToast(
+							$adminNotificationPrefs.statusChanges
+								? 'Status changes enabled'
+								: 'Status changes disabled',
+							'success'
+						);
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
@@ -226,7 +246,12 @@
 					class:on={$adminNotificationPrefs.completedBookings}
 					onclick={() => {
 						adminNotificationPrefs.toggle('completedBookings');
-						showToast($adminNotificationPrefs.completedBookings ? 'Completed bookings enabled' : 'Completed bookings disabled', 'success');
+						showToast(
+							$adminNotificationPrefs.completedBookings
+								? 'Completed bookings enabled'
+								: 'Completed bookings disabled',
+							'success'
+						);
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
@@ -240,7 +265,12 @@
 					class:on={$adminNotificationPrefs.cancelledBookings}
 					onclick={() => {
 						adminNotificationPrefs.toggle('cancelledBookings');
-						showToast($adminNotificationPrefs.cancelledBookings ? 'Cancelled bookings enabled' : 'Cancelled bookings disabled', 'success');
+						showToast(
+							$adminNotificationPrefs.cancelledBookings
+								? 'Cancelled bookings enabled'
+								: 'Cancelled bookings disabled',
+							'success'
+						);
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
@@ -254,7 +284,12 @@
 					class:on={$adminNotificationPrefs.paymentReceived}
 					onclick={() => {
 						adminNotificationPrefs.toggle('paymentReceived');
-						showToast($adminNotificationPrefs.paymentReceived ? 'Payment notifications enabled' : 'Payment notifications disabled', 'success');
+						showToast(
+							$adminNotificationPrefs.paymentReceived
+								? 'Payment notifications enabled'
+								: 'Payment notifications disabled',
+							'success'
+						);
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
@@ -274,7 +309,12 @@
 					class:on={$adminNotificationPrefs.newUsers}
 					onclick={() => {
 						adminNotificationPrefs.toggle('newUsers');
-						showToast($adminNotificationPrefs.newUsers ? 'New user notifications enabled' : 'New user notifications disabled', 'success');
+						showToast(
+							$adminNotificationPrefs.newUsers
+								? 'New user notifications enabled'
+								: 'New user notifications disabled',
+							'success'
+						);
 					}}
 				>
 					<div class="sub-toggle-thumb"></div>
@@ -293,7 +333,9 @@
 
 		<div class="admin-settings-subitem" style="border-bottom: none; padding-bottom: 0;">
 			<div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
-				<label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+				<label
+					style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
+				>
 					<span style="font-size: 15px; font-weight: 500;">Default (QR & Offline)</span>
 					<input
 						type="radio"
@@ -308,7 +350,9 @@
 					/>
 				</label>
 
-				<label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+				<label
+					style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;"
+				>
 					<span style="font-size: 15px; font-weight: 500;">Razorpay Online Checkout</span>
 					<input
 						type="radio"
@@ -332,12 +376,18 @@
 		tabindex="0"
 		onclick={() => {
 			adminNotificationPrefs.toggle('soundEnabled');
-			showToast($adminNotificationPrefs.soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
+			showToast(
+				$adminNotificationPrefs.soundEnabled ? 'Sound enabled' : 'Sound disabled',
+				'success'
+			);
 		}}
 		onkeydown={(e) => {
 			if (e.key === 'Enter') {
 				adminNotificationPrefs.toggle('soundEnabled');
-				showToast($adminNotificationPrefs.soundEnabled ? 'Sound enabled' : 'Sound disabled', 'success');
+				showToast(
+					$adminNotificationPrefs.soundEnabled ? 'Sound enabled' : 'Sound disabled',
+					'success'
+				);
 			}
 		}}
 	>

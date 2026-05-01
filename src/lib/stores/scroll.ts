@@ -113,7 +113,7 @@ export function restoreScrollPosition(route: string): boolean {
 
 	// Unvisited: Force Top
 	performScroll(0);
-	
+
 	// Multiple retries to ensure we stay at top despite view transitions
 	let topRetries = 0;
 	const topInterval = setInterval(() => {

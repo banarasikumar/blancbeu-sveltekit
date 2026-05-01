@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { notifications, unreadCount, type Notification, type NotificationType } from '$lib/stores/staffNotificationsList';
+	import {
+		notifications,
+		unreadCount,
+		type Notification,
+		type NotificationType
+	} from '$lib/stores/staffNotificationsList';
 	import { staffBookings } from '$lib/stores/staffData';
 	import { goto } from '$app/navigation';
 	import { showToast } from '$lib/stores/toast';
@@ -19,7 +24,7 @@
 	let filteredNotifications = $derived(() => {
 		let list = $notifications;
 		if (activeFilter !== 'all') {
-			list = list.filter(n => n.type === activeFilter);
+			list = list.filter((n) => n.type === activeFilter);
 		}
 		return list;
 	});
@@ -41,23 +46,35 @@
 
 	function getNotificationIcon(type: NotificationType): string {
 		switch (type) {
-			case 'booking': return '📅';
-			case 'completed': return '✅';
-			case 'cancelled': return '❌';
-			case 'payment': return '💰';
-			case 'system': return '🔔';
-			default: return '🔔';
+			case 'booking':
+				return '📅';
+			case 'completed':
+				return '✅';
+			case 'cancelled':
+				return '❌';
+			case 'payment':
+				return '💰';
+			case 'system':
+				return '🔔';
+			default:
+				return '🔔';
 		}
 	}
 
 	function getNotificationColor(type: NotificationType): string {
 		switch (type) {
-			case 'booking': return 'var(--s-accent)';
-			case 'completed': return 'var(--s-success)';
-			case 'cancelled': return 'var(--s-error)';
-			case 'payment': return 'var(--s-warning)';
-			case 'system': return 'var(--s-text-secondary)';
-			default: return 'var(--s-accent)';
+			case 'booking':
+				return 'var(--s-accent)';
+			case 'completed':
+				return 'var(--s-success)';
+			case 'cancelled':
+				return 'var(--s-error)';
+			case 'payment':
+				return 'var(--s-warning)';
+			case 'system':
+				return 'var(--s-text-secondary)';
+			default:
+				return 'var(--s-accent)';
 		}
 	}
 
@@ -100,13 +117,13 @@
 					<button
 						class="filter-pill"
 						class:active={activeFilter === filter.key}
-						onclick={() => activeFilter = filter.key as any}
+						onclick={() => (activeFilter = filter.key as any)}
 					>
 						<span class="filter-icon">{filter.icon}</span>
 						{filter.label}
-						{#if filter.key !== 'all' && $notifications.filter(n => n.type === filter.key && !n.read).length > 0}
+						{#if filter.key !== 'all' && $notifications.filter((n) => n.type === filter.key && !n.read).length > 0}
 							<span class="filter-badge">
-								{$notifications.filter(n => n.type === filter.key && !n.read).length}
+								{$notifications.filter((n) => n.type === filter.key && !n.read).length}
 							</span>
 						{/if}
 					</button>
@@ -116,12 +133,29 @@
 			<div class="header-actions">
 				{#if $unreadCount > 0}
 					<button class="action-btn" onclick={markAllRead} title="Mark all as read">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+						<svg
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg
+						>
 					</button>
 				{/if}
 				{#if $notifications.length > 0}
 					<button class="action-btn delete" onclick={clearAll} title="Clear all">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+						<svg
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							><polyline points="3 6 5 6 21 6"></polyline><path
+								d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+							></path></svg
+						>
 					</button>
 				{/if}
 			</div>
@@ -147,9 +181,17 @@
 					tabindex="0"
 					onkeydown={(e) => e.key === 'Enter' && handleNotificationClick(notification)}
 				>
-					<div class="notification-indicator" style="background: {getNotificationColor(notification.type)}"></div>
-					
-					<div class="nc-avatar" style="background: {getNotificationColor(notification.type)}20; color: {getNotificationColor(notification.type)}">
+					<div
+						class="notification-indicator"
+						style="background: {getNotificationColor(notification.type)}"
+					></div>
+
+					<div
+						class="nc-avatar"
+						style="background: {getNotificationColor(
+							notification.type
+						)}20; color: {getNotificationColor(notification.type)}"
+					>
 						{#if notification.userName}
 							{notification.userName.charAt(0).toUpperCase()}
 						{:else}
@@ -162,21 +204,43 @@
 							<h4 class="nc-title">{notification.title}</h4>
 							<span class="nc-time">{formatTimeAgo(notification.createdAt)}</span>
 						</div>
-						
+
 						<!-- Clean, truncated summary instead of a huge paragraph -->
 						<p class="nc-summary">{notification.message}</p>
-						
+
 						<!-- Structured Badges for Quick Reading -->
 						<div class="nc-badges">
 							{#if notification.userName}
 								<span class="nc-badge user-badge">
-									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+									<svg
+										width="12"
+										height="12"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2.5"
+										><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle
+											cx="12"
+											cy="7"
+											r="4"
+										/></svg
+									>
 									{notification.userName}
 								</span>
 							{/if}
 							{#if notification.userPhone}
 								<span class="nc-badge phone-badge">
-									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+									<svg
+										width="12"
+										height="12"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2.5"
+										><path
+											d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+										/></svg
+									>
 									{notification.userPhone}
 								</span>
 							{/if}
@@ -193,8 +257,21 @@
 						</div>
 					</div>
 
-					<button class="delete-btn" onclick={(e) => deleteNotification(notification.id, e)} title="Delete notification">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+					<button
+						class="delete-btn"
+						onclick={(e) => deleteNotification(notification.id, e)}
+						title="Delete notification"
+					>
+						<svg
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
+							><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"
+							></line></svg
+						>
 					</button>
 				</div>
 			{/each}
@@ -239,7 +316,7 @@
 		-ms-overflow-style: none;
 		scrollbar-width: none;
 	}
-	
+
 	.filter-pills::-webkit-scrollbar {
 		display: none;
 	}
@@ -259,7 +336,7 @@
 		transition: all var(--s-duration-fast);
 		white-space: nowrap;
 		flex-shrink: 0;
-		box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 	}
 
 	.filter-pill:hover {
@@ -316,7 +393,7 @@
 		color: var(--s-text-secondary);
 		cursor: pointer;
 		transition: all var(--s-duration-fast);
-		box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 	}
 
 	.action-btn:hover {
@@ -356,12 +433,12 @@
 		transition: all var(--s-duration-fast);
 		position: relative;
 		overflow: hidden;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 	}
 
 	.notification-card:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 		border-color: var(--s-border-strong);
 	}
 
@@ -482,7 +559,9 @@
 		background: rgba(124, 58, 237, 0.08);
 		color: #7c3aed;
 	}
-	.staff-app.dark .nc-badge.user-badge { color: #a78bfa; }
+	.staff-app.dark .nc-badge.user-badge {
+		color: #a78bfa;
+	}
 
 	.nc-badge.amount-badge {
 		background: var(--s-success-bg);
@@ -496,11 +575,26 @@
 		font-weight: 700;
 	}
 
-	.nc-badge.status-badge[data-status="pending"] { background: var(--s-warning-bg); color: var(--s-warning); }
-	.nc-badge.status-badge[data-status="confirmed"] { background: var(--s-info-bg); color: var(--s-info); }
-	.nc-badge.status-badge[data-status="completed"] { background: var(--s-success-bg); color: var(--s-success); }
-	.nc-badge.status-badge[data-status="cancelled"] { background: var(--s-error-bg); color: var(--s-error); }
-	.nc-badge.status-badge[data-status="in-progress"] { background: var(--s-accent-2-bg); color: var(--s-accent-2); }
+	.nc-badge.status-badge[data-status='pending'] {
+		background: var(--s-warning-bg);
+		color: var(--s-warning);
+	}
+	.nc-badge.status-badge[data-status='confirmed'] {
+		background: var(--s-info-bg);
+		color: var(--s-info);
+	}
+	.nc-badge.status-badge[data-status='completed'] {
+		background: var(--s-success-bg);
+		color: var(--s-success);
+	}
+	.nc-badge.status-badge[data-status='cancelled'] {
+		background: var(--s-error-bg);
+		color: var(--s-error);
+	}
+	.nc-badge.status-badge[data-status='in-progress'] {
+		background: var(--s-accent-2-bg);
+		color: var(--s-accent-2);
+	}
 
 	.delete-btn {
 		position: absolute;
@@ -519,7 +613,7 @@
 		opacity: 0;
 		transform: scale(0.9);
 		transition: all var(--s-duration-fast);
-		box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 	}
 
 	/* Show delete button on mobile naturally or on hover for desktop */

@@ -1,112 +1,51 @@
 <script lang="ts">
 	import { fade, fly, scale } from 'svelte/transition';
-	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
-
 	import { browser } from '$app/environment';
+	import { requestNotificationToken } from '$lib/capacitor/pushService';
+	import { user } from '$lib/stores/auth';
 
-	let deferredPrompt: any = $state(null);
 	let isVisible = $state(false);
 
-	let { onClosed } = $props<{ onClosed?: () => void }>();
+	let appTitle = 'Blancbeu App';
+	let appDesc = 'Get instant updates on your bookings, exclusive offers, and beauty tips!';
+	let btnText = 'Enable Notifications';
 
-	// Dynamically determine which app we are currently viewing
-	let appType = $derived(
-		page.url.pathname.startsWith('/admin')
-			? 'admin'
-			: page.url.pathname.startsWith('/staff')
-				? 'staff'
-				: 'user'
-	);
-
-	let appTitle = $derived(
-		appType === 'admin' ? 'Admin Portal' : appType === 'staff' ? 'Stylist Portal' : 'Blancbeu App'
-	);
-
-	let appDesc = $derived(
-		appType === 'admin'
-			? 'Manage the salon anywhere.'
-			: appType === 'staff'
-				? 'Manage your schedule on the go.'
-				: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
-	);
-
-	let btnText = 'Install App';
-
-	let appIconUrl = $derived(
-		appType === 'admin'
-			? '/admin-icon-512.png'
-			: appType === 'staff'
-				? '/staff-icon-512.png'
-				: '/pwa-512x512.png'
-	);
-
-	let themeProps = $derived(
-		appType === 'admin'
-			? {
-					glow: 'rgba(212, 175, 55, 0.18)',
-					btnLine: 'linear-gradient(135deg, #27272a, #09090b)',
-					textGlow: '#D4AF37',
-					border: 'rgba(212, 175, 55, 0.4)',
-					btnText: '#fff'
-				}
-			: appType === 'staff'
-				? {
-						glow: 'rgba(239, 68, 68, 0.18)',
-						btnLine: 'linear-gradient(135deg, #EF4444, #B91C1C)',
-						textGlow: '#EF4444',
-						border: 'rgba(239, 68, 68, 0.4)',
-						btnText: '#fff'
-					}
-				: {
-						glow: 'rgba(212, 175, 55, 0.18)',
-						btnLine: 'linear-gradient(135deg, #E2C25D, #AA7C11)',
-						textGlow: '#D4AF37',
-						border: 'rgba(212, 175, 55, 0.4)',
-						btnText: '#000'
-					}
-	);
-
-	$effect(() => {
+	export function show() {
 		if (!browser) return;
+		if (localStorage.getItem('has_seen_notification_prompt') === 'true') {
+			return;
+		}
 
-		// 1. Setup our native Install Prompt Listener if it hasn't fired yet
-		const handleBeforeInstallPrompt = (e: any) => {
-			e.preventDefault();
-			deferredPrompt = e;
-			isVisible = true;
-			console.log(`[PWA] Strictly scoped install prompt captured for: ${appType}`);
-		};
+		if ('Notification' in window && Notification.permission === 'granted') {
+			return; // Already granted
+		}
 
-		window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-		return () => {
-			window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-		};
-	});
+		isVisible = true;
+		localStorage.setItem('has_seen_notification_prompt', 'true');
+	}
 
 	async function handleAction() {
-		if (!deferredPrompt) return; // Unlikely, since button is tied to isVisible
-
-		// Show the native browser install prompt
-		deferredPrompt.prompt();
-
-		const { outcome } = await deferredPrompt.userChoice;
-		console.log(`[PWA] User response to the install prompt: ${outcome}`);
-
-		deferredPrompt = null;
 		isVisible = false;
-		if (onClosed) onClosed();
+		// Use the updated pushService to request and save the token
+		await requestNotificationToken($user?.uid, 'user');
 	}
 
 	function closePrompt() {
 		isVisible = false;
-		if (onClosed) onClosed();
 	}
+
+	// Make the theme props similar to the InstallPrompt for user app
+	let themeProps = {
+		glow: 'rgba(212, 175, 55, 0.18)',
+		btnLine: 'linear-gradient(135deg, #E2C25D, #AA7C11)',
+		textGlow: '#D4AF37',
+		border: 'rgba(212, 175, 55, 0.4)',
+		btnText: '#000'
+	};
 </script>
 
 {#if isVisible}
-	<div class="install-overlay" transition:fade={{ duration: 300 }}>
+	<div class="notification-overlay" transition:fade={{ duration: 300 }}>
 		<div
 			class="premium-install-card"
 			in:fly={{ y: 200, duration: 800, delay: 200, opacity: 0 }}
@@ -115,7 +54,7 @@
 		>
 			<div class="card-bg-glow"></div>
 
-			<button class="close-btn" onclick={closePrompt} aria-label="Close Install Prompt">
+			<button class="close-btn" onclick={closePrompt} aria-label="Close Prompt">
 				<svg
 					width="20"
 					height="20"
@@ -135,16 +74,27 @@
 				<!-- App Icon -->
 				<div class="app-icon-wrapper">
 					<div class="app-icon" in:scale={{ duration: 600, delay: 600, start: 0.8, opacity: 0 }}>
-						<img src={appIconUrl} alt="{appTitle} Icon" class="real-icon" />
+						<svg
+							class="bell-icon"
+							width="40"
+							height="40"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="var(--color-accent-gold, #D4AF37)"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+							<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+						</svg>
 
 						<!-- Sparkle Icon -->
-						{#if appType === 'user'}
-							<div class="sparkle-icon">
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-									<path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4L12 2z" />
-								</svg>
-							</div>
-						{/if}
+						<div class="sparkle-icon">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+								<path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4L12 2z" />
+							</svg>
+						</div>
 					</div>
 					<div class="icon-glow"></div>
 				</div>
@@ -152,33 +102,9 @@
 				<!-- Text Information -->
 				<div class="app-details">
 					<div class="badge-wrapper">
-						<span class="exclusive-badge">For Better Experience</span>
+						<span class="exclusive-badge">Stay Updated</span>
 					</div>
 					<h3 class="app-title">{appTitle}</h3>
-
-					{#if appType === 'user'}
-						<div class="app-rating">
-							<div class="stars">
-								{#each Array(5) as _}
-									<svg
-										width="14"
-										height="14"
-										viewBox="0 0 24 24"
-										fill="var(--color-accent-gold)"
-										stroke="var(--color-accent-gold)"
-										stroke-width="1"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									>
-										<polygon
-											points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-										></polygon>
-									</svg>
-								{/each}
-							</div>
-							<span class="rating-text">4.9 (2.5k)</span>
-						</div>
-					{/if}
 
 					<p class="app-desc">{@html appDesc}</p>
 				</div>
@@ -198,13 +124,12 @@
 							stroke-linecap="round"
 							stroke-linejoin="round"
 						>
-							<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-							<polyline points="7 10 12 15 17 10"></polyline>
-							<line x1="12" y1="15" x2="12" y2="3"></line>
+							<path d="M5 12h14"></path>
+							<path d="M12 5l7 7-7 7"></path>
 						</svg>
 						<div class="btn-shine"></div>
 					</button>
-					<span class="secure-text">Fast & Secure Download</span>
+					<span class="secure-text">Never miss an update</span>
 				</div>
 			</div>
 		</div>
@@ -212,7 +137,7 @@
 {/if}
 
 <style>
-	.install-overlay {
+	.notification-overlay {
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.7);
@@ -317,10 +242,8 @@
 		overflow: hidden;
 	}
 
-	.real-icon {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
+	.bell-icon {
+		filter: drop-shadow(0 2px 5px rgba(212, 175, 55, 0.4));
 	}
 
 	.sparkle-icon {
@@ -401,25 +324,6 @@
 		text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 	}
 
-	.app-rating {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-bottom: 6px;
-	}
-
-	.stars {
-		display: flex;
-		gap: 3px;
-	}
-
-	.rating-text {
-		font-family: var(--font-body, sans-serif);
-		font-size: 0.85rem;
-		color: rgba(255, 255, 255, 0.7);
-		font-weight: 600;
-	}
-
 	.app-desc {
 		font-family: var(--font-body, sans-serif);
 		font-size: 1.05rem;
@@ -427,12 +331,6 @@
 		margin: 0;
 		line-height: 1.5;
 		padding: 0 12px;
-	}
-
-	:global(.app-desc strong) {
-		color: var(--text-glow);
-		font-weight: 700;
-		text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
 	}
 
 	.action-area {
@@ -483,7 +381,7 @@
 	}
 
 	.install-btn:hover .btn-icon {
-		transform: translateY(2px);
+		transform: translateX(4px);
 	}
 
 	.install-btn:active {

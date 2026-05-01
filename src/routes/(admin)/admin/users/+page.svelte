@@ -8,7 +8,17 @@
 		type AppUser
 	} from '$lib/stores/adminData';
 	import { showToast } from '$lib/stores/toast';
-	import { Search, UsersRound, MoreVertical, History, Mail, Phone, Copy, X, ArrowUp } from 'lucide-svelte';
+	import {
+		Search,
+		UsersRound,
+		MoreVertical,
+		History,
+		Mail,
+		Phone,
+		Copy,
+		X,
+		ArrowUp
+	} from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
 	let searchQuery = $state('');
@@ -128,13 +138,25 @@
 <!-- Filters -->
 <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
 	<button
-		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showWalkIns ? 'var(--admin-accent)' : 'var(--admin-border)'}; background: {showWalkIns ? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)' : 'transparent'}; color: {showWalkIns ? 'var(--admin-accent)' : 'var(--admin-text-secondary)'}; cursor: pointer;"
+		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showWalkIns
+			? 'var(--admin-accent)'
+			: 'var(--admin-border)'}; background: {showWalkIns
+			? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)'
+			: 'transparent'}; color: {showWalkIns
+			? 'var(--admin-accent)'
+			: 'var(--admin-text-secondary)'}; cursor: pointer;"
 		onclick={() => (showWalkIns = !showWalkIns)}
 	>
 		Walk-ins {showWalkIns ? '✓' : ''}
 	</button>
 	<button
-		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showMerged ? 'var(--admin-accent)' : 'var(--admin-border)'}; background: {showMerged ? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)' : 'transparent'}; color: {showMerged ? 'var(--admin-accent)' : 'var(--admin-text-secondary)'}; cursor: pointer;"
+		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showMerged
+			? 'var(--admin-accent)'
+			: 'var(--admin-border)'}; background: {showMerged
+			? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)'
+			: 'transparent'}; color: {showMerged
+			? 'var(--admin-accent)'
+			: 'var(--admin-text-secondary)'}; cursor: pointer;"
 		onclick={() => (showMerged = !showMerged)}
 	>
 		Merged {showMerged ? '✓' : ''}
@@ -183,7 +205,10 @@
 				<div class="admin-user-name">
 					{name}
 					{#if user.accountType === 'walkin'}
-						<span class="admin-role-badge" style="background: rgba(234,179,8,0.15); color: #ca8a04; border-color: rgba(234,179,8,0.3);">
+						<span
+							class="admin-role-badge"
+							style="background: rgba(234,179,8,0.15); color: #ca8a04; border-color: rgba(234,179,8,0.3);"
+						>
 							WALK-IN
 						</span>
 					{:else}

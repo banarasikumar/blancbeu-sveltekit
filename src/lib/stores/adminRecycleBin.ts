@@ -187,10 +187,7 @@ export async function cleanupExpiredItems(): Promise<number> {
 	const cutoff = thirtyDaysAgo.toISOString();
 
 	try {
-		const q = query(
-			collection(db, 'recycledBookings'),
-			where('deletedAt', '<', cutoff)
-		);
+		const q = query(collection(db, 'recycledBookings'), where('deletedAt', '<', cutoff));
 		const snapshot = await getDocs(q);
 
 		if (snapshot.empty) return 0;

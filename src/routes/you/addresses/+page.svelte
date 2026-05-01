@@ -244,7 +244,11 @@
 			onclick={() => (showAddModal = false)}
 			onkeydown={(e) => e.key === 'Escape' && (showAddModal = false)}
 		>
-			<div class="modal-content" transition:fly={{ y: 50, duration: 300 }} onclick={(e) => e.stopPropagation()}>
+			<div
+				class="modal-content"
+				transition:fly={{ y: 50, duration: 300 }}
+				onclick={(e) => e.stopPropagation()}
+			>
 				<div class="modal-header">
 					<h2>{isEditing ? 'Edit Address' : 'New Address'}</h2>
 					<button class="close-btn" onclick={() => (showAddModal = false)}>

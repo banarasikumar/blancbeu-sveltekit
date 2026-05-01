@@ -1,11 +1,6 @@
 <script lang="ts">
 	import { adminUser } from '$lib/stores/adminAuth';
-	import {
-		bookingCount,
-		pendingCount,
-		userCount,
-		serviceCount
-	} from '$lib/stores/adminData';
+	import { bookingCount, pendingCount, userCount, serviceCount } from '$lib/stores/adminData';
 	import { goto } from '$app/navigation';
 	import { showToast } from '$lib/stores/toast';
 	import {
@@ -23,12 +18,9 @@
 	import { flip } from 'svelte/animate';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { 
-		adminUnreadCount
-	} from '$lib/stores/adminNotificationsList';
+	import { adminUnreadCount } from '$lib/stores/adminNotificationsList';
 
 	let userName = $derived(($adminUser?.displayName || 'Admin').split(' ')[0]);
-
 
 	const stats = $derived([
 		{
@@ -168,7 +160,6 @@
 	function toggleEdit() {
 		isEditing = !isEditing;
 	}
-
 </script>
 
 <!-- Hero Section -->
@@ -246,7 +237,6 @@
 	</div>
 </div>
 
-
 <style>
 	.admin-stat-card {
 		text-align: left;
@@ -294,7 +284,6 @@
 			transform: rotate(0deg);
 		}
 	}
-
 
 	.notification-btn {
 		position: relative;

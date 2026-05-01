@@ -44,10 +44,10 @@ type Unsubscribe = () => void;
  * We tag each token with its platform so the backend can target them correctly.
  */
 async function saveToken(
-	userId: string,
+	userId: string | null | undefined,
 	token: string,
 	platform: 'web' | 'android',
-	appType: 'staff' | 'admin'
+	appType: 'staff' | 'admin' | 'user'
 ): Promise<void> {
 	const { doc, setDoc, arrayUnion } = await import('firebase/firestore');
 	const { db } = await import('$lib/firebase');
@@ -57,29 +57,44 @@ async function saveToken(
 		localStorage.setItem(`blancbeu_${appType}_current_token`, token);
 	}
 
-	const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
+	if (!userId) {
+		// If user is not logged in, just cache it in localStorage.
+		// It will be merged on next login via authService.ts.
+		if (typeof window !== 'undefined' && appType === 'user') {
+			localStorage.setItem('pending_user_fcm_token', token);
+			console.log(`[PushService] Cached unauthenticated FCM token for ${appType}`);
+		}
+		return;
+	}
+
+	const tokenField =
+		appType === 'admin' ? 'adminFcmTokens' : appType === 'staff' ? 'staffFcmTokens' : 'fcmTokens';
 	const userRef = doc(db, 'users', userId);
-	
-	// Also save to legacy fcmTokens to ensure backward compatibility with broadcast/+server.ts
-	await setDoc(
-		userRef,
-		{
-			fcmTokens: arrayUnion(token),
-			[tokenField]: arrayUnion(token),
-			fcmPlatform: platform,
-			updatedAt: new Date().toISOString()
-		},
-		{ merge: true }
-	);
+
+	const updateData: any = {
+		fcmPlatform: platform,
+		updatedAt: new Date().toISOString()
+	};
+
+	// Save to the specific field. Also save to legacy fcmTokens if not user app to ensure backward compatibility.
+	updateData[tokenField] = arrayUnion(token);
+	if (appType !== 'user') {
+		updateData.fcmTokens = arrayUnion(token);
+	}
+
+	await setDoc(userRef, updateData, { merge: true });
 }
 
 /**
  * Removes the current device's token from Firestore to stop receiving push notifications
  * specifically on this device, leaving other devices untouched.
  */
-export async function removeToken(userId: string, appType: 'staff' | 'admin'): Promise<void> {
+export async function removeToken(
+	userId: string,
+	appType: 'staff' | 'admin' | 'user'
+): Promise<void> {
 	if (typeof window === 'undefined') return;
-	
+
 	const token = localStorage.getItem(`blancbeu_${appType}_current_token`);
 	if (!token) {
 		console.warn(`[PushService] No local token found to remove for ${appType}`);
@@ -90,14 +105,18 @@ export async function removeToken(userId: string, appType: 'staff' | 'admin'): P
 		const { doc, updateDoc, arrayRemove } = await import('firebase/firestore');
 		const { db } = await import('$lib/firebase');
 
-		const tokenField = appType === 'admin' ? 'adminFcmTokens' : 'staffFcmTokens';
+		const tokenField =
+			appType === 'admin' ? 'adminFcmTokens' : appType === 'staff' ? 'staffFcmTokens' : 'fcmTokens';
 		const userRef = doc(db, 'users', userId);
-		
-		await updateDoc(userRef, {
-			fcmTokens: arrayRemove(token),
-			[tokenField]: arrayRemove(token)
-		});
-		
+
+		const updateData: any = {};
+		updateData[tokenField] = arrayRemove(token);
+		if (appType !== 'user') {
+			updateData.fcmTokens = arrayRemove(token);
+		}
+
+		await updateDoc(userRef, updateData);
+
 		// Optional: clear local token, but not strictly necessary
 		// localStorage.removeItem(`blancbeu_${appType}_current_token`);
 		console.log(`[PushService] Successfully removed device token for ${appType}`);
@@ -108,7 +127,11 @@ export async function removeToken(userId: string, appType: 'staff' | 'admin'): P
 
 // ─── Native path (Capacitor + FCM via Google Play Services) ──────────────────
 
-async function initNativePush(userId: string, appType: 'staff' | 'admin', onMessage: ForegroundHandler): Promise<Unsubscribe> {
+async function initNativePush(
+	userId: string | null | undefined,
+	appType: 'staff' | 'admin' | 'user',
+	onMessage: ForegroundHandler
+): Promise<Unsubscribe> {
 	// Dynamic import — this package only exists in the native build context.
 	const { PushNotifications } = await import('@capacitor/push-notifications');
 
@@ -200,10 +223,10 @@ async function initNativePush(userId: string, appType: 'staff' | 'admin', onMess
 			// If the app is not in foreground, or just resumed within 6 seconds,
 			// this is a background-delivered notification being re-fired — suppress it.
 			if (!isAppInForeground || timeSinceResume < 6000) {
-				console.log(
-					'[PushService] Suppressing duplicate foreground handler (bg→fg transition)',
-					{ isAppInForeground, timeSinceResume }
-				);
+				console.log('[PushService] Suppressing duplicate foreground handler (bg→fg transition)', {
+					isAppInForeground,
+					timeSinceResume
+				});
 				return;
 			}
 
@@ -239,10 +262,17 @@ async function initNativePush(userId: string, appType: 'staff' | 'admin', onMess
 
 // ─── Web / PWA path (Firebase Messaging via browser push API) ─────────────────
 
-async function initWebPush(userId: string, appType: 'staff' | 'admin', onMessage: ForegroundHandler): Promise<Unsubscribe> {
-	const { isSupported, getMessaging, getToken, onMessage: onFCMMessage } = await import(
-		'firebase/messaging'
-	);
+async function initWebPush(
+	userId: string | null | undefined,
+	appType: 'staff' | 'admin' | 'user',
+	onMessage: ForegroundHandler
+): Promise<Unsubscribe> {
+	const {
+		isSupported,
+		getMessaging,
+		getToken,
+		onMessage: onFCMMessage
+	} = await import('firebase/messaging');
 	const supported = await isSupported();
 	if (!supported) {
 		console.warn('[PushService] Web push not supported in this browser');
@@ -285,11 +315,15 @@ async function initWebPush(userId: string, appType: 'staff' | 'admin', onMessage
  * Initialize push notifications for the given user.
  *
  * @param userId  - Firebase Auth UID
- * @param appType - 'staff' or 'admin'
+ * @param appType - 'staff' | 'admin' | 'user'
  * @param onMessage - Callback for foreground messages (show toast / sound)
  * @returns Unsubscribe function — call in onDestroy()
  */
-export async function initPush(userId: string, appType: 'staff' | 'admin', onMessage: ForegroundHandler): Promise<Unsubscribe> {
+export async function initPush(
+	userId: string | null | undefined,
+	appType: 'staff' | 'admin' | 'user',
+	onMessage: ForegroundHandler
+): Promise<Unsubscribe> {
 	if (typeof window === 'undefined') return () => {};
 
 	// Check if the user has disabled notifications explicitly on this device
@@ -311,7 +345,45 @@ export async function initPush(userId: string, appType: 'staff' | 'admin', onMes
 }
 
 /**
+ * Request notification token manually (e.g. from a custom prompt).
+ */
+export async function requestNotificationToken(
+	userId: string | null | undefined,
+	appType: 'staff' | 'admin' | 'user' = 'user'
+): Promise<void> {
+	if (typeof window === 'undefined') return;
+
+	try {
+		const permission = await Notification.requestPermission();
+		if (permission === 'granted') {
+			const { Capacitor } = await import('@capacitor/core');
+
+			if (Capacitor.isNativePlatform()) {
+				// Initialize native push which registers and saves token
+				initNativePush(userId, appType, () => {});
+			} else {
+				// Handle Web Token explicitly
+				const { getMessaging, getToken } = await import('firebase/messaging');
+				const { app } = await import('$lib/firebase');
+				if (app) {
+					const messaging = getMessaging(app);
+					const token = await getToken(messaging, {
+						vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+						serviceWorkerRegistration: await navigator.serviceWorker.ready
+					});
+					if (token) {
+						await saveToken(userId, token, 'web', appType);
+					}
+				}
+			}
+		}
+	} catch (err) {
+		console.error('[PushService] Error requesting notification token:', err);
+	}
+}
+
+/**
  * Returns true if we are running inside the Capacitor native app.
  * Useful for hiding/showing PWA-specific UI (e.g. install prompt).
  */
-export { isNative };
+export { isNative, saveToken };

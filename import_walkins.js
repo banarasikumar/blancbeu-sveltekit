@@ -115,4 +115,9 @@ async function run() {
 	console.log(`  Total processed:   ${contacts.length}`);
 }
 
-run().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+run()
+	.then(() => process.exit(0))
+	.catch((e) => {
+		console.error(e);
+		process.exit(1);
+	});

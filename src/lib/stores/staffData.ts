@@ -101,21 +101,21 @@ export function initStaffDataListener() {
 			})) as Booking[];
 
 			// Detect new bookings (not in previous set)
-			const currentIds = new Set(bookings.map(b => b.id));
-			const newBookings = bookings.filter(b => !previousBookingIds.has(b.id));
+			const currentIds = new Set(bookings.map((b) => b.id));
+			const newBookings = bookings.filter((b) => !previousBookingIds.has(b.id));
 
 			// Play sound and show toast for new bookings (not on initial load)
 			if (!isInitialLoad && newBookings.length > 0) {
-				const newPendingBookings = newBookings.filter(b => b.status === 'pending');
+				const newPendingBookings = newBookings.filter((b) => b.status === 'pending');
 				if (newPendingBookings.length > 0) {
 					// Play the user's selected notification sound (with automatic fallback)
 					playSelectedNotificationSound(0.7);
 
 					// Show toast for each new booking
-					newPendingBookings.forEach(booking => {
+					newPendingBookings.forEach((booking) => {
 						const customerName = booking.customerName || booking.userName || 'New customer';
 						showToast(`New booking from ${customerName}!`, 'success');
-						
+
 						// Add to notifications list
 						notifications.addBookingNotification({
 							id: booking.id,
@@ -311,15 +311,15 @@ export async function searchUsersByName(nameQuery: string): Promise<AppUser[]> {
 
 export async function getRecentClients(limitCount: number = 20): Promise<AppUser[]> {
 	try {
-		// Fetch a batch of users. 
+		// Fetch a batch of users.
 		// We fetch a bit more and filter in memory to avoid needing complex Firestore indexes for 'role'.
 		const q = query(collection(db, 'users'), limit(limitCount * 2));
 		const snapshot = await getDocs(q);
 		const clients = snapshot.docs
-			.map((d) => ({ id: d.id, ...d.data() } as AppUser))
-			.filter(u => u.role !== 'admin' && u.role !== 'staff')
+			.map((d) => ({ id: d.id, ...d.data() }) as AppUser)
+			.filter((u) => u.role !== 'admin' && u.role !== 'staff')
 			.slice(0, limitCount);
-			
+
 		return clients;
 	} catch (e) {
 		console.error('Error fetching recent clients:', e);
