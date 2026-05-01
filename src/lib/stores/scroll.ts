@@ -62,7 +62,7 @@ export function restoreScrollPosition(route: string): boolean {
 
 	// CANCEL ANY PENDING LOOPS
 	if (restoreTimeout) {
-		clearTimeout(restoreTimeout);
+		clearInterval(restoreTimeout);
 		restoreTimeout = null;
 	}
 	isRestoring = true;
@@ -81,7 +81,9 @@ export function restoreScrollPosition(route: string): boolean {
 		if (!container) return;
 
 		if (container instanceof Window) {
-			window.scrollTo(0, y);
+			window.scrollTo({ top: y, behavior: 'instant' });
+			document.documentElement.scrollTop = y;
+			document.body.scrollTop = y;
 		} else {
 			container.scrollTop = y;
 		}
@@ -97,16 +99,30 @@ export function restoreScrollPosition(route: string): boolean {
 		const targetScroll = positions[route];
 		performScroll(targetScroll);
 
-		// Single retry for layout shifts (no loops)
-		restoreTimeout = setTimeout(() => {
+		// Multiple retries for layout shifts and view transitions
+		let retries = 0;
+		const interval = setInterval(() => {
 			performScroll(targetScroll);
-		}, 20);
+			retries++;
+			if (retries >= 5) clearInterval(interval);
+		}, 30);
+		restoreTimeout = interval;
 
 		return true;
 	}
 
 	// Unvisited: Force Top
 	performScroll(0);
+	
+	// Multiple retries to ensure we stay at top despite view transitions
+	let topRetries = 0;
+	const topInterval = setInterval(() => {
+		performScroll(0);
+		topRetries++;
+		if (topRetries >= 5) clearInterval(topInterval);
+	}, 30);
+	restoreTimeout = topInterval;
+
 	return false;
 }
 

@@ -6,7 +6,7 @@
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 	import SplashScreen from '$lib/components/layout/SplashScreen.svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { onNavigate, afterNavigate, goto } from '$app/navigation';
+	import { onNavigate, afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { initAuth } from '$lib/stores/auth';
 	import { playNotificationChime } from '$lib/utils/notificationSound';
 	import { page } from '$app/state';
@@ -36,6 +36,13 @@
 	let appleStatusBarStyle = $derived($theme === 'gold' ? 'black-translucent' : 'default');
 
 	onMount(async () => {
+		// CRITICAL: Disable browser's native scroll restoration.
+		// Without this, the browser restores scroll positions from history on navigation,
+		// overriding our custom per-route scroll management.
+		if (typeof history !== 'undefined') {
+			history.scrollRestoration = 'manual';
+		}
+
 		// Capacitor Native Soft Routing 
 		// Instead of triggering hard HTTP reloads via window.location.replace which instantly breaks offline SPA architectures,
 		// we securely push the application down the internal Svelte client routes exactly upon boot!
@@ -95,6 +102,14 @@
 
 	onDestroy(() => {
 		if (unsubUserFcm) unsubUserFcm();
+	});
+
+	// Save scroll position BEFORE navigation so we capture the accurate position
+	// before the DOM changes. This is more reliable than only saving in MobileNav click.
+	beforeNavigate(({ from }) => {
+		if (from?.url) {
+			saveScrollPosition(from.url.pathname);
+		}
 	});
 
 	// Centralized Scroll Handling
