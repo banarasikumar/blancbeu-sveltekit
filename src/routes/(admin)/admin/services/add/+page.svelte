@@ -17,6 +17,7 @@
 	import { showToast } from '$lib/stores/toast';
 	import { onMount } from 'svelte';
 	import { ArrowLeft, Upload, Loader2, Save } from 'lucide-svelte';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	let isEditing = $state(false);
 	let loading = $state(false);
@@ -162,7 +163,7 @@
 <div class="admin-form-container">
 	{#if loading}
 		<div class="admin-loading-state">
-			<Loader2 class="admin-spinner" size={32} />
+			<Loader size={120} />
 		</div>
 	{:else}
 		<!-- Image Upload -->

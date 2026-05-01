@@ -7,6 +7,7 @@
 	import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 	import { showToast } from '$lib/stores/toast';
 	import { User, Calendar, Sparkles } from 'lucide-svelte';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	let loading = true;
 	let submitting = false;
@@ -192,9 +193,7 @@
 
 <div class="admin-page-container">
 	{#if loading}
-		<div class="loading-state" in:fade>
-			<div class="admin-spinner"></div>
-		</div>
+		<Loader size={120} height="60vh" />
 	{:else}
 		<div class="content" in:fly={{ y: 30, duration: 500 }}>
 			<!-- Header -->
@@ -302,27 +301,7 @@
 		justify-content: center;
 	}
 
-	.loading-state {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		height: 60vh;
-	}
-
-	.admin-spinner {
-		width: 40px;
-		height: 40px;
-		border: 3px solid var(--admin-border);
-		border-top-color: var(--admin-accent);
-		border-radius: 50%;
-		animation: adminSpin 1s linear infinite;
-	}
-
-	@keyframes adminSpin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
+	/* loading-state handled by <Loader> component */
 
 	.content {
 		max-width: 400px;

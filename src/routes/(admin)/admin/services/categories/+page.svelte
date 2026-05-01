@@ -16,6 +16,7 @@
 	import { ArrowLeft, Plus, Trash2, Edit2, Check, X, RefreshCw } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { showToast } from '$lib/stores/toast';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	interface Category {
 		id: string;
@@ -175,7 +176,9 @@
 
 		<!-- List -->
 		{#if loading}
-			<div class="loading">Loading...</div>
+			<div class="loading">
+				<Loader size={80} message="Loading categories..." fullPage={false} />
+			</div>
 		{:else if categories.length === 0}
 			<div class="empty-state">No categories found. Add one above!</div>
 		{:else}

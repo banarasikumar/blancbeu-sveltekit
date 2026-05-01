@@ -30,6 +30,7 @@
 	import AdminHeader from '$lib/components/admin/AdminHeader.svelte';
 	import AdminToast from '$lib/components/admin/AdminToast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
+	import Loader from '$lib/components/ui/Loader.svelte';
 	import { initPush, isNative } from '$lib/capacitor/pushService';
 
 	import { theme } from '$lib/stores/theme';
@@ -263,8 +264,7 @@
 	{#if $adminAuthState === 'loading' || $adminAuthState === 'checking'}
 		<!-- Show loading spinner during auth initialization -->
 		<div class="admin-loading">
-			<div class="admin-spinner"></div>
-			<p style="margin-top: 16px; color: var(--color-text-secondary);">Loading...</p>
+			<Loader size={120} message="Loading..." />
 		</div>
 	{:else if isLoginPage}
 		{@render children()}
@@ -282,7 +282,7 @@
 	{:else}
 		<!-- Fallback: redirect handled by subscription above -->
 		<div class="admin-loading">
-			<div class="admin-spinner"></div>
+			<Loader size={120} />
 		</div>
 	{/if}
 

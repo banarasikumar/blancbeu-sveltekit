@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { auth, storage } from '$lib/firebase';
+	import Loader from '$lib/components/ui/Loader.svelte';
 	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 	import { allUsers, getUserDisplayName, getUserPhoto, getUserPhone, type AppUser } from '$lib/stores/adminData';
 	import { showToast } from '$lib/stores/toast';
@@ -609,8 +610,7 @@
 
 			{#if isLoadingTemplates}
 				<div class="notify-empty" style="padding: 24px;">
-					<div class="notify-btn-spinner" style="width: 24px; height: 24px;"></div>
-					<p>Loading templates...</p>
+					<Loader size={60} message="Loading templates..." fullPage={false} />
 				</div>
 			{:else if savedTemplates.length === 0}
 				<div class="notify-empty" style="padding: 30px 20px;">
@@ -1182,8 +1182,7 @@
 
 		{#if isLoadingHistory && history.length === 0}
 			<div class="notify-empty">
-				<div class="notify-btn-spinner" style="width: 24px; height: 24px;"></div>
-				<p>Loading history...</p>
+				<Loader size={60} message="Loading history..." fullPage={false} />
 			</div>
 		{:else if history.length === 0}
 			<div class="notify-empty">
