@@ -39,12 +39,24 @@
 		}
 	}
 
-	function dismissNotification(id: number) {
+	import { browser } from '$app/environment';
+	import NotificationPrompt from '$lib/components/NotificationPrompt.svelte';
+
+	let notifPromptRef: any = $state(null);
+
+	function dismissNotification(id: string) {
 		notifications.dismiss(id);
 	}
 
-	// Notification permission is now handled by the dedicated NotificationPrompt
-	// component and pushService. No legacy auto-request here.
+	// Contextual trigger: when user visits the notifications page,
+	// show the notification prompt after a brief moment if permission isn't granted yet.
+	onMount(() => {
+		if (browser) {
+			setTimeout(() => {
+				notifPromptRef?.show();
+			}, 1200);
+		}
+	});
 </script>
 
 <div class="page-container">
@@ -279,6 +291,8 @@
 		</div>
 	</div>
 </div>
+
+<NotificationPrompt bind:this={notifPromptRef} />
 
 <style>
 	/* -- Premium Glassmorphic Styles -- */

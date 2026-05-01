@@ -68,7 +68,6 @@
 			import('$lib/capacitor/pushService').then(({ initPush }) => {
 				// Subscribe to user store to get the current UID
 				const unsubUser = user.subscribe((currentUser) => {
-					// We can re-init push when user changes, but pushService manages multiple calls safely
 					initPush(currentUser?.uid, 'user', (payload) => {
 						const title = payload.title ?? 'Booking Update';
 						const body = payload.body ?? '';
@@ -80,14 +79,6 @@
 						unsubUserFcm = unsub;
 					});
 				});
-
-				// Wait a moment to see if InstallPrompt fires. If not, show NotificationPrompt.
-				setTimeout(() => {
-					// If the install prompt hasn't taken over the screen, and we are not on an admin/staff route
-					if (notificationPromptRef && !document.querySelector('.install-overlay')) {
-						notificationPromptRef.show();
-					}
-				}, 3500); // Wait 3.5 seconds to ensure install prompt has time to trigger if eligible
 			});
 		}
 
@@ -201,7 +192,7 @@
 			{@render children()}
 		</main>
 		<MobileNav />
-		<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
+		<InstallPrompt />
 		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
 	</div>
@@ -227,7 +218,7 @@
 			{@render children()}
 		</main>
 		<MobileNav />
-		<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
+		<InstallPrompt />
 		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
 	</div>

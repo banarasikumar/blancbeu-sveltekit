@@ -230,9 +230,24 @@
 		glimmerY = Math.max(0, Math.min(100, 50 + tiltX * 1.2));
 	}
 
+	import { browser } from '$app/environment';
+	import { requestNotificationToken } from '$lib/capacitor/pushService';
+	import { user } from '$lib/stores/auth';
+	import NotificationPrompt from '$lib/components/NotificationPrompt.svelte';
+
+	let notifPromptRef: any;
+
 	onMount(() => {
 		if (window.DeviceOrientationEvent && 'ontouchstart' in window) {
 			window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+		}
+
+		// Contextual trigger: after completing a booking, ask for notifications
+		// after a 3-second delay so the user has time to enjoy their confirmation.
+		if (browser) {
+			setTimeout(() => {
+				notifPromptRef?.show();
+			}, 3000);
 		}
 
 		return () => {
@@ -426,6 +441,8 @@
 		</div>
 	</div>
 </div>
+
+<NotificationPrompt bind:this={notifPromptRef} />
 
 <style>
 	/* --- ETHEREAL DIAMOND THEME ENGINE --- */
