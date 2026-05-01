@@ -7,6 +7,7 @@
 	import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 	import { onAuthStateChanged } from 'firebase/auth';
 	import { ChevronLeft, Calendar, Clock, MapPin, Phone, AlertCircle } from 'lucide-svelte';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	let bookings: any[] = [];
 	let filteredBookings: any[] = [];
@@ -326,10 +327,7 @@
 	<!-- CONTENT -->
 	<div class="content-area">
 		{#if loading}
-			<div class="loading-state">
-				<div class="spinner"></div>
-				<p>Syncing your appointments...</p>
-			</div>
+			<Loader size={120} message="Syncing your appointments..." />
 		{:else if currentFilter === 'all'}
 			<!-- SPLIT VIEW -->
 			{#if upcomingList.length > 0}
@@ -1140,29 +1138,7 @@
 		box-shadow: 0 15px 25px -5px rgba(var(--color-accent-gold-rgb), 0.5);
 	}
 
-	.loading-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		min-height: 200px;
-		gap: 20px;
-		color: var(--color-text-secondary);
-	}
-	.spinner {
-		border: 3px solid rgba(var(--color-accent-gold-rgb), 0.1);
-		border-left-color: var(--color-accent-gold);
-		border-radius: 50%;
-		width: 40px;
-		height: 40px;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		100% {
-			transform: rotate(360deg);
-		}
-	}
+	/* loading-state handled by <Loader> component */
 
 	/* Simplified History */
 	.history-grid .booking-card {

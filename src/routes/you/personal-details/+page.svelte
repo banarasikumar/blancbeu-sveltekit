@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { ChevronLeft, Camera, User, Mail, Phone, Calendar, Save } from 'lucide-svelte';
 	import { showToast } from '$lib/stores/toast';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	let user = $state<any>(null);
 	let loading = $state(true);
@@ -127,9 +128,7 @@
 
 	<main class="content-scroll">
 		{#if loading}
-			<div class="loading-state">
-				<div class="spinner"></div>
-			</div>
+			<Loader size={100} height="50vh" />
 		{:else}
 			<div class="content-wrapper" in:fly={{ y: 20, duration: 400, delay: 100 }}>
 				<!-- AVATAR SECTION -->
@@ -311,28 +310,15 @@
 		overflow-y: auto;
 	}
 
-	.loading-state {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		height: 50vh;
-	}
+	/* loading-state handled by <Loader> component */
 
-	.spinner,
 	.mini-spinner {
-		border: 3px solid rgba(255, 255, 255, 0.1);
+		border: 2px solid rgba(255, 255, 255, 0.1);
 		border-top-color: var(--color-accent-gold);
 		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-	.spinner {
-		width: 40px;
-		height: 40px;
-	}
-	.mini-spinner {
 		width: 16px;
 		height: 16px;
-		border-width: 2px;
+		animation: spin 1s linear infinite;
 	}
 
 	@keyframes spin {

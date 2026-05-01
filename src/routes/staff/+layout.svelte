@@ -21,6 +21,7 @@
 	import StaffBgAnimation from '$lib/components/staff/StaffBgAnimation.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
+	import Loader from '$lib/components/ui/Loader.svelte';
 	import { initPush, isNative } from '$lib/capacitor/pushService';
 
 	let { children } = $props();
@@ -197,11 +198,7 @@
 				<h1 class="brand-text">Blancbeu</h1>
 				<span class="brand-sub">Stylist Portal</span>
 			</div>
-			<div class="loading-dots">
-				<div class="dot dot-1"></div>
-				<div class="dot dot-2"></div>
-				<div class="dot dot-3"></div>
-			</div>
+			<Loader size={80} fullPage={false} />
 		</div>
 	{:else if isLoginPage}
 		{@render children()}
@@ -374,21 +371,7 @@
 		text-transform: uppercase;
 	}
 
-	.loading-dots {
-		display: flex;
-		gap: 10px;
-	}
-
-	.loading-dots .dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		animation: s-bounce 1.4s ease-in-out infinite;
-	}
-
-	.dot-1 { background: var(--s-accent-2); }
-	.dot-2 { background: var(--s-accent-3); animation-delay: 0.18s; }
-	.dot-3 { background: var(--s-accent); animation-delay: 0.36s; }
+	/* loading-dots replaced by <Loader> component */
 
 	/* Access Denied */
 	.access-denied {

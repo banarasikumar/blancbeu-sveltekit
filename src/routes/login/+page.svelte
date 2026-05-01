@@ -12,6 +12,7 @@
 		checkMagicLink,
 		handleLoginRedirect
 	} from '$lib/services/authService';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	let loading = true;
 	let unsubscribe: () => void;
@@ -56,9 +57,7 @@
 
 <div class="page-container">
 	{#if loading}
-		<div class="loading-state">
-			<div class="spinner"></div>
-		</div>
+		<Loader size={120} height="60vh" />
 	{:else}
 		<!-- GUEST VIEW -->
 		<div class="guest-view" in:fade>
@@ -128,26 +127,7 @@
 		overflow-x: hidden;
 	}
 
-	/* LOADING */
-	.loading-state {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		height: 60vh;
-	}
-	.spinner {
-		width: 40px;
-		height: 40px;
-		border: 3px solid rgba(255, 255, 255, 0.1);
-		border-top-color: var(--color-accent-gold);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
+	/* loading-state handled by <Loader> component */
 
 	/* GUEST STYLES */
 	.guest-view {

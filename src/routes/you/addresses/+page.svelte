@@ -26,6 +26,7 @@
 		X
 	} from 'lucide-svelte';
 	import { showToast } from '$lib/stores/toast';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	let user = $state<any>(null);
 	let loading = $state(true);
@@ -180,9 +181,7 @@
 
 	<main class="content-scroll">
 		{#if loading}
-			<div class="loading-state">
-				<div class="spinner"></div>
-			</div>
+			<Loader size={100} height="50vh" />
 		{:else if addresses.length === 0}
 			<!-- EMPTY STATE -->
 			<div class="empty-state" in:fly={{ y: 20 }}>

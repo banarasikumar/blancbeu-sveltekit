@@ -7,6 +7,7 @@
 	import { showToast } from '$lib/stores/toast';
 	import { generateAndShareInvoice, startWhatsAppChat } from '$lib/utils/invoice';
 	import SwipeButton from '$lib/components/staff/SwipeButton.svelte';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	// The booking ID from the URL
 	let bookingId = $derived(page.params.id);
@@ -481,7 +482,7 @@
 
 {#if !originalBooking}
 	<div class="loading-state">
-		<p>Loading booking details...</p>
+		<Loader size={120} message="Loading booking details..." />
 		<button class="s-btn s-btn-outline" onclick={() => goto('/staff/dashboard')}
 			>Back to Dashboard</button
 		>
@@ -825,8 +826,7 @@
 		{#if isGenerating}
 			<div class="generating-overlay">
 				<div class="generating-card">
-					<div class="generating-spinner"></div>
-					<p class="generating-text">Generating Invoice...</p>
+					<Loader size={80} fullPage={false} message="Generating Invoice..." />
 					<p class="generating-hint">Please wait a moment</p>
 				</div>
 			</div>
@@ -860,8 +860,7 @@
 				<div class="qr-fs-body">
 					{#if isGeneratingQr}
 						<div class="qr-loading">
-							<div class="spinner"></div>
-							<p>Generating QR Code...</p>
+							<Loader size={80} fullPage={false} message="Generating QR Code..." />
 						</div>
 					{:else if qrCodeDataUrl}
 						<!-- Amount Section Moved Above QR Image -->

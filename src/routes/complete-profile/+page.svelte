@@ -9,6 +9,7 @@
 	import { pendingProfileData, isProfileMandatory, clearPendingProfile } from '$lib/stores/profile';
 	import { mergeAllWalkIns } from '$lib/services/walkInService';
 	import { User, Calendar, Sparkles } from 'lucide-svelte';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	let loading = true;
 	let submitting = false;
@@ -296,9 +297,7 @@
 
 <div class="page-container">
 	{#if loading}
-		<div class="loading-state" in:fade>
-			<div class="spinner"></div>
-		</div>
+		<Loader size={120} height="60vh" />
 	{:else}
 		<div class="content" in:fly={{ y: 30, duration: 500 }}>
 			<!-- Header -->
@@ -415,28 +414,7 @@
 		overflow-x: hidden;
 	}
 
-	/* Loading */
-	.loading-state {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		height: 60vh;
-	}
-
-	.spinner {
-		width: 40px;
-		height: 40px;
-		border: 3px solid rgba(255, 255, 255, 0.1);
-		border-top-color: var(--color-accent-gold);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
+	/* Loading — handled by <Loader> component */
 
 	/* Content */
 	.content {

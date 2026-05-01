@@ -9,6 +9,7 @@
 	import type { User } from 'firebase/auth';
 	import { LogOut, Camera, Calendar, Clock, ChevronRight } from 'lucide-svelte';
 	import { logout } from '$lib/services/authService';
+	import Loader from '$lib/components/ui/Loader.svelte';
 
 	// UI Components
 	import UnifiedStatusCard from '$lib/components/you/UnifiedStatusCard.svelte';
@@ -270,10 +271,8 @@
 
 <div class="page-container">
 	{#if loading}
-		<!-- SHOW LOADING SPINNER WHILE CHECKING AUTH -->
-		<div class="loading-state">
-			<div class="spinner"></div>
-		</div>
+		<!-- SHOW LOTTIE LOADING ANIMATION WHILE CHECKING AUTH -->
+		<Loader size={120} height="60vh" />
 	{:else if user}
 		<!-- MEMBER VIEW (ONLY) -->
 		<div class="member-view" in:fade>
@@ -426,26 +425,7 @@
 			inset 0 0 0 1px rgba(255, 255, 255, 0.05); /* Inner light */
 	}
 
-	/* LOADING */
-	.loading-state {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		height: 60vh;
-	}
-	.spinner {
-		width: 40px;
-		height: 40px;
-		border: 3px solid rgba(255, 255, 255, 0.1);
-		border-top-color: var(--color-accent-gold);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
+	/* LOADING — handled by <Loader> component */
 
 	/* MINIMAL PROFILE HEADER */
 	.profile-header-minimal {
