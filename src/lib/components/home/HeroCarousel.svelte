@@ -6,8 +6,8 @@
 
 	// Import images
 	import img1 from '$lib/assets/home/1.webp';
-	import img2 from '$lib/assets/home/2.webp';
-	import img4 from '$lib/assets/home/4.webp';
+	import img2 from '$lib/assets/home/backup/banner_service.webp';
+	import img3 from '$lib/assets/home/backup/banner_salon2.png';
 
 	const slides = [
 		{
@@ -28,7 +28,7 @@
 		},
 		{
 			id: 3,
-			src: img4,
+			src: img3,
 			alt: 'Expert Styling',
 			eyebrow: 'ARTISTRY IN MOTION',
 			title: 'Expert Styling',
@@ -50,7 +50,7 @@
 
 	const resetTimer = () => {
 		clearInterval(autoplayInterval);
-		autoplayInterval = setInterval(nextSlide, 5000);
+		autoplayInterval = setInterval(nextSlide, 6000);
 	};
 
 	import { saveLoginState } from '$lib/services/authService';
