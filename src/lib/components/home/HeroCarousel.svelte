@@ -6,8 +6,8 @@
 
 	// Import images
 	import img1 from '$lib/assets/home/1.webp';
-	import img2 from '$lib/assets/home/backup/banner_service.webp';
-	import img3 from '$lib/assets/home/backup/banner_salon2.png';
+	import img2 from '$lib/assets/home/backup/banner_image3.png';
+	import img3 from '$lib/assets/home/backup/banner_service.webp';
 
 	const slides = [
 		{
