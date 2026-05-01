@@ -284,17 +284,28 @@ async function initWebPush(
 
 	const messaging = getMessaging(app);
 
-	// Request a web FCM token using the VAPID key from env
-	try {
-		const token = await getToken(messaging, {
-			vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
-			serviceWorkerRegistration: await navigator.serviceWorker.ready
-		});
-		if (token) {
-			await saveToken(userId, token, 'web', appType);
+	// Only attempt to get a token if permission is already granted.
+	// If permission is 'default' or 'denied', skip token registration
+	// (the NotificationPrompt or requestNotificationToken will handle the request).
+	if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+		try {
+			// Ensure service worker is registered before requesting token
+			const swReg = await navigator.serviceWorker.ready;
+			const token = await getToken(messaging, {
+				vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+				serviceWorkerRegistration: swReg
+			});
+			if (token) {
+				console.log('[PushService] Web FCM token obtained for', appType, 'userId:', userId ?? '(guest)');
+				await saveToken(userId, token, 'web', appType);
+			} else {
+				console.warn('[PushService] getToken returned null — no SW or VAPID key issue');
+			}
+		} catch (err) {
+			console.error('[PushService] Web token error:', err);
 		}
-	} catch (err) {
-		console.error('[PushService] Web token error:', err);
+	} else {
+		console.log('[PushService] Notification permission not granted yet, skipping token registration.');
 	}
 
 	// Listen for foreground messages (background is handled by sw.ts)
@@ -353,8 +364,12 @@ export async function requestNotificationToken(
 ): Promise<void> {
 	if (typeof window === 'undefined') return;
 
+	console.log('[PushService] requestNotificationToken called. userId:', userId ?? '(none)', 'appType:', appType);
+
 	try {
 		const permission = await Notification.requestPermission();
+		console.log('[PushService] Permission result:', permission);
+
 		if (permission === 'granted') {
 			const { Capacitor } = await import('@capacitor/core');
 
@@ -367,15 +382,24 @@ export async function requestNotificationToken(
 				const { app } = await import('$lib/firebase');
 				if (app) {
 					const messaging = getMessaging(app);
+					const swReg = await navigator.serviceWorker.ready;
+					console.log('[PushService] SW ready, scope:', swReg.scope);
+
 					const token = await getToken(messaging, {
 						vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
-						serviceWorkerRegistration: await navigator.serviceWorker.ready
+						serviceWorkerRegistration: swReg
 					});
 					if (token) {
+						console.log('[PushService] Token obtained via requestNotificationToken:', token.substring(0, 20) + '...');
 						await saveToken(userId, token, 'web', appType);
+						console.log('[PushService] Token saved successfully for userId:', userId ?? '(pending in localStorage)');
+					} else {
+						console.warn('[PushService] requestNotificationToken: getToken returned null');
 					}
 				}
 			}
+		} else {
+			console.log('[PushService] Permission not granted:', permission);
 		}
 	} catch (err) {
 		console.error('[PushService] Error requesting notification token:', err);

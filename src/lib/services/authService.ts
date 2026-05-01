@@ -217,7 +217,18 @@ async function handleLoginSuccess(user: any): Promise<void> {
 			if (pendingToken) {
 				await saveToken(user.uid, pendingToken, 'web', 'user');
 				localStorage.removeItem('pending_user_fcm_token');
-				console.log('Merged pending FCM token to user profile.');
+				console.log('[Auth] Merged pending FCM token to user profile.');
+			} else if ('Notification' in window && Notification.permission === 'granted') {
+				// No pending token, but permission is granted — proactively fetch a fresh token
+				// This handles the case where the user granted permission before but the token
+				// was never cached (e.g. the SW wasn't ready, or the user cleared localStorage).
+				try {
+					const { requestNotificationToken } = await import('$lib/capacitor/pushService');
+					await requestNotificationToken(user.uid, 'user');
+					console.log('[Auth] Proactively registered FCM token on login.');
+				} catch (tokenErr) {
+					console.warn('[Auth] Could not register FCM token on login:', tokenErr);
+				}
 			}
 		}
 	} catch (saveError) {
@@ -305,9 +316,17 @@ export async function checkMagicLink(
 				saveToken(user.uid, pendingToken, 'web', 'user')
 					.then(() => {
 						localStorage.removeItem('pending_user_fcm_token');
-						console.log('Merged pending FCM token to user profile after magic link login.');
+						console.log('[Auth] Merged pending FCM token after magic link login.');
 					})
-					.catch((err) => console.error('Error merging token:', err));
+					.catch((err) => console.error('[Auth] Error merging token:', err));
+			} else if ('Notification' in window && Notification.permission === 'granted') {
+				// Proactively register a fresh token
+				import('$lib/capacitor/pushService')
+					.then(({ requestNotificationToken }) =>
+						requestNotificationToken(user.uid, 'user')
+					)
+					.then(() => console.log('[Auth] Proactively registered FCM token after magic link login.'))
+					.catch((err) => console.warn('[Auth] Could not register FCM token after magic link:', err));
 			}
 		}
 

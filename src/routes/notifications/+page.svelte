@@ -43,12 +43,8 @@
 		notifications.dismiss(id);
 	}
 
-	onMount(() => {
-		// Request permission if not granted, purely for browser API consistency with legacy
-		if ('Notification' in window && Notification.permission !== 'granted') {
-			Notification.requestPermission();
-		}
-	});
+	// Notification permission is now handled by the dedicated NotificationPrompt
+	// component and pushService. No legacy auto-request here.
 </script>
 
 <div class="page-container">
