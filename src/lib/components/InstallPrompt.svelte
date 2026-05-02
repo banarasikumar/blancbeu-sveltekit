@@ -7,6 +7,7 @@
 
 	let deferredPrompt: any = $state(null);
 	let isVisible = $state(false);
+	let promptMode = $state<'install' | 'open'>('install');
 
 	let { onClosed } = $props<{ onClosed?: () => void }>();
 
@@ -24,14 +25,18 @@
 	);
 
 	let appDesc = $derived(
-		appType === 'admin'
-			? 'Manage the salon anywhere.'
-			: appType === 'staff'
-				? 'Manage your schedule on the go.'
-				: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
+		promptMode === 'open'
+			? 'You already have the app installed! Open it for the best experience.'
+			: appType === 'admin'
+				? 'Manage the salon anywhere.'
+				: appType === 'staff'
+					? 'Manage your schedule on the go.'
+					: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
 	);
 
-	let btnText = 'Install App';
+	let btnText = $derived(promptMode === 'open' ? 'Open in App' : 'Install App');
+	let badgeText = $derived(promptMode === 'open' ? 'App Installed' : 'For Better Experience');
+	let secureText = $derived(promptMode === 'open' ? 'Tap to switch to the app' : 'Fast & Secure Download');
 
 	let appIconUrl = $derived(
 		appType === 'admin'
@@ -70,29 +75,76 @@
 	$effect(() => {
 		if (!browser) return;
 
-		// 1. Setup our native Install Prompt Listener if it hasn't fired yet
+		// Check if running in standalone (installed app) mode
+		const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+		const hasInstalled = localStorage.getItem('pwa_installed') === 'true';
+
+		if (isStandalone) {
+			// They are already in the app. Ensure flag is set, then abort (no prompt).
+			if (!hasInstalled) localStorage.setItem('pwa_installed', 'true');
+			return;
+		}
+
+		if (hasInstalled) {
+			// App is installed, but they are in the browser.
+			if (sessionStorage.getItem('open_app_dismissed') === 'true') {
+				return; // They already dismissed it in this session
+			}
+			promptMode = 'open';
+			// Delay showing the "Open in App" prompt
+			const timer = setTimeout(() => {
+				isVisible = true;
+			}, 3000);
+			return () => clearTimeout(timer);
+		}
+
+		// 1. Setup our native Install Prompt Listener for 'install' mode
 		const handleBeforeInstallPrompt = (e: any) => {
 			e.preventDefault();
 			deferredPrompt = e;
+			promptMode = 'install';
 			isVisible = true;
 			console.log(`[PWA] Strictly scoped install prompt captured for: ${appType}`);
 		};
 
+		const handleAppInstalled = () => {
+			localStorage.setItem('pwa_installed', 'true');
+			isVisible = false;
+			console.log(`[PWA] App was installed`);
+		};
+
 		window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+		window.addEventListener('appinstalled', handleAppInstalled);
 
 		return () => {
 			window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+			window.removeEventListener('appinstalled', handleAppInstalled);
 		};
 	});
 
 	async function handleAction() {
-		if (!deferredPrompt) return; // Unlikely, since button is tied to isVisible
+		if (promptMode === 'open') {
+			// Trigger app open (relies on 'handle_links: preferred' in manifest or deep links)
+			window.location.href = window.location.href;
+			
+			// Close prompt after a short delay
+			setTimeout(() => {
+				closePrompt();
+			}, 1000);
+			return;
+		}
+
+		if (!deferredPrompt) return;
 
 		// Show the native browser install prompt
 		deferredPrompt.prompt();
 
 		const { outcome } = await deferredPrompt.userChoice;
 		console.log(`[PWA] User response to the install prompt: ${outcome}`);
+		
+		if (outcome === 'accepted') {
+			localStorage.setItem('pwa_installed', 'true');
+		}
 
 		deferredPrompt = null;
 		isVisible = false;
@@ -101,6 +153,9 @@
 
 	function closePrompt() {
 		isVisible = false;
+		if (promptMode === 'open') {
+			sessionStorage.setItem('open_app_dismissed', 'true');
+		}
 		if (onClosed) onClosed();
 	}
 </script>
@@ -152,7 +207,7 @@
 				<!-- Text Information -->
 				<div class="app-details">
 					<div class="badge-wrapper">
-						<span class="exclusive-badge">For Better Experience</span>
+						<span class="exclusive-badge">{badgeText}</span>
 					</div>
 					<h3 class="app-title">{appTitle}</h3>
 
@@ -204,7 +259,7 @@
 						</svg>
 						<div class="btn-shine"></div>
 					</button>
-					<span class="secure-text">Fast & Secure Download</span>
+					<span class="secure-text">{secureText}</span>
 				</div>
 			</div>
 		</div>

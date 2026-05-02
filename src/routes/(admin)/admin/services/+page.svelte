@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { allServices, type Service } from '$lib/stores/adminData';
 	import { showToast } from '$lib/stores/toast';
-	import { deleteDoc, doc } from 'firebase/firestore';
+	import { deleteDoc, updateDoc, doc } from 'firebase/firestore';
 	import { db } from '$lib/firebase';
 	import {
 		Search,
@@ -96,41 +96,44 @@
 	}
 </script>
 
-<!-- Header -->
-<div class="admin-view-header">
-	<h2 class="admin-view-title">Services</h2>
-	<div style="font-size: 12px; color: var(--admin-text-secondary); font-weight: 600;">
-		{filteredServices.length} Services
+<!-- Sticky Toolbar: Header + Search/Sort -->
+<div class="services-sticky-toolbar">
+	<!-- Header -->
+	<div class="admin-view-header">
+		<h2 class="admin-view-title">Services</h2>
+		<div style="font-size: 12px; color: var(--admin-text-secondary); font-weight: 600;">
+			{filteredServices.length} Services
+		</div>
 	</div>
-</div>
 
-<!-- Search, Sort & Add -->
-<div class="admin-search-bar" style="display: flex; gap: 8px;">
-	<div style="position: relative; flex: 1;">
-		<Search size={16} class="admin-search-icon" />
-		<input
-			type="text"
-			placeholder="Search services..."
-			bind:value={searchQuery}
-			style="width: 100%;"
-		/>
+	<!-- Search, Sort & Add -->
+	<div class="admin-search-bar" style="display: flex; gap: 8px;">
+		<div style="position: relative; flex: 1;">
+			<Search size={16} class="admin-search-icon" />
+			<input
+				type="text"
+				placeholder="Search services..."
+				bind:value={searchQuery}
+				style="width: 100%;"
+			/>
+		</div>
+		<select class="admin-sort-select" bind:value={sortBy}>
+			<option value="name">Name</option>
+			<option value="price">Price (₹)</option>
+			<option value="category">Category</option>
+		</select>
+		<button
+			class="admin-icon-btn-secondary"
+			onclick={goToCategories}
+			aria-label="Manage Categories"
+			style="margin-right: 4px;"
+		>
+			<Tags size={20} />
+		</button>
+		<button class="admin-icon-btn-primary" onclick={goToAdd} aria-label="Add Service">
+			<Plus size={20} />
+		</button>
 	</div>
-	<select class="admin-sort-select" bind:value={sortBy}>
-		<option value="name">Name</option>
-		<option value="price">Price (₹)</option>
-		<option value="category">Category</option>
-	</select>
-	<button
-		class="admin-icon-btn-secondary"
-		onclick={goToCategories}
-		aria-label="Manage Categories"
-		style="margin-right: 4px;"
-	>
-		<Tags size={20} />
-	</button>
-	<button class="admin-icon-btn-primary" onclick={goToAdd} aria-label="Add Service">
-		<Plus size={20} />
-	</button>
 </div>
 
 <!-- Services List -->
@@ -145,7 +148,19 @@
 {:else}
 	<div class="admin-list-container">
 		{#each filteredServices as service (service.id)}
-			<div class="admin-service-card" class:inactive={service.isActive === false}>
+			<div
+				class="admin-service-card"
+				class:inactive={service.isActive === false}
+				onclick={() => editService(service)}
+				onkeydown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						editService(service);
+					}
+				}}
+				role="button"
+				tabindex="0"
+			>
 				{#if service.image}
 					<img src={service.image} alt={service.name} class="admin-service-img" />
 				{:else}
@@ -184,7 +199,13 @@
 					<div class="admin-toggle-thumb"></div>
 				</button>
 
-				<button class="admin-options-btn" onclick={() => openOptions(service)}>
+				<button
+					class="admin-options-btn"
+					onclick={(e) => {
+						e.stopPropagation();
+						openOptions(service);
+					}}
+				>
 					<MoreVertical size={18} />
 				</button>
 			</div>
@@ -230,6 +251,25 @@
 {/if}
 
 <style>
+	/* Sticky toolbar for header + search/sort */
+	.services-sticky-toolbar {
+		position: sticky;
+		top: calc(-1 * var(--admin-content-padding-top, 20px));
+		z-index: 50;
+		background: var(--admin-bg);
+		padding-top: var(--admin-content-padding-top, 20px);
+		margin-top: calc(-1 * var(--admin-content-padding-top, 20px));
+		margin-left: -16px;
+		margin-right: -16px;
+		padding-left: 16px;
+		padding-right: 16px;
+		padding-bottom: 4px;
+	}
+
+	.services-sticky-toolbar .admin-view-header {
+		margin-bottom: 12px;
+	}
+
 	.admin-icon-btn-primary {
 		width: 40px;
 		height: 40px;
@@ -259,6 +299,18 @@
 		align-items: center;
 		gap: 12px;
 		position: relative;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.admin-service-card:hover {
+		background: var(--admin-surface-hover);
+		transform: translateY(-2px);
+		box-shadow: var(--admin-shadow-md);
+	}
+
+	.admin-service-card:active {
+		transform: translateY(0) scale(0.98);
 	}
 
 	.admin-service-img,

@@ -134,12 +134,17 @@
 				await updateDoc(doc(db, 'services', serviceId), serviceData);
 				showToast('Service updated successfully', 'success');
 			} else {
+				const hasImage = !!imageUrl;
 				await addDoc(collection(db, 'services'), {
 					...serviceData,
-					isActive: true,
+					isActive: hasImage, // Disabled by default if no image
 					createdAt: serverTimestamp() // Use server timestamp for new docs
 				});
-				showToast('Service created successfully', 'success');
+				if (hasImage) {
+					showToast('Service created successfully', 'success');
+				} else {
+					showToast('Service saved as disabled (no image)', 'info');
+				}
 			}
 			goto('/admin/services');
 		} catch (error) {

@@ -159,12 +159,6 @@
 	async function shareTicket() {
 		if (!overlayElement || isDownloading || isSharing) return;
 
-		// 1. Check if the Web Share API is supported
-		if (!navigator.share || !navigator.canShare) {
-			alert('Sharing is not supported on this device/browser. Please download the ticket instead.');
-			return;
-		}
-
 		isSharing = true;
 
 		try {
@@ -174,22 +168,63 @@
 			const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
 			if (!blob) throw new Error('Blob creation failed');
 
-			// Create a File object from the blob
-			const file = new File([blob], `Blancbeu-Ticket-${bookingId || 'Booking'}.png`, {
-				type: 'image/png'
-			});
+			const fileName = `Blancbeu-Ticket-${bookingId || 'Booking'}.png`;
 
-			// Check if this file can be shared natively
-			if (navigator.canShare({ files: [file] })) {
-				await navigator.share({
+			// Detect Capacitor native runtime
+			const isCapacitor =
+				typeof window !== 'undefined' &&
+				!!(window as any).Capacitor &&
+				(window as any).Capacitor.isNativePlatform?.();
+
+			if (isCapacitor) {
+				// ── Capacitor native path ──────────────────────────────────────
+				// 1. Convert blob → base64
+				// 2. Write PNG to app cache directory via Filesystem plugin
+				// 3. Open native Android share sheet via Share plugin
+				const { Filesystem, Directory } = await import('@capacitor/filesystem');
+				const { Share } = await import('@capacitor/share');
+
+				const arrayBuffer = await blob.arrayBuffer();
+				const uint8 = new Uint8Array(arrayBuffer);
+				let binary = '';
+				const chunkSize = 8192;
+				for (let i = 0; i < uint8.length; i += chunkSize) {
+					binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+				}
+				const base64Data = btoa(binary);
+
+				const writeResult = await Filesystem.writeFile({
+					path: fileName,
+					data: base64Data,
+					directory: Directory.Cache
+				});
+
+				await Share.share({
 					title: 'My Blancbeu Appointment',
 					text: 'Here is my appointment ticket for Blancbeu!',
-					files: [file]
+					url: writeResult.uri,
+					dialogTitle: 'Share Ticket via'
 				});
 			} else {
-				alert(
-					'Your system does not support sharing images directly. Please download the ticket instead.'
-				);
+				// ── Web / browser path ─────────────────────────────────────────
+				if (!navigator.share || !navigator.canShare) {
+					alert('Sharing is not supported on this browser. Please download the ticket instead.');
+					return;
+				}
+
+				const file = new File([blob], fileName, { type: 'image/png' });
+
+				if (navigator.canShare({ files: [file] })) {
+					await navigator.share({
+						title: 'My Blancbeu Appointment',
+						text: 'Here is my appointment ticket for Blancbeu!',
+						files: [file]
+					});
+				} else {
+					alert(
+						'Your system does not support sharing images directly. Please download the ticket instead.'
+					);
+				}
 			}
 		} catch (err: any) {
 			// Don't show an error if the user just cancelled the share sheet

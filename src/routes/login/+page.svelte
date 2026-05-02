@@ -70,6 +70,21 @@
 					Sign in to unlock exclusive member benefits, track your rewards, and manage appointments.
 				</p>
 
+				<!-- WHATSAPP LOGIN (Primary) -->
+				<div class="phone-auth-container">
+					<div class="recommended-badge">✨ Recommended for faster booking updates</div>
+					<button class="auth-btn whatsapp-btn" on:click={onWhatsAppLogin}>
+						<MessageCircle size={20} class="whatsapp-icon" />
+						Continue with WhatsApp
+					</button>
+					<p class="whatsapp-hint">We'll send you a magic login link via WhatsApp</p>
+				</div>
+
+				<div class="divider">
+					<span>OR</span>
+				</div>
+
+				<!-- GOOGLE LOGIN (Secondary) -->
 				<button class="auth-btn google-btn" on:click={onGoogleLogin} disabled={isLoggingIn}>
 					<svg viewBox="0 0 24 24" width="20" height="20" class="google-icon">
 						<path
@@ -91,19 +106,6 @@
 					</svg>
 					{isLoggingIn ? 'Signing in...' : 'Continue with Google'}
 				</button>
-
-				<div class="divider">
-					<span>OR</span>
-				</div>
-
-				<!-- WHATSAPP LOGIN -->
-				<div class="phone-auth-container">
-					<button class="auth-btn whatsapp-btn" on:click={onWhatsAppLogin}>
-						<MessageCircle size={20} class="whatsapp-icon" />
-						Continue with WhatsApp
-					</button>
-					<p class="whatsapp-hint">We'll send you a magic login link via WhatsApp</p>
-				</div>
 			</div>
 
 			<div class="preview-benefits">
@@ -180,15 +182,31 @@
 		cursor: not-allowed;
 	}
 	.google-btn {
-		background: white;
-		color: black;
+		background: transparent;
+		color: var(--color-text-primary);
+		border: 1px solid rgba(255, 255, 255, 0.2);
 	}
 	.google-btn:active:not(:disabled) {
 		transform: scale(0.98);
 	}
 	.google-btn:hover:not(:disabled) {
+		background: rgba(255, 255, 255, 0.05);
 		transform: translateY(-2px);
-		box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+	}
+
+	.recommended-badge {
+		font-size: 0.75rem;
+		color: var(--color-accent-gold);
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		font-weight: 700;
+		margin-bottom: 12px;
+		display: inline-block;
+		background: rgba(212, 175, 55, 0.1);
+		padding: 4px 12px;
+		border-radius: 12px;
+		border: 1px solid rgba(212, 175, 55, 0.2);
 	}
 
 	.preview-benefits {
