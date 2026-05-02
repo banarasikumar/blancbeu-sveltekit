@@ -63,11 +63,19 @@ function createNotificationsStore() {
 
 	// Local cache for global announcements read state
 	let readAnnouncements: string[] = [];
+	let welcomeDismissed = false;
+	let welcomeRead = false;
+	const welcomeTimestamp = Date.now();
+
 	if (browser) {
 		try {
 			readAnnouncements = JSON.parse(localStorage.getItem('read_announcements') || '[]');
+			welcomeDismissed = localStorage.getItem('welcome_dismissed') === 'true';
+			welcomeRead = localStorage.getItem('welcome_read') === 'true';
 		} catch (e) {
 			readAnnouncements = [];
+			welcomeDismissed = false;
+			welcomeRead = false;
 		}
 	}
 
@@ -76,7 +84,27 @@ function createNotificationsStore() {
 	let globalNotifs: NotificationItem[] = [];
 
 	const syncStore = () => {
-		const combined = [...privateNotifs, ...globalNotifs].sort((a, b) => b.createdAt - a.createdAt);
+		const combined = [...privateNotifs, ...globalNotifs];
+
+		if (!welcomeDismissed) {
+			const { time, dateCategory } = formatRelativeTime(welcomeTimestamp);
+			combined.push({
+				id: 'welcome-msg',
+				type: 'system',
+				priority: 'high',
+				unread: !welcomeRead,
+				title: '✨ First time here?',
+				message: 'Welcome to Blancbeu! Get Rs. 500 Beu Cash to use for your bookings. T&C apply.',
+				createdAt: welcomeTimestamp,
+				time,
+				dateCategory,
+				icon: 'sparkles',
+				clickUrl: '/you',
+				isGlobal: true
+			});
+		}
+
+		combined.sort((a, b) => b.createdAt - a.createdAt);
 		set(combined);
 	};
 
@@ -197,6 +225,11 @@ function createNotificationsStore() {
 					localStorage.setItem('read_announcements', JSON.stringify(readAnnouncements));
 				}
 			}
+
+			if (!welcomeRead) {
+				welcomeRead = true;
+				if (browser) localStorage.setItem('welcome_read', 'true');
+			}
 		},
 
 		clearAll: async () => {
@@ -227,6 +260,11 @@ function createNotificationsStore() {
 					localStorage.setItem('read_announcements', JSON.stringify(readAnnouncements));
 				}
 			}
+
+			if (!welcomeRead) {
+				welcomeRead = true;
+				if (browser) localStorage.setItem('welcome_read', 'true');
+			}
 		},
 
 		dismiss: async (id: string) => {
@@ -236,7 +274,10 @@ function createNotificationsStore() {
 			// Update UI immediately
 			update((notifs) => notifs.filter((n) => n.id !== id));
 
-			if (item.isGlobal) {
+			if (id === 'welcome-msg') {
+				welcomeDismissed = true;
+				if (browser) localStorage.setItem('welcome_dismissed', 'true');
+			} else if (item.isGlobal) {
 				// We can't delete global announcements, just mark as read/hidden locally
 				// For now, we'll just mark it read, and the UI filter hides it since we updated the store.
 				// Next refresh it will appear again as read, which is standard.

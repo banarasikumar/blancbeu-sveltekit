@@ -58,6 +58,8 @@
 		"@capacitor/share": "^8.0.1",
 		"@capacitor/status-bar": "^8.0.0",
 		"@lottiefiles/dotlottie-svelte": "^0.9.12",
+		"@types/canvas-confetti": "^1.9.0",
+		"canvas-confetti": "^1.9.4",
 		"date-fns": "^4.1.0",
 		"dotenv": "^17.3.1",
 		"firebase": "^12.12.0",

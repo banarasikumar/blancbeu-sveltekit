@@ -6,12 +6,15 @@
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
 	import NotificationPrompt from '$lib/components/NotificationPrompt.svelte';
 	import SplashScreen from '$lib/components/layout/SplashScreen.svelte';
+	import WelcomeModal from '$lib/components/WelcomeModal.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { onNavigate, afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { initAuth, user } from '$lib/stores/auth';
 	import { playNotificationChime } from '$lib/utils/notificationSound';
 	import { page } from '$app/state';
 	import { restoreScrollPosition, saveScrollPosition, scrollPositions } from '$lib/stores/scroll';
+	import { doc, getDoc } from 'firebase/firestore';
+	import { db } from '$lib/firebase';
 
 	import { theme, THEME_COLORS } from '$lib/stores/theme';
 	import { initAppServiceListener } from '$lib/stores/appData';
@@ -23,6 +26,8 @@
 	let SimulatorComponent = $state<any>(null);
 	let unsubUserFcm: (() => void) | null = null;
 	let notificationPromptRef: any = $state(null);
+	let showWelcomeModal = $state(false);
+	let welcomeUser: any = $state(null);
 
 	let isHomePage = $derived(page.url.pathname === '/');
 	let isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
@@ -79,6 +84,29 @@
 						unsubUserFcm = unsub;
 					});
 				});
+			});
+		}
+
+		// Welcome Modal: Check if user needs to see it
+		if (!isAdminRoute && !isStaffRoute && !isShowcaseRoute) {
+			user.subscribe(async (currentUser) => {
+				if (!currentUser?.uid) {
+					showWelcomeModal = false;
+					welcomeUser = null;
+					return;
+				}
+				try {
+					const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+					if (userDoc.exists()) {
+						const data = userDoc.data();
+						if (data.profileCompleted && !data.welcomeBonusClaimed) {
+							welcomeUser = currentUser;
+							showWelcomeModal = true;
+						}
+					}
+				} catch (e) {
+					console.warn('[Layout] Could not check welcome bonus status:', e);
+				}
 			});
 		}
 
@@ -195,6 +223,9 @@
 		<InstallPrompt />
 		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
+		{#if showWelcomeModal && welcomeUser}
+			<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
+		{/if}
 	</div>
 {:else if isDesktop}
 	{#if SimulatorComponent}
@@ -208,6 +239,9 @@
 				<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
 				<NotificationPrompt bind:this={notificationPromptRef} />
 				<Toast />
+				{#if showWelcomeModal && welcomeUser}
+					<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
+				{/if}
 			</div>
 		</SimulatorComponent>
 	{/if}
@@ -221,6 +255,9 @@
 		<InstallPrompt />
 		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
+		{#if showWelcomeModal && welcomeUser}
+			<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
+		{/if}
 	</div>
 {/if}
 
