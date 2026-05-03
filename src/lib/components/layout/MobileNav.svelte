@@ -26,7 +26,7 @@
 	}
 
 	// Simple active check
-	$: activeRoute = $page.url.pathname;
+	let activeRoute = $derived($page.url.pathname);
 
 	// Navigation items config
 	const navItems = [
