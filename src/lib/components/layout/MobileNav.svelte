@@ -241,7 +241,7 @@
 								</div>
 							{/if}
 						</div>
-					{#else}
+					{:else}
 						<!-- Premium User: Elegant profile silhouette -->
 						<svg
 							width="24"
