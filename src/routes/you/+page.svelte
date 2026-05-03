@@ -20,6 +20,7 @@
 	let user = $state<User | null>(null);
 	let latestBooking = $state<any>(null);
 	let loading = $state(true);
+	let loadingProfile = $state(true);
 	let isLoggingOut = $state(false);
 	let beuCash = $state(0);
 	let points = $state(0);
@@ -163,6 +164,7 @@
 	}
 
 	async function fetchUserProfile(uid: string) {
+		loadingProfile = true;
 		try {
 			const docRef = doc(db, 'users', uid);
 			const docSnap = await getDoc(docRef);
@@ -174,6 +176,8 @@
 			}
 		} catch (error) {
 			console.error('Error fetching user profile:', error);
+		} finally {
+			loadingProfile = false;
 		}
 	}
 
@@ -263,7 +267,18 @@
 		return typeof service === 'string' ? service : service.name;
 	}
 	function editProfile() {
-		alert('Edit Profile feature coming soon!');
+		goto('/you/personal-details?edit=true');
+	}
+
+	// Simple hash function to generate consistent color from string
+	function getAvatarColor(name: string) {
+		if (!name) return '#D4AF37'; // default gold
+		let hash = 0;
+		for (let i = 0; i < name.length; i++) {
+			hash = name.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		const h = Math.abs(hash) % 360;
+		return `hsl(${h}, 70%, 40%)`;
 	}
 </script>
 
@@ -281,11 +296,11 @@
 						{#if user.photoURL}
 							<img src={user.photoURL} alt="Profile" class="avatar-img" />
 						{:else}
-							<div class="avatar-placeholder">
+							<div class="avatar-placeholder" style="background-color: {getAvatarColor(user.displayName || 'U')}">
 								{user.displayName ? user.displayName[0].toUpperCase() : 'U'}
 							</div>
 						{/if}
-						<button class="edit-btn-mini" onclick={() => alert('Change photo coming soon!')}>
+						<button class="edit-btn-mini" onclick={editProfile}>
 							<Camera size={12} color="#000" />
 						</button>
 					</div>
@@ -314,7 +329,7 @@
 				/>
 
 				<!-- BEU CASH WALLET CARD -->
-				<WalletCard balance={beuCash} />
+				<WalletCard balance={beuCash} loading={loadingProfile} />
 
 				<!-- LATEST BOOKING WIDGET (TICKET STYLE) -->
 				<h2 class="section-title">Upcoming Appointment</h2>
@@ -461,6 +476,18 @@
 		height: 100%;
 		object-fit: cover;
 		border-radius: 50%;
+	}
+
+	.avatar-placeholder {
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 2.5rem;
+		font-family: var(--font-heading);
+		color: #ffffff; /* White text for contrast */
 	}
 
 	.profile-text-compact {

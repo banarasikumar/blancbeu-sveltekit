@@ -1,15 +1,30 @@
 <script lang="ts">
 	import { Wallet, ChevronRight, Sparkles } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
+	import { tweened } from 'svelte/motion';
+	import { cubicOut } from 'svelte/easing';
 
 	export let balance = 0;
+	export let loading = false;
+
+	const animatedBalance = tweened(0, {
+		duration: 2000,
+		easing: cubicOut
+	});
+
+	// Animate whenever balance changes
+	$: {
+		if (!loading) {
+			animatedBalance.set(balance);
+		}
+	}
 
 	function handleUse() {
 		goto('/booking');
 	}
 </script>
 
-<div class="wallet-card glass-panel" role="button" tabindex="0">
+<div class="wallet-card glass-panel" class:jackpot={balance === 500 && !loading} role="button" tabindex="0">
 	<div class="wallet-bg-glow"></div>
 	<div class="wallet-content">
 		<div class="wallet-left">
@@ -20,7 +35,13 @@
 				<span class="wallet-label">Beu Cash Balance</span>
 				<div class="balance-amount">
 					<span class="currency">₹</span>
-					<span class="amount">{balance.toLocaleString()}</span>
+					{#if loading}
+						<span class="loading-dots">
+							<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+						</span>
+					{:else}
+						<span class="amount">{Math.floor($animatedBalance).toLocaleString()}</span>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -152,5 +173,63 @@
 
 	.wallet-card:hover .history-btn {
 		background: rgba(255, 255, 255, 0.1);
+	}
+
+	/* Loading Dots Animation */
+	.loading-dots {
+		display: inline-flex;
+		align-items: baseline;
+		font-size: 1.8rem;
+		font-weight: 700;
+		line-height: 1;
+		color: #fff;
+	}
+
+	.dot {
+		animation: pulse-dot 1.4s infinite ease-in-out both;
+	}
+
+	.dot:nth-child(1) { animation-delay: -0.32s; }
+	.dot:nth-child(2) { animation-delay: -0.16s; }
+	
+	@keyframes pulse-dot {
+		0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+		40% { transform: scale(1); opacity: 1; }
+	}
+
+	/* Jackpot 500 Styling */
+	.wallet-card.jackpot {
+		animation: border-sparkle 3s linear infinite;
+	}
+
+	.wallet-card.jackpot::before {
+		content: '';
+		position: absolute;
+		inset: -2px;
+		border-radius: 22px;
+		padding: 2px;
+		background: linear-gradient(
+			45deg,
+			#ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000
+		);
+		background-size: 400%;
+		-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+		-webkit-mask-composite: xor;
+		mask-composite: exclude;
+		animation: rgb-border 3s linear infinite;
+		z-index: 0;
+	}
+
+	@keyframes rgb-border {
+		0% { background-position: 0% 50%; }
+		50% { background-position: 100% 50%; }
+		100% { background-position: 0% 50%; }
+	}
+
+	@keyframes border-sparkle {
+		0% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.4); }
+		33% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.4); }
+		66% { box-shadow: 0 0 15px rgba(0, 0, 255, 0.4); }
+		100% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.4); }
 	}
 </style>

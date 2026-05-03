@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { fade, fly } from 'svelte/transition';
-	import { auth, db } from '$lib/firebase';
+	import { auth, db, storage } from '$lib/firebase';
 	import { doc, getDoc, updateDoc } from 'firebase/firestore';
+	import { updateProfile } from 'firebase/auth';
+	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 	import { onMount } from 'svelte';
 	import { ChevronLeft, Camera, User, Mail, Phone, Calendar, Save } from 'lucide-svelte';
 	import { showToast } from '$lib/stores/toast';
@@ -12,6 +15,19 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let isEditing = $state(false);
+	let uploadingImage = $state(false);
+	let fileInput: HTMLInputElement;
+
+	// Simple hash function to generate consistent color from string
+	function getAvatarColor(name: string) {
+		if (!name) return '#D4AF37'; // default gold
+		let hash = 0;
+		for (let i = 0; i < name.length; i++) {
+			hash = name.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		const h = Math.abs(hash) % 360;
+		return `hsl(${h}, 70%, 40%)`;
+	}
 
 	// Form Data
 	let formData = $state({
@@ -30,6 +46,11 @@
 	});
 
 	onMount(async () => {
+		// Automatically enter edit mode if requested via URL
+		if ($page.url.searchParams.get('edit') === 'true') {
+			isEditing = true;
+		}
+
 		// Wait for auth to be ready
 		const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
 			if (currentUser) {
@@ -103,6 +124,37 @@
 		}
 	}
 
+	async function handleImageUpload(e: Event) {
+		const file = (e.target as HTMLInputElement).files?.[0];
+		if (!file || !user) return;
+
+		uploadingImage = true;
+		try {
+			// Upload to Firebase Storage
+			const storageRef = ref(storage, `users/${user.uid}/profile_${Date.now()}`);
+			await uploadBytes(storageRef, file);
+			const url = await getDownloadURL(storageRef);
+			
+			// Update auth profile
+			await updateProfile(user, { photoURL: url });
+			
+			// Update local state so it shows immediately
+			user = { ...user, photoURL: url };
+
+			// Update firestore as well
+			const userRef = doc(db, 'users', user.uid);
+			await updateDoc(userRef, { photoURL: url });
+
+			showToast('Profile picture updated!', 'success');
+		} catch (error) {
+			console.error('Error uploading image:', error);
+			showToast('Failed to upload image.', 'error');
+		} finally {
+			uploadingImage = false;
+			if (fileInput) fileInput.value = '';
+		}
+	}
+
 	function handleBack() {
 		if (isEditing) {
 			if (confirm('Discard changes?')) {
@@ -137,18 +189,30 @@
 						{#if user?.photoURL}
 							<img src={user.photoURL} alt="Profile" class="avatar-img" />
 						{:else}
-							<div class="avatar-placeholder">
+							<div class="avatar-placeholder" style="background-color: {getAvatarColor(formData.displayName || 'U')}">
 								{formData.displayName ? formData.displayName[0].toUpperCase() : 'U'}
 							</div>
 						{/if}
 						<button
 							class="camera-btn"
-							disabled={!isEditing}
+							type="button"
+							disabled={!isEditing || uploadingImage}
 							class:hidden={!isEditing}
-							onclick={() => alert('Photo upload coming soon!')}
+							onclick={() => fileInput.click()}
 						>
-							<Camera size={16} />
+							{#if uploadingImage}
+								<div class="mini-spinner-small"></div>
+							{:else}
+								<Camera size={16} />
+							{/if}
 						</button>
+						<input 
+							type="file" 
+							accept="image/*" 
+							bind:this={fileInput} 
+							onchange={handleImageUpload} 
+							style="display:none;" 
+						/>
 					</div>
 					<h2 class="user-name">{formData.displayName || 'Valued Member'}</h2>
 					<span class="user-tier">Gold Member</span>
@@ -333,6 +397,15 @@
 		}
 	}
 
+	.mini-spinner-small {
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-top-color: #fff;
+		border-radius: 50%;
+		width: 12px;
+		height: 12px;
+		animation: spin 1s linear infinite;
+	}
+
 	/* AVATAR SECTION */
 	.avatar-section {
 		display: flex;
@@ -368,7 +441,7 @@
 		justify-content: center;
 		font-size: 2.5rem;
 		font-family: var(--font-heading);
-		color: var(--color-accent-gold);
+		color: #ffffff; /* White text for contrast on random color */
 	}
 
 	.camera-btn {

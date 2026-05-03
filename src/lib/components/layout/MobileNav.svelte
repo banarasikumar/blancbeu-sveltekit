@@ -2,6 +2,28 @@
 	import { page, navigating } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { saveScrollPosition, restoreScrollPosition, scrollToTop } from '$lib/stores/scroll';
+	import { auth } from '$lib/firebase';
+	import { onAuthStateChanged } from 'firebase/auth';
+	import { onMount } from 'svelte';
+
+	let user = $state<any>(null);
+
+	onMount(() => {
+		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+			user = currentUser;
+		});
+		return () => unsubscribe();
+	});
+
+	function getAvatarColor(name: string) {
+		if (!name) return '#D4AF37'; // default gold
+		let hash = 0;
+		for (let i = 0; i < name.length; i++) {
+			hash = name.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		const h = Math.abs(hash) % 360;
+		return `hsl(${h}, 70%, 40%)`;
+	}
 
 	// Simple active check
 	$: activeRoute = $page.url.pathname;
@@ -209,44 +231,56 @@
 						/>
 					</svg>
 				{:else if item.iconId === 'you'}
-					<!-- Premium User: Elegant profile silhouette -->
-					<svg
-						width="24"
-						height="24"
-						viewBox="0 0 24 24"
-						fill="none"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<!-- Head circle -->
-						<circle
-							cx="12"
-							cy="8.5"
-							r="4"
-							stroke="currentColor"
-							stroke-width={isActive ? 1.6 : 1.2}
-							fill={isActive ? 'currentColor' : 'none'}
-							fill-opacity={isActive ? 0.15 : 0}
-						/>
-						<!-- Body arc -->
-						<path
-							d="M4 21C4 17.13 7.58 14 12 14C16.42 14 20 17.13 20 21"
-							stroke="currentColor"
-							stroke-width={isActive ? 1.6 : 1.2}
-							stroke-linecap="round"
-							fill={isActive ? 'currentColor' : 'none'}
-							fill-opacity={isActive ? 0.1 : 0}
-						/>
-						<!-- Subtle accent line under -->
-						{#if isActive}
-							<path
-								d="M6 21H18"
+					{#if user}
+						<div class="nav-avatar-ring" class:active-avatar={isActive}>
+							{#if user.photoURL}
+								<img src={user.photoURL} alt="You" class="nav-avatar-img" />
+							{:else}
+								<div class="nav-avatar-placeholder" style="background-color: {getAvatarColor(user.displayName || 'U')}">
+									{user.displayName ? user.displayName[0].toUpperCase() : 'U'}
+								</div>
+							{/if}
+						</div>
+					{#else}
+						<!-- Premium User: Elegant profile silhouette -->
+						<svg
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<!-- Head circle -->
+							<circle
+								cx="12"
+								cy="8.5"
+								r="4"
 								stroke="currentColor"
-								stroke-width="1.2"
-								stroke-linecap="round"
-								opacity="0.4"
+								stroke-width={isActive ? 1.6 : 1.2}
+								fill={isActive ? 'currentColor' : 'none'}
+								fill-opacity={isActive ? 0.15 : 0}
 							/>
-						{/if}
-					</svg>
+							<!-- Body arc -->
+							<path
+								d="M4 21C4 17.13 7.58 14 12 14C16.42 14 20 17.13 20 21"
+								stroke="currentColor"
+								stroke-width={isActive ? 1.6 : 1.2}
+								stroke-linecap="round"
+								fill={isActive ? 'currentColor' : 'none'}
+								fill-opacity={isActive ? 0.1 : 0}
+							/>
+							<!-- Subtle accent line under -->
+							{#if isActive}
+								<path
+									d="M6 21H18"
+									stroke="currentColor"
+									stroke-width="1.2"
+									stroke-linecap="round"
+									opacity="0.4"
+								/>
+							{/if}
+						</svg>
+					{/if}
 				{:else if item.iconId === 'book'}
 					<!-- Premium Calendar: Bold booking icon -->
 					<svg
@@ -509,5 +543,42 @@
 				inset 0 1px 0 rgba(255, 255, 255, 0.2),
 				0 0 0 0 rgba(var(--color-accent-gold-rgb), 0);
 		}
+	}
+
+	.nav-avatar-ring {
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		padding: 1.5px;
+		background: transparent;
+		transition: all 0.3s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.active-avatar {
+		background: var(--gradient-gold);
+	}
+
+	.nav-avatar-img {
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 1.5px solid var(--color-bg-primary);
+	}
+
+	.nav-avatar-placeholder {
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.8rem;
+		font-family: var(--font-heading);
+		color: #fff;
+		border: 1.5px solid var(--color-bg-primary);
 	}
 </style>

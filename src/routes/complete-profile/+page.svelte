@@ -8,16 +8,19 @@
 	import { showToast } from '$lib/stores/toast';
 	import { pendingProfileData, isProfileMandatory, clearPendingProfile } from '$lib/stores/profile';
 	import { mergeAllWalkIns } from '$lib/services/walkInService';
-	import { User, Calendar, Sparkles } from 'lucide-svelte';
+	import { User, Calendar, Sparkles, Phone } from 'lucide-svelte';
 	import Loader from '$lib/components/ui/Loader.svelte';
+	import WelcomeModal from '$lib/components/WelcomeModal.svelte';
 
 	let loading = true;
 	let submitting = false;
+	let showWelcomeModal = false;
 	let unsubscribe: () => void;
 	let currentUser: any = null;
 
 	// Form state
 	let name = '';
+	let userPhone = '';
 	let gender = '';
 	let dobInput = ''; // DD/MM/YYYY display format
 	let dobValue = ''; // YYYY-MM-DD for storage
@@ -55,9 +58,17 @@
 				return;
 			}
 
+			// Phone number
+			userPhone = user.phoneNumber || pendingData?.phone || '';
+
 			// Pre-fill name from auth if available
 			if (user.displayName) {
-				name = user.displayName;
+				// Clear out auto-generated "User 1234567890" names from WhatsApp
+				if (/^User \d+$/.test(user.displayName)) {
+					name = '';
+				} else {
+					name = user.displayName;
+				}
 			}
 
 			// Check if profile is already complete
@@ -83,8 +94,22 @@
 	// Format DOB input as DD/MM/YYYY on type
 	function handleDobInput(e: Event) {
 		const input = e.target as HTMLInputElement;
-		let v = input.value.replace(/\D/g, ''); // Remove non-digits
+		const rawValue = input.value;
+		const isDeleting = rawValue.length < dobInput.length;
+		
+		let v = rawValue.replace(/\D/g, ''); // Remove non-digits
 		if (v.length > 8) v = v.substring(0, 8);
+
+		if (!isDeleting) {
+			// Smart padding for day (if first digit > 3, prepend 0)
+			if (v.length === 1 && parseInt(v[0]) > 3) {
+				v = '0' + v;
+			}
+			// Smart padding for month (if first digit of month > 1, prepend 0)
+			if (v.length === 3 && parseInt(v[2]) > 1) {
+				v = v.substring(0, 2) + '0' + v[2];
+			}
+		}
 
 		if (v.length > 4) {
 			dobInput = `${v.substring(0, 2)}/${v.substring(2, 4)}/${v.substring(4)}`;
@@ -131,6 +156,15 @@
 				systemDateInput.click();
 			}
 		}
+	}
+
+	function formatPhoneDisplay(phone: string) {
+		if (!phone) return '';
+		let p = phone.replace(/\s+/g, '');
+		if (p.startsWith('+91') && p.length === 13) {
+			return `+91 ${p.slice(3, 8)} ${p.slice(8, 13)}`;
+		}
+		return p;
 	}
 
 	// Validation
@@ -278,7 +312,7 @@
 
 			showToast(`Welcome, ${name.trim()}! 🎉`, 'success');
 			clearPendingProfile();
-			goto('/you');
+			showWelcomeModal = true;
 		} catch (err) {
 			console.error('Profile save error:', err);
 			showToast('Failed to save profile. Please try again.', 'error');
@@ -305,11 +339,11 @@
 		<div class="content" in:fly={{ y: 30, duration: 500 }}>
 			<!-- Header -->
 			<div class="header">
-				<div class="sparkle-icon" in:scale={{ delay: 200, duration: 400 }}>
-					<Sparkles size={48} strokeWidth={1.5} />
+				<div class="gift-icon-container" in:scale={{ delay: 200, duration: 400 }}>
+					<span class="gift-emoji">🎁</span>
 				</div>
-				<h1 class="title">Almost There</h1>
-				<p class="subtitle">Complete your profile to unlock the full experience</p>
+				<h1 class="title" style="font-size: 2.2rem;">Complete profile.</h1>
+				<p class="subtitle-highlight">Get ₹500 Beu Cash.</p>
 			</div>
 
 			<!-- Form Card -->
@@ -330,6 +364,22 @@
 						<div class="input-glow"></div>
 					</div>
 
+					<!-- Phone Number (Read-only) -->
+					{#if userPhone}
+						<div class="input-group">
+							<div class="input-icon">
+								<Phone size={20} />
+							</div>
+							<input
+								type="text"
+								value={formatPhoneDisplay(userPhone)}
+								class="glass-input disabled-input"
+								readonly
+								disabled
+							/>
+						</div>
+					{/if}
+
 					<!-- Gender Selection -->
 					<div class="gender-section">
 						<label class="section-label">I identify as</label>
@@ -349,35 +399,37 @@
 					</div>
 
 					<!-- DOB Input with Date Picker -->
-					<div class="input-group dob-group">
-						<div class="input-icon">
-							<Calendar size={20} />
+					<div class="dob-section">
+						<label class="section-label">Date of Birth</label>
+						<div class="input-group dob-group">
+							<div class="input-icon">
+								<Calendar size={20} />
+							</div>
+							<input
+								type="text"
+								placeholder="DD/MM/YYYY"
+								value={dobInput}
+								on:input={handleDobInput}
+								class="glass-input dob-input"
+								maxlength="10"
+								inputmode="numeric"
+							/>
+							<!-- Hidden system date input -->
+							<input
+								type="date"
+								bind:this={systemDateInput}
+								max={maxDateString}
+								on:change={handleSystemDateChange}
+								class="hidden-date-input"
+							/>
+							<!-- Date picker icon button -->
+							<button type="button" class="date-picker-btn" on:click={openDatePicker}>
+								<Calendar size={18} />
+							</button>
+							<div class="input-glow"></div>
 						</div>
-						<input
-							type="text"
-							placeholder="Date of Birth (DD/MM/YYYY)"
-							value={dobInput}
-							on:input={handleDobInput}
-							class="glass-input dob-input"
-							maxlength="10"
-							inputmode="numeric"
-						/>
-						<!-- Hidden system date input -->
-						<input
-							type="date"
-							bind:this={systemDateInput}
-							max={maxDateString}
-							on:change={handleSystemDateChange}
-							class="hidden-date-input"
-						/>
-						<!-- Date picker icon button -->
-						<button type="button" class="date-picker-btn" on:click={openDatePicker}>
-							<Calendar size={18} />
-						</button>
-						<div class="input-glow"></div>
+						<p class="age-hint">You must be at least 13 years old</p>
 					</div>
-
-					<p class="age-hint">You must be at least 13 years old</p>
 
 					<!-- Submit Button -->
 					<button type="submit" class="submit-btn" disabled={submitting}>
@@ -386,7 +438,7 @@
 							Saving...
 						{:else}
 							<Sparkles size={20} />
-							Complete Profile
+							Save & Claim ₹500
 						{/if}
 					</button>
 
@@ -404,6 +456,10 @@
 				<div class="benefit">⭐ Priority booking access</div>
 			</div>
 		</div>
+	{/if}
+
+	{#if showWelcomeModal}
+		<WelcomeModal user={currentUser} onClose={() => { showWelcomeModal = false; goto('/you'); }} />
 	{/if}
 </div>
 
@@ -432,30 +488,36 @@
 		margin-bottom: 32px;
 	}
 
-	.sparkle-icon {
+	.gift-icon-container {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		width: 80px;
 		height: 80px;
-		background: var(--gradient-gold);
+		background: rgba(212, 175, 55, 0.15);
+		border: 1px solid rgba(212, 175, 55, 0.3);
 		border-radius: 50%;
 		margin-bottom: 20px;
-		color: var(--color-bg-primary);
-		animation: pulse 2s ease-in-out infinite;
-		box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+		animation: float 3s ease-in-out infinite;
+		box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			transform: scale(1);
-			box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
-		}
-		50% {
-			transform: scale(1.05);
-			box-shadow: 0 0 60px rgba(212, 175, 55, 0.6);
-		}
+	.gift-emoji {
+		font-size: 2.5rem;
+		line-height: 1;
+	}
+
+	.subtitle-highlight {
+		color: #d4af37; /* Gold color */
+		font-size: 1.2rem;
+		font-weight: 600;
+		margin-top: 8px;
+		letter-spacing: 0.5px;
+	}
+
+	@keyframes float {
+		0%, 100% { transform: translateY(0); }
+		50% { transform: translateY(-10px); }
 	}
 
 	.title {
@@ -480,10 +542,8 @@
 		-webkit-backdrop-filter: blur(20px);
 		border-radius: var(--radius-lg);
 		padding: 28px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		box-shadow:
-			0 8px 32px rgba(0, 0, 0, 0.3),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
+		border: 1px solid var(--color-border-strong);
+		box-shadow: var(--shadow-card);
 		position: relative;
 		overflow: hidden;
 	}
@@ -518,14 +578,15 @@
 	.glass-input {
 		width: 100%;
 		padding: 16px 16px 16px 52px;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: var(--color-input-bg);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius-md);
 		color: var(--color-text-primary);
 		font-size: 1rem;
 		font-family: inherit;
 		transition: all 0.3s ease;
 		outline: none;
+		box-shadow: inset 0 2px 4px rgba(var(--color-shadow-rgb, 0,0,0), 0.05);
 	}
 
 	.glass-input::placeholder {
@@ -535,13 +596,22 @@
 
 	.glass-input:focus {
 		border-color: var(--color-accent-gold);
-		background: rgba(255, 255, 255, 0.08);
-		box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+		background: var(--color-surface-active);
+		box-shadow: 
+			inset 0 2px 4px rgba(var(--color-shadow-rgb, 0,0,0), 0.05),
+			0 0 0 3px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.2);
 	}
 
 	.glass-input:focus + .input-glow,
 	.glass-input:focus ~ .input-glow {
 		opacity: 1;
+	}
+
+	.disabled-input {
+		opacity: 0.7;
+		cursor: not-allowed;
+		background: var(--color-surface);
+		border-color: var(--color-border);
 	}
 
 	.input-glow {
@@ -588,8 +658,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: rgba(212, 175, 55, 0.15);
-		border: 1px solid rgba(212, 175, 55, 0.3);
+		background: var(--color-btn-bg);
+		border: 1px solid var(--color-btn-border);
 		border-radius: var(--radius-sm);
 		color: var(--color-accent-gold);
 		cursor: pointer;
@@ -598,7 +668,7 @@
 	}
 
 	.date-picker-btn:hover {
-		background: rgba(212, 175, 55, 0.25);
+		background: var(--color-btn-hover-bg);
 		border-color: var(--color-accent-gold);
 		transform: translateY(-50%) scale(1.05);
 	}
@@ -631,24 +701,26 @@
 		align-items: center;
 		gap: 6px;
 		padding: 14px 8px;
-		background: rgba(255, 255, 255, 0.03);
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: var(--color-input-bg);
+		border: 1px solid var(--color-border-strong);
 		border-radius: var(--radius-md);
 		cursor: pointer;
 		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		box-shadow: 0 2px 8px rgba(var(--color-shadow-rgb, 0,0,0), 0.04);
 	}
 
 	.gender-option:hover {
-		background: rgba(255, 255, 255, 0.08);
+		background: var(--color-surface-hover);
 		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(var(--color-shadow-rgb, 0,0,0), 0.08);
 	}
 
 	.gender-option.selected {
-		background: rgba(212, 175, 55, 0.15);
+		background: var(--color-btn-bg);
 		border-color: var(--color-accent-gold);
 		box-shadow:
-			0 0 20px rgba(212, 175, 55, 0.2),
-			inset 0 0 20px rgba(212, 175, 55, 0.05);
+			0 0 20px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.2),
+			inset 0 0 20px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.05);
 		transform: scale(1.02);
 	}
 
