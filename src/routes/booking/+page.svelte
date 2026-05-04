@@ -5,7 +5,7 @@
 	import { elasticOut, cubicOut, quintOut } from 'svelte/easing';
 	import { cart } from '$lib/stores/booking';
 	import { db, auth } from '$lib/firebase';
-	import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+	import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 	import { requestUserNotificationPermission } from '$lib/stores/userNotifications';
 	import {
 		appSettings,
@@ -85,9 +85,9 @@
 	let showCouponsModal = false;
 
 	const availableCoupons = [
-		{ code: 'SAVE20', discountText: 'Flat ₹20 OFF', description: 'Save ₹20 on your booking' },
-		{ code: 'FLAT50', discountText: 'Flat ₹50 OFF', description: 'Save ₹50 on your booking' },
-		{ code: 'FIRST100', discountText: 'Flat ₹100 OFF', description: 'Exclusive discount' }
+		{ code: 'SAVE20', discountText: 'Flat ₹20 OFF', description: 'Save ₹20 on your booking', minBooking: 50 },
+		{ code: 'FLAT50', discountText: 'Flat ₹50 OFF', description: 'Save ₹50 on your booking', minBooking: 100 },
+		{ code: 'FIRST100', discountText: 'Flat ₹100 OFF', description: 'Exclusive discount', minBooking: 300 }
 	];
 
 	// Beu Cash State
@@ -97,6 +97,38 @@
 	// Date/Time Logic
 	let timeSlots: string[] = [];
 	let quickDates: { label: string; dateStr: string; sub: string }[] = [];
+	let slotBookingsCount: Record<string, number> = {};
+	let timeSlotsUnsubscribe: any = null;
+
+	function subscribeToBookingsForDate(dateStr: string) {
+		if (timeSlotsUnsubscribe) {
+			timeSlotsUnsubscribe();
+			timeSlotsUnsubscribe = null;
+		}
+
+		if (!browser) return;
+
+		const q = query(collection(db, 'bookings'), where('date', '==', dateStr));
+		timeSlotsUnsubscribe = onSnapshot(
+			q,
+			(snapshot) => {
+				const counts: Record<string, number> = {};
+				snapshot.forEach((doc) => {
+					const data = doc.data();
+					if (data.status !== 'cancelled' && data.status !== 'rejected') {
+						const t = data.time;
+						if (t) {
+							counts[t] = (counts[t] || 0) + 1;
+						}
+					}
+				});
+				slotBookingsCount = counts;
+			},
+			(error) => {
+				console.error('Error fetching real-time bookings:', error);
+			}
+		);
+	}
 
 	// Calendar Picker State
 	let currentViewDate = new Date(); // Tracks which month we are viewing in modal
@@ -140,6 +172,7 @@
 		return () => {
 			unsubscribe();
 			destroyAppSettingsListener();
+			if (timeSlotsUnsubscribe) timeSlotsUnsubscribe();
 		};
 	});
 
@@ -399,6 +432,7 @@
 			});
 		}
 		timeSlots = slots;
+		subscribeToBookingsForDate(dateStr);
 	}
 
 	// --- SUBMISSION LOGIC ---
@@ -462,20 +496,41 @@
 			const code = couponCode.trim().toUpperCase();
 
 			if (code === 'SAVE20') {
-				couponDiscount = 20;
-				couponApplied = true;
-				couponError = '';
-				showCouponsModal = false;
+				if (offerTotal >= 50) {
+					couponDiscount = 20;
+					couponApplied = true;
+					couponError = '';
+					showCouponsModal = false;
+					useBeuCash = false;
+				} else {
+					couponDiscount = 0;
+					couponApplied = false;
+					couponError = 'Minimum booking amount is ₹50 for this coupon';
+				}
 			} else if (code === 'FLAT50') {
-				couponDiscount = 50;
-				couponApplied = true;
-				couponError = '';
-				showCouponsModal = false;
+				if (offerTotal >= 100) {
+					couponDiscount = 50;
+					couponApplied = true;
+					couponError = '';
+					showCouponsModal = false;
+					useBeuCash = false;
+				} else {
+					couponDiscount = 0;
+					couponApplied = false;
+					couponError = 'Minimum booking amount is ₹100 for this coupon';
+				}
 			} else if (code === 'FIRST100') {
-				couponDiscount = 100;
-				couponApplied = true;
-				couponError = '';
-				showCouponsModal = false;
+				if (offerTotal >= 300) {
+					couponDiscount = 100;
+					couponApplied = true;
+					couponError = '';
+					showCouponsModal = false;
+					useBeuCash = false;
+				} else {
+					couponDiscount = 0;
+					couponApplied = false;
+					couponError = 'Minimum booking amount is ₹300 for this coupon';
+				}
 			} else {
 				couponDiscount = 0;
 				couponApplied = false;
@@ -1154,6 +1209,7 @@
 									<input
 										type="checkbox"
 										bind:checked={useBeuCash}
+										on:change={() => { if(useBeuCash) removeCoupon(); }}
 										disabled={beuCashBalance === 0}
 									/>
 									<span class="slider round"></span>
@@ -1444,6 +1500,7 @@
 									<div class="coupon-code-badge">{coupon.code}</div>
 									<div class="coupon-desc-bold">{coupon.discountText}</div>
 									<div class="coupon-desc-sub">{coupon.description}</div>
+									<div class="coupon-min-booking">On min. booking of {fmt(coupon.minBooking)}</div>
 								</div>
 								<div class="coupon-card-right">
 									<button
@@ -1536,6 +1593,12 @@
 					<h3 class="current-month-label">Select Time</h3>
 				</div>
 
+				<div class="slots-legend">
+					<div class="legend-item"><span class="legend-color available"></span> Available</div>
+					<div class="legend-item"><span class="legend-color filling"></span> Few spots left</div>
+					<div class="legend-item"><span class="legend-color full"></span> Fully Booked</div>
+				</div>
+
 				{#if timeSlots.length === 0}
 					<div class="empty-state-box">
 						<Clock size={32} class="opacity-40 mb-2" />
@@ -1544,9 +1607,14 @@
 				{:else}
 					<div class="time-slot-grid">
 						{#each timeSlots as t}
+							{@const count = slotBookingsCount[t] || 0}
+							{@const isFull = count >= 3}
+							{@const isFilling = count === 2}
+							
 							<button
-								class="time-slot {selectedTime === t ? 'selected' : ''}"
-								on:click={() => handleTimeSelect(t)}
+								class="time-slot {selectedTime === t ? 'selected' : ''} {isFull ? 'full' : isFilling ? 'filling' : 'available'}"
+								on:click={() => !isFull && handleTimeSelect(t)}
+								disabled={isFull}
 							>
 								{t}
 							</button>
@@ -2598,15 +2666,60 @@
 		cursor: pointer;
 		transition: all 0.2s;
 	}
-	.time-slot:hover {
+	.time-slot.available:hover {
 		background: var(--color-available-border);
 		color: #fff;
+	}
+	.time-slot.filling {
+		background: rgba(234, 179, 8, 0.1);
+		border-color: rgba(234, 179, 8, 0.4);
+		color: #eab308;
+	}
+	.time-slot.filling:hover {
+		background: rgba(234, 179, 8, 0.2);
+		color: #eab308;
+	}
+	.time-slot.full {
+		background: rgba(239, 68, 68, 0.1);
+		border-color: rgba(239, 68, 68, 0.2);
+		color: #ef4444;
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 	.time-slot.selected {
 		background: var(--color-accent-gold);
 		color: var(--color-bg-primary);
 		border-color: var(--color-accent-gold);
 		box-shadow: 0 0 15px rgba(var(--color-accent-gold-rgb), 0.4);
+	}
+
+	.slots-legend {
+		display: flex;
+		gap: 16px;
+		margin-bottom: 20px;
+		justify-content: center;
+		font-size: 0.85rem;
+		flex-wrap: wrap;
+	}
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--color-text-secondary);
+	}
+	.legend-color {
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+	}
+	.legend-color.available {
+		background: var(--color-available-border, #4ade80);
+	}
+	.legend-color.filling {
+		background: #eab308;
+	}
+	.legend-color.full {
+		background: #ef4444;
 	}
 
 	/* PRICE SUMMARY */
@@ -3359,16 +3472,16 @@
 	}
 
 	/* Time Slots */
-	:global([data-theme='clean']) .time-slot,
-	:global([data-theme='glitch']) .time-slot {
+	:global([data-theme='clean']) .time-slot.available,
+	:global([data-theme='glitch']) .time-slot.available {
 		background: rgba(76, 175, 80, 0.12); /* Light Green Tint */
 		border: 1px solid rgba(76, 175, 80, 0.3);
 		color: #1b5e20;
 		font-weight: 600;
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 	}
-	:global([data-theme='clean']) .time-slot:hover,
-	:global([data-theme='glitch']) .time-slot:hover {
+	:global([data-theme='clean']) .time-slot.available:hover,
+	:global([data-theme='glitch']) .time-slot.available:hover {
 		background: rgba(76, 175, 80, 0.25);
 		border-color: rgba(76, 175, 80, 0.6);
 		color: #000;
@@ -3690,6 +3803,12 @@
 	.coupon-desc-sub {
 		color: var(--color-text-secondary);
 		font-size: 0.8rem;
+	}
+	.coupon-min-booking {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		margin-top: 4px;
+		opacity: 0.8;
 	}
 	.apply-text-btn {
 		color: var(--color-accent-gold);
