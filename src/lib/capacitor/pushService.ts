@@ -296,7 +296,12 @@ async function initWebPush(
 				serviceWorkerRegistration: swReg
 			});
 			if (token) {
-				console.log('[PushService] Web FCM token obtained for', appType, 'userId:', userId ?? '(guest)');
+				console.log(
+					'[PushService] Web FCM token obtained for',
+					appType,
+					'userId:',
+					userId ?? '(guest)'
+				);
 				await saveToken(userId, token, 'web', appType);
 			} else {
 				console.warn('[PushService] getToken returned null — no SW or VAPID key issue');
@@ -305,7 +310,9 @@ async function initWebPush(
 			console.error('[PushService] Web token error:', err);
 		}
 	} else {
-		console.log('[PushService] Notification permission not granted yet, skipping token registration.');
+		console.log(
+			'[PushService] Notification permission not granted yet, skipping token registration.'
+		);
 	}
 
 	// Listen for foreground messages (background is handled by sw.ts)
@@ -364,7 +371,12 @@ export async function requestNotificationToken(
 ): Promise<void> {
 	if (typeof window === 'undefined') return;
 
-	console.log('[PushService] requestNotificationToken called. userId:', userId ?? '(none)', 'appType:', appType);
+	console.log(
+		'[PushService] requestNotificationToken called. userId:',
+		userId ?? '(none)',
+		'appType:',
+		appType
+	);
 
 	try {
 		const permission = await Notification.requestPermission();
@@ -390,9 +402,15 @@ export async function requestNotificationToken(
 						serviceWorkerRegistration: swReg
 					});
 					if (token) {
-						console.log('[PushService] Token obtained via requestNotificationToken:', token.substring(0, 20) + '...');
+						console.log(
+							'[PushService] Token obtained via requestNotificationToken:',
+							token.substring(0, 20) + '...'
+						);
 						await saveToken(userId, token, 'web', appType);
-						console.log('[PushService] Token saved successfully for userId:', userId ?? '(pending in localStorage)');
+						console.log(
+							'[PushService] Token saved successfully for userId:',
+							userId ?? '(pending in localStorage)'
+						);
 					} else {
 						console.warn('[PushService] requestNotificationToken: getToken returned null');
 					}

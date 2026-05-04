@@ -63,15 +63,19 @@ export async function POST({ request }) {
 		const response = await admin.messaging().sendEachForMulticast(message);
 
 		// Save the notification to Firestore for the user's history
-		await adminDb.collection('users').doc(userId).collection('notifications').add({
-			title,
-			message: body || '',
-			type: 'appointments', // Default type for private alerts
-			icon: 'calendar',
-			priority: 'high',
-			unread: true,
-			createdAt: admin.firestore.FieldValue.serverTimestamp()
-		});
+		await adminDb
+			.collection('users')
+			.doc(userId)
+			.collection('notifications')
+			.add({
+				title,
+				message: body || '',
+				type: 'appointments', // Default type for private alerts
+				icon: 'calendar',
+				priority: 'high',
+				unread: true,
+				createdAt: admin.firestore.FieldValue.serverTimestamp()
+			});
 
 		// Clean up expired / invalid tokens from Firestore
 		if (response.failureCount > 0) {

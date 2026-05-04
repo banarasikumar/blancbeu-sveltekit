@@ -322,11 +322,13 @@ export async function checkMagicLink(
 			} else if ('Notification' in window && Notification.permission === 'granted') {
 				// Proactively register a fresh token
 				import('$lib/capacitor/pushService')
-					.then(({ requestNotificationToken }) =>
-						requestNotificationToken(user.uid, 'user')
+					.then(({ requestNotificationToken }) => requestNotificationToken(user.uid, 'user'))
+					.then(() =>
+						console.log('[Auth] Proactively registered FCM token after magic link login.')
 					)
-					.then(() => console.log('[Auth] Proactively registered FCM token after magic link login.'))
-					.catch((err) => console.warn('[Auth] Could not register FCM token after magic link:', err));
+					.catch((err) =>
+						console.warn('[Auth] Could not register FCM token after magic link:', err)
+					);
 			}
 		}
 

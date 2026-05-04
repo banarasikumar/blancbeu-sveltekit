@@ -36,7 +36,9 @@
 
 	let btnText = $derived(promptMode === 'open' ? 'Open in App' : 'Install App');
 	let badgeText = $derived(promptMode === 'open' ? 'App Installed' : 'For Better Experience');
-	let secureText = $derived(promptMode === 'open' ? 'Tap to switch to the app' : 'Fast & Secure Download');
+	let secureText = $derived(
+		promptMode === 'open' ? 'Tap to switch to the app' : 'Fast & Secure Download'
+	);
 
 	let appIconUrl = $derived(
 		appType === 'admin'
@@ -76,31 +78,41 @@
 		if (!browser) return;
 
 		// Check if running in standalone (installed app) mode
-		const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
-		const hasInstalled = localStorage.getItem('pwa_installed') === 'true';
+		const isStandalone =
+			window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
 
 		if (isStandalone) {
 			// They are already in the app. Ensure flag is set, then abort (no prompt).
-			if (!hasInstalled) localStorage.setItem('pwa_installed', 'true');
+			localStorage.setItem('pwa_installed', 'true');
 			return;
 		}
 
-		if (hasInstalled) {
-			// App is installed, but they are in the browser.
-			if (sessionStorage.getItem('open_app_dismissed') === 'true') {
-				return; // They already dismissed it in this session
-			}
+		let hasInstalled = localStorage.getItem('pwa_installed') === 'true';
+		let openPromptTimer: any;
+
+		if (hasInstalled && sessionStorage.getItem('open_app_dismissed') !== 'true') {
 			promptMode = 'open';
 			// Delay showing the "Open in App" prompt
-			const timer = setTimeout(() => {
-				isVisible = true;
+			openPromptTimer = setTimeout(() => {
+				if (promptMode === 'open') {
+					isVisible = true;
+				}
 			}, 3000);
-			return () => clearTimeout(timer);
 		}
 
 		// 1. Setup our native Install Prompt Listener for 'install' mode
 		const handleBeforeInstallPrompt = (e: any) => {
 			e.preventDefault();
+
+			// IMPORTANT FIX: If this event fires, the app is definitively NOT installed on Android/Chrome!
+			// If localStorage said it was installed, it's stale (e.g. user uninstalled the app).
+			if (hasInstalled) {
+				console.log('[PWA] Stale install state detected. App is actually not installed.');
+				localStorage.removeItem('pwa_installed');
+				hasInstalled = false;
+				if (openPromptTimer) clearTimeout(openPromptTimer);
+			}
+
 			deferredPrompt = e;
 			promptMode = 'install';
 			isVisible = true;
@@ -117,6 +129,7 @@
 		window.addEventListener('appinstalled', handleAppInstalled);
 
 		return () => {
+			if (openPromptTimer) clearTimeout(openPromptTimer);
 			window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 			window.removeEventListener('appinstalled', handleAppInstalled);
 		};
@@ -125,8 +138,9 @@
 	async function handleAction() {
 		if (promptMode === 'open') {
 			// Trigger app open (relies on 'handle_links: preferred' in manifest or deep links)
-			window.location.href = window.location.href;
-			
+			// Using _blank forces Android to re-evaluate the URL intent, which often launches the WebAPK
+			window.open(window.location.href, '_blank');
+
 			// Close prompt after a short delay
 			setTimeout(() => {
 				closePrompt();
@@ -141,7 +155,7 @@
 
 		const { outcome } = await deferredPrompt.userChoice;
 		console.log(`[PWA] User response to the install prompt: ${outcome}`);
-		
+
 		if (outcome === 'accepted') {
 			localStorage.setItem('pwa_installed', 'true');
 		}

@@ -110,6 +110,9 @@ function createNotificationsStore() {
 
 	// Start listening to the logged-in user
 	if (browser) {
+		// Show welcome notification immediately on load (even before auth resolves)
+		syncStore();
+
 		user.subscribe(($user) => {
 			if ($user?.uid) {
 				if (currentUserUid !== $user.uid) {
@@ -117,13 +120,15 @@ function createNotificationsStore() {
 					initListeners($user.uid);
 				}
 			} else {
-				// User logged out
+				// User logged out — clear private/global notifs but keep welcome message
 				currentUserUid = null;
 				if (unsubUser) unsubUser();
 				if (unsubAnnouncements) unsubAnnouncements();
+				unsubUser = null;
+				unsubAnnouncements = null;
 				privateNotifs = [];
 				globalNotifs = [];
-				set([]);
+				syncStore(); // Re-sync so the welcome notification still shows
 			}
 		});
 	}
@@ -171,7 +176,7 @@ function createNotificationsStore() {
 				const data = doc.data();
 				const timestamp = data.createdAt?.toMillis() || Date.now();
 				const { time, dateCategory } = formatRelativeTime(timestamp);
-				
+
 				// Check if this global announcement was marked as read locally
 				const isRead = readAnnouncements.includes(doc.id);
 
@@ -198,17 +203,19 @@ function createNotificationsStore() {
 
 	return {
 		subscribe,
-		
+
 		markAllRead: async () => {
 			// Update local state immediately for fast UI
 			update((notifs) => notifs.map((n) => ({ ...n, unread: false })));
 
 			// Handle Private Notifications in Firestore
 			if (currentUserUid) {
-				const unreadPrivate = privateNotifs.filter(n => n.unread);
+				const unreadPrivate = privateNotifs.filter((n) => n.unread);
 				for (const n of unreadPrivate) {
 					try {
-						await updateDoc(doc(db, 'users', currentUserUid, 'notifications', n.id), { unread: false });
+						await updateDoc(doc(db, 'users', currentUserUid, 'notifications', n.id), {
+							unread: false
+						});
 					} catch (e) {
 						console.error('Failed to mark read', e);
 					}
@@ -216,9 +223,9 @@ function createNotificationsStore() {
 			}
 
 			// Handle Global Announcements locally
-			const unreadGlobal = globalNotifs.filter(n => n.unread);
+			const unreadGlobal = globalNotifs.filter((n) => n.unread);
 			if (unreadGlobal.length > 0) {
-				unreadGlobal.forEach(n => {
+				unreadGlobal.forEach((n) => {
 					if (!readAnnouncements.includes(n.id)) readAnnouncements.push(n.id);
 				});
 				if (browser) {
@@ -236,11 +243,11 @@ function createNotificationsStore() {
 			if (!currentUserUid) return;
 
 			// We only delete private notifications. Global announcements are just marked read.
-			const privateIds = privateNotifs.map(n => n.id);
-			
+			const privateIds = privateNotifs.map((n) => n.id);
+
 			// Update UI
-			update(notifs => notifs.filter(n => n.isGlobal));
-			
+			update((notifs) => notifs.filter((n) => n.isGlobal));
+
 			// Delete from Firestore
 			for (const id of privateIds) {
 				try {
@@ -251,9 +258,9 @@ function createNotificationsStore() {
 			}
 
 			// Mark remaining globals as read
-			const unreadGlobal = globalNotifs.filter(n => n.unread);
+			const unreadGlobal = globalNotifs.filter((n) => n.unread);
 			if (unreadGlobal.length > 0) {
-				unreadGlobal.forEach(n => {
+				unreadGlobal.forEach((n) => {
 					if (!readAnnouncements.includes(n.id)) readAnnouncements.push(n.id);
 				});
 				if (browser) {
@@ -268,7 +275,7 @@ function createNotificationsStore() {
 		},
 
 		dismiss: async (id: string) => {
-			const item = get({subscribe}).find(n => n.id === id);
+			const item = get({ subscribe }).find((n) => n.id === id);
 			if (!item) return;
 
 			// Update UI immediately
@@ -283,7 +290,8 @@ function createNotificationsStore() {
 				// Next refresh it will appear again as read, which is standard.
 				if (!readAnnouncements.includes(id)) {
 					readAnnouncements.push(id);
-					if (browser) localStorage.setItem('read_announcements', JSON.stringify(readAnnouncements));
+					if (browser)
+						localStorage.setItem('read_announcements', JSON.stringify(readAnnouncements));
 				}
 			} else if (currentUserUid) {
 				try {

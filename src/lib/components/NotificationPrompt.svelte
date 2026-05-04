@@ -37,7 +37,16 @@
 		<div class="notif-banner">
 			<!-- Animated bell -->
 			<div class="bell-ring">
-				<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<svg
+					width="22"
+					height="22"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
 					<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
 					<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
 				</svg>
@@ -48,12 +57,19 @@
 				<span class="notif-sub">Get booking updates & exclusive offers</span>
 			</div>
 
-			<button class="notif-allow-btn" onclick={handleAllow}>
-				Allow
-			</button>
+			<button class="notif-allow-btn" onclick={handleAllow}> Allow </button>
 
 			<button class="notif-close" onclick={handleDismiss} aria-label="Dismiss">
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+				<svg
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
 					<line x1="18" y1="6" x2="6" y2="18"></line>
 					<line x1="6" y1="6" x2="18" y2="18"></line>
 				</svg>
@@ -105,16 +121,28 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: #D4AF37;
+		color: #d4af37;
 		animation: ring-wobble 3s ease-in-out infinite;
 	}
 
 	@keyframes ring-wobble {
-		0%, 85%, 100% { transform: rotate(0deg); }
-		88% { transform: rotate(12deg); }
-		91% { transform: rotate(-10deg); }
-		94% { transform: rotate(6deg); }
-		97% { transform: rotate(-3deg); }
+		0%,
+		85%,
+		100% {
+			transform: rotate(0deg);
+		}
+		88% {
+			transform: rotate(12deg);
+		}
+		91% {
+			transform: rotate(-10deg);
+		}
+		94% {
+			transform: rotate(6deg);
+		}
+		97% {
+			transform: rotate(-3deg);
+		}
 	}
 
 	/* Text area */
@@ -148,7 +176,7 @@
 	.notif-allow-btn {
 		flex-shrink: 0;
 		padding: 8px 18px;
-		background: linear-gradient(135deg, #E2C25D, #C4A23A);
+		background: linear-gradient(135deg, #e2c25d, #c4a23a);
 		color: #000;
 		font-family: var(--font-body, sans-serif);
 		font-size: 0.78rem;
@@ -171,14 +199,19 @@
 		left: -100%;
 		width: 60%;
 		height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
 		transform: skewX(-25deg);
 		animation: btn-shimmer 2.5s infinite 1s;
 	}
 
 	@keyframes btn-shimmer {
-		0%, 60% { left: -100%; }
-		100% { left: 200%; }
+		0%,
+		60% {
+			left: -100%;
+		}
+		100% {
+			left: 200%;
+		}
 	}
 
 	.notif-allow-btn:hover {

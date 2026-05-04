@@ -1,4 +1,6 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
+import { adminDb } from '$lib/server/firebaseAdmin';
+import admin from 'firebase-admin';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const host = event.url.host;
@@ -57,4 +59,54 @@ export const handle: Handle = async ({ event, resolve }) => {
 	response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
 
 	return response;
+};
+
+export const handleError: HandleServerError = async ({ error, event }) => {
+	const errorObj = error as any;
+	console.error('Unhandled Server Error:', errorObj);
+
+	try {
+		// Find admin tokens to notify them of the actual unmasked 500 error
+		const usersSnapshot = await adminDb.collection('users').where('role', '==', 'admin').get();
+		const tokens: string[] = [];
+
+		usersSnapshot.forEach((doc) => {
+			const data = doc.data();
+			if (Array.isArray(data.adminFcmTokens)) {
+				tokens.push(...data.adminFcmTokens);
+			}
+		});
+
+		const uniqueTokens = [...new Set(tokens)];
+
+		if (uniqueTokens.length > 0) {
+			const fcmMessage = {
+				notification: {
+					title: 'Critical System Error (500)',
+					body: `Path: ${event.url.pathname}\nMessage: ${errorObj?.message || 'Unknown internal error'}`
+				},
+				data: {
+					icon: '/admin-icon-192.png'
+				},
+				android: {
+					priority: 'high' as const
+				},
+				tokens: uniqueTokens
+			};
+
+			// Fire and forget so we don't block the error response
+			admin
+				.messaging()
+				.sendEachForMulticast(fcmMessage)
+				.catch((err) => {
+					console.error('Failed to send admin error notification:', err);
+				});
+		}
+	} catch (notifyError) {
+		console.error('Failed to retrieve admin tokens for error notification:', notifyError);
+	}
+
+	return {
+		message: 'Internal Error'
+	};
 };

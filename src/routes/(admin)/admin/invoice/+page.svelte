@@ -204,9 +204,7 @@
 
 {#if phase === 'select'}
 	<!-- PHASE 1: Booking Selection -->
-	<div class="admin-view-header">
-		<h2 class="admin-view-title">Invoice Generator</h2>
-	</div>
+	<div class="admin-view-header" style="justify-content: flex-end;"></div>
 
 	<p class="inv-subtitle">Select a booking to generate an invoice</p>
 
@@ -275,7 +273,6 @@
 		<button class="inv-back-btn" onclick={goBackToSelect}>
 			<ArrowLeft size={20} />
 		</button>
-		<h2 class="admin-view-title">Invoice</h2>
 		<div style="width: 36px;"></div>
 	</div>
 

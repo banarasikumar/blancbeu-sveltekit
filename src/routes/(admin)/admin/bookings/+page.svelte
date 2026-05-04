@@ -391,8 +391,7 @@
 </script>
 
 <!-- View Header -->
-<div class="admin-view-header">
-	<h2 class="admin-view-title">Bookings</h2>
+<div class="admin-view-header" style="justify-content: flex-end;">
 	<div style="display: flex; align-items: center; gap: 8px;">
 		<button class="admin-manage-btn" class:active={isManageMode} onclick={toggleManageMode}>
 			{isManageMode ? 'Cancel' : 'Manage'}

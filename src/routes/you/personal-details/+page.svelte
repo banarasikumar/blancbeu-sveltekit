@@ -10,6 +10,7 @@
 	import { ChevronLeft, Camera, User, Mail, Phone, Calendar, Save } from 'lucide-svelte';
 	import { showToast } from '$lib/stores/toast';
 	import Loader from '$lib/components/ui/Loader.svelte';
+	import ImageCropper from '$lib/components/ui/ImageCropper.svelte';
 
 	let user = $state<any>(null);
 	let loading = $state(true);
@@ -17,6 +18,8 @@
 	let isEditing = $state(false);
 	let uploadingImage = $state(false);
 	let fileInput: HTMLInputElement;
+
+	let cropImageSrc = $state<string | null>(null);
 
 	// Simple hash function to generate consistent color from string
 	function getAvatarColor(name: string) {
@@ -65,7 +68,18 @@
 					if (docSnap.exists()) {
 						const data = docSnap.data();
 						formData.phoneNumber = data.phoneNumber || '';
-						formData.birthDate = data.birthDate || '';
+
+						// Handle birthDate (convert YYYY-MM-DD to DD/MM/YYYY if needed)
+						if (data.birthDate) {
+							if (data.birthDate.includes('-')) {
+								const [y, m, d] = data.birthDate.split('-');
+								formData.birthDate = `${d}/${m}/${y}`;
+							} else {
+								formData.birthDate = data.birthDate;
+							}
+						} else {
+							formData.birthDate = '';
+						}
 						// Update display name from DB if it's more recent/different?
 						// For now, trust Auth for display name unless DB has it
 						if (data.displayName) formData.displayName = data.displayName;
@@ -124,20 +138,88 @@
 		}
 	}
 
-	async function handleImageUpload(e: Event) {
+	async function handleImageSelect(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
 		if (!file || !user) return;
 
+		// Convert file to object URL to pass to the cropper
+		cropImageSrc = URL.createObjectURL(file);
+		// Reset file input so the same file can be selected again if needed
+		if (fileInput) fileInput.value = '';
+	}
+
+	function handlePhoneInput(e: Event) {
+		const input = e.target as HTMLInputElement;
+		let val = input.value.replace(/\D/g, '');
+
+		if (val.length > 0 && !val.startsWith('91') && val.length <= 10) {
+			val = '91' + val; // Auto prefix 91 if they start typing a 10-digit number
+		}
+
+		if (val.length > 12) val = val.substring(0, 12); // Max +91 99999 99999
+
+		let formatted = '';
+		if (val.length > 0) {
+			const cc = val.substring(0, 2);
+			const p1 = val.substring(2, 7);
+			const p2 = val.substring(7, 12);
+
+			formatted = `+${cc}`;
+			if (p1) formatted += `\u2006${p1}`; // Thin space
+			if (p2) formatted += `\u2006${p2}`; // Thin space
+		}
+
+		formData.phoneNumber = formatted;
+	}
+
+	function handleDateInput(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const inputType = (e as InputEvent).inputType;
+		let val = input.value.replace(/\D/g, ''); // Remove non-digits
+
+		if (val.length > 8) val = val.substring(0, 8); // Max 8 digits: DDMMYYYY
+
+		let formatted = val;
+
+		if (val.length >= 2) {
+			formatted = val.substring(0, 2) + '/';
+			if (val.length >= 4) {
+				formatted += val.substring(2, 4) + '/';
+				if (val.length > 4) {
+					formatted += val.substring(4, 8);
+				}
+			} else if (val.length > 2) {
+				formatted += val.substring(2, 4);
+			}
+		}
+
+		// Prevent re-adding the slash immediately if the user is backspacing
+		if (inputType === 'deleteContentBackward') {
+			if (val.length === 2) {
+				formatted = val.substring(0, 2);
+			} else if (val.length === 4) {
+				formatted = val.substring(0, 2) + '/' + val.substring(2, 4);
+			}
+		}
+
+		formData.birthDate = formatted;
+	}
+
+	async function handleCroppedImage(blob: Blob) {
+		if (!user) return;
 		uploadingImage = true;
+
 		try {
-			// Upload to Firebase Storage
-			const storageRef = ref(storage, `users/${user.uid}/profile_${Date.now()}`);
-			await uploadBytes(storageRef, file);
+			// Upload the cropped WebP blob to Firebase Storage
+			const storageRef = ref(storage, `users/${user.uid}/profile_${Date.now()}.webp`);
+
+			await uploadBytes(storageRef, blob, { contentType: 'image/webp' });
+
 			const url = await getDownloadURL(storageRef);
-			
+
 			// Update auth profile
 			await updateProfile(user, { photoURL: url });
-			
+
 			// Update local state so it shows immediately
 			user = { ...user, photoURL: url };
 
@@ -146,12 +228,19 @@
 			await updateDoc(userRef, { photoURL: url });
 
 			showToast('Profile picture updated!', 'success');
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error uploading image:', error);
-			showToast('Failed to upload image.', 'error');
+			const code = error?.code || '';
+			if (code === 'storage/unauthorized') {
+				showToast('Permission denied. Please sign in again.', 'error');
+			} else if (code.includes('storage')) {
+				showToast('Storage error. Please try again.', 'error');
+			} else {
+				showToast('Failed to upload image.', 'error');
+			}
 		} finally {
 			uploadingImage = false;
-			if (fileInput) fileInput.value = '';
+			cropImageSrc = null; // Close cropper modal AFTER uploading
 		}
 	}
 
@@ -167,6 +256,16 @@
 </script>
 
 <div class="page-container" in:fade={{ duration: 300 }}>
+	{#if cropImageSrc}
+		<ImageCropper
+			image={cropImageSrc}
+			onCancel={() => {
+				cropImageSrc = null;
+			}}
+			onSave={handleCroppedImage}
+		/>
+	{/if}
+
 	<!-- HEADER -->
 	<header class="page-header">
 		<button class="icon-btn" onclick={handleBack}>
@@ -189,7 +288,10 @@
 						{#if user?.photoURL}
 							<img src={user.photoURL} alt="Profile" class="avatar-img" />
 						{:else}
-							<div class="avatar-placeholder" style="background-color: {getAvatarColor(formData.displayName || 'U')}">
+							<div
+								class="avatar-placeholder"
+								style="background-color: {getAvatarColor(formData.displayName || 'U')}"
+							>
 								{formData.displayName ? formData.displayName[0].toUpperCase() : 'U'}
 							</div>
 						{/if}
@@ -206,12 +308,12 @@
 								<Camera size={16} />
 							{/if}
 						</button>
-						<input 
-							type="file" 
-							accept="image/*" 
-							bind:this={fileInput} 
-							onchange={handleImageUpload} 
-							style="display:none;" 
+						<input
+							type="file"
+							accept="image/*"
+							bind:this={fileInput}
+							onchange={handleImageSelect}
+							style="display:none;"
 						/>
 					</div>
 					<h2 class="user-name">{formData.displayName || 'Valued Member'}</h2>
@@ -264,25 +366,31 @@
 						<input
 							type="tel"
 							id="phone"
-							bind:value={formData.phoneNumber}
+							value={formData.phoneNumber}
+							oninput={handlePhoneInput}
 							class="text-input"
 							class:disabled={!isEditing}
-							placeholder="+1 (555) 000-0000"
+							placeholder="+91 00000 00000"
 							disabled={!isEditing}
 						/>
 					</div>
 
 					<!-- Date of Birth -->
 					<div class="form-group">
-						<label for="dob" class="input-label">
-							<Calendar size={16} class="label-icon" /> Date of Birth
-						</label>
+						<div class="label-row">
+							<label for="dob" class="input-label">
+								<Calendar size={16} class="label-icon" /> Date of Birth
+							</label>
+							<span class="format-hint">Format: DD/MM/YYYY</span>
+						</div>
 						<input
-							type="date"
+							type="tel"
 							id="dob"
-							bind:value={formData.birthDate}
+							value={formData.birthDate}
+							oninput={handleDateInput}
 							class="text-input"
 							class:disabled={!isEditing}
+							placeholder="DD/MM/YYYY"
 							disabled={!isEditing}
 						/>
 					</div>
@@ -446,8 +554,8 @@
 
 	.camera-btn {
 		position: absolute;
-		bottom: 0;
-		right: 0;
+		bottom: 2px;
+		right: -4px;
 		width: 32px;
 		height: 32px;
 		background: var(--color-accent-gold);
@@ -458,6 +566,7 @@
 		justify-content: center;
 		border: 3px solid var(--color-bg-primary);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+		z-index: 5;
 	}
 
 	.user-name {
@@ -531,6 +640,18 @@
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
 		margin-top: -4px;
+	}
+
+	.label-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.format-hint {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		font-weight: 500;
 	}
 
 	/* SAVE BUTTON */

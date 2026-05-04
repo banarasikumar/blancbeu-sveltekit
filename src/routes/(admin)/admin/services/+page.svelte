@@ -99,8 +99,7 @@
 <!-- Sticky Toolbar: Header + Search/Sort -->
 <div class="services-sticky-toolbar">
 	<!-- Header -->
-	<div class="admin-view-header">
-		<h2 class="admin-view-title">Services</h2>
+	<div class="admin-view-header" style="justify-content: flex-end;">
 		<div style="font-size: 12px; color: var(--admin-text-secondary); font-weight: 600;">
 			{filteredServices.length} Services
 		</div>

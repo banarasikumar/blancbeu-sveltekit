@@ -4,8 +4,19 @@
 	import { tweened } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
 
+	import { onMount } from 'svelte';
+
 	export let balance = 0;
 	export let loading = false;
+
+	let shouldAnimate = false;
+
+	onMount(() => {
+		if (sessionStorage.getItem('playWalletAnimation') === 'true') {
+			shouldAnimate = true;
+			sessionStorage.removeItem('playWalletAnimation');
+		}
+	});
 
 	const animatedBalance = tweened(0, {
 		duration: 2000,
@@ -15,7 +26,13 @@
 	// Animate whenever balance changes
 	$: {
 		if (!loading) {
-			animatedBalance.set(balance);
+			if (shouldAnimate && $animatedBalance === 0) {
+				// Play the increasing animation once
+				animatedBalance.set(balance, { duration: 2000 });
+			} else {
+				// Snap immediately for standard page loads
+				animatedBalance.set(balance, { duration: 0 });
+			}
 		}
 	}
 
@@ -24,7 +41,12 @@
 	}
 </script>
 
-<div class="wallet-card glass-panel" class:jackpot={balance === 500 && !loading} role="button" tabindex="0">
+<div
+	class="wallet-card glass-panel"
+	class:jackpot={balance === 500 && !loading}
+	role="button"
+	tabindex="0"
+>
 	<div class="wallet-bg-glow"></div>
 	<div class="wallet-content">
 		<div class="wallet-left">
@@ -189,12 +211,24 @@
 		animation: pulse-dot 1.4s infinite ease-in-out both;
 	}
 
-	.dot:nth-child(1) { animation-delay: -0.32s; }
-	.dot:nth-child(2) { animation-delay: -0.16s; }
-	
+	.dot:nth-child(1) {
+		animation-delay: -0.32s;
+	}
+	.dot:nth-child(2) {
+		animation-delay: -0.16s;
+	}
+
 	@keyframes pulse-dot {
-		0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-		40% { transform: scale(1); opacity: 1; }
+		0%,
+		80%,
+		100% {
+			transform: scale(0);
+			opacity: 0.3;
+		}
+		40% {
+			transform: scale(1);
+			opacity: 1;
+		}
 	}
 
 	/* Jackpot 500 Styling */
@@ -210,10 +244,20 @@
 		padding: 2px;
 		background: linear-gradient(
 			45deg,
-			#ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000
+			#ff0000,
+			#ff7300,
+			#fffb00,
+			#48ff00,
+			#00ffd5,
+			#002bff,
+			#7a00ff,
+			#ff00c8,
+			#ff0000
 		);
 		background-size: 400%;
-		-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+		-webkit-mask:
+			linear-gradient(#fff 0 0) content-box,
+			linear-gradient(#fff 0 0);
 		-webkit-mask-composite: xor;
 		mask-composite: exclude;
 		animation: rgb-border 3s linear infinite;
@@ -221,15 +265,29 @@
 	}
 
 	@keyframes rgb-border {
-		0% { background-position: 0% 50%; }
-		50% { background-position: 100% 50%; }
-		100% { background-position: 0% 50%; }
+		0% {
+			background-position: 0% 50%;
+		}
+		50% {
+			background-position: 100% 50%;
+		}
+		100% {
+			background-position: 0% 50%;
+		}
 	}
 
 	@keyframes border-sparkle {
-		0% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.4); }
-		33% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.4); }
-		66% { box-shadow: 0 0 15px rgba(0, 0, 255, 0.4); }
-		100% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.4); }
+		0% {
+			box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+		}
+		33% {
+			box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+		}
+		66% {
+			box-shadow: 0 0 15px rgba(0, 0, 255, 0.4);
+		}
+		100% {
+			box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+		}
 	}
 </style>

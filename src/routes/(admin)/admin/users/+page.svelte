@@ -26,7 +26,7 @@
 	let showWalkIns = $state(true);
 	let showMerged = $state(false);
 
-	let sortBy = $state<'name' | 'joined'>('name');
+	let sortBy = $state<'name' | 'joined'>('joined');
 
 	// --- Scroll to Top ---
 	let showScrollTop = $state(false);
@@ -127,40 +127,39 @@
 	}
 </script>
 
-<!-- Header -->
-<div class="admin-view-header">
-	<h2 class="admin-view-title">Users</h2>
-	<div style="font-size: 12px; color: var(--admin-text-secondary); font-weight: 600;">
-		{filteredUsers.length} shown
+<!-- Filters & Count -->
+<div
+	style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;"
+>
+	<div style="display: flex; gap: 8px;">
+		<button
+			style="font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid {showWalkIns
+				? 'var(--admin-accent)'
+				: 'var(--admin-border)'}; background: {showWalkIns
+				? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)'
+				: 'var(--admin-surface)'}; color: {showWalkIns
+				? 'var(--admin-accent)'
+				: 'var(--admin-text-secondary)'}; cursor: pointer; font-weight: 600; transition: all 0.2s;"
+			onclick={() => (showWalkIns = !showWalkIns)}
+		>
+			Walk-ins {showWalkIns ? '✓' : ''}
+		</button>
+		<button
+			style="font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid {showMerged
+				? 'var(--admin-accent)'
+				: 'var(--admin-border)'}; background: {showMerged
+				? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)'
+				: 'var(--admin-surface)'}; color: {showMerged
+				? 'var(--admin-accent)'
+				: 'var(--admin-text-secondary)'}; cursor: pointer; font-weight: 600; transition: all 0.2s;"
+			onclick={() => (showMerged = !showMerged)}
+		>
+			Merged {showMerged ? '✓' : ''}
+		</button>
 	</div>
-</div>
-
-<!-- Filters -->
-<div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-	<button
-		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showWalkIns
-			? 'var(--admin-accent)'
-			: 'var(--admin-border)'}; background: {showWalkIns
-			? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)'
-			: 'transparent'}; color: {showWalkIns
-			? 'var(--admin-accent)'
-			: 'var(--admin-text-secondary)'}; cursor: pointer;"
-		onclick={() => (showWalkIns = !showWalkIns)}
-	>
-		Walk-ins {showWalkIns ? '✓' : ''}
-	</button>
-	<button
-		style="font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid {showMerged
-			? 'var(--admin-accent)'
-			: 'var(--admin-border)'}; background: {showMerged
-			? 'rgba(var(--admin-accent-rgb, 99,102,241),0.15)'
-			: 'transparent'}; color: {showMerged
-			? 'var(--admin-accent)'
-			: 'var(--admin-text-secondary)'}; cursor: pointer;"
-		onclick={() => (showMerged = !showMerged)}
-	>
-		Merged {showMerged ? '✓' : ''}
-	</button>
+	<div style="font-size: 12px; color: var(--admin-text-secondary); font-weight: 600;">
+		{filteredUsers.length} users
+	</div>
 </div>
 
 <!-- Search & Sort -->

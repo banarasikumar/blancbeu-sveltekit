@@ -61,6 +61,11 @@
 			// Phone number
 			userPhone = user.phoneNumber || pendingData?.phone || '';
 
+			// Extract phone number from WhatsApp UID (format: wa:+91XXXXXXXXXX)
+			if (!userPhone && user.uid && user.uid.startsWith('wa:+')) {
+				userPhone = user.uid.replace('wa:', '');
+			}
+
 			// Pre-fill name from auth if available
 			if (user.displayName) {
 				// Clear out auto-generated "User 1234567890" names from WhatsApp
@@ -91,39 +96,53 @@
 		unsubMandatory();
 	});
 
-	// Format DOB input as DD/MM/YYYY on type
 	function handleDobInput(e: Event) {
 		const input = e.target as HTMLInputElement;
-		const rawValue = input.value;
-		const isDeleting = rawValue.length < dobInput.length;
-		
-		let v = rawValue.replace(/\D/g, ''); // Remove non-digits
-		if (v.length > 8) v = v.substring(0, 8);
+		const inputType = (e as InputEvent).inputType;
 
-		if (!isDeleting) {
+		let val = input.value.replace(/\D/g, ''); // Remove non-digits
+		if (val.length > 8) val = val.substring(0, 8);
+
+		if (inputType !== 'deleteContentBackward') {
 			// Smart padding for day (if first digit > 3, prepend 0)
-			if (v.length === 1 && parseInt(v[0]) > 3) {
-				v = '0' + v;
+			if (val.length === 1 && parseInt(val[0]) > 3) {
+				val = '0' + val;
 			}
 			// Smart padding for month (if first digit of month > 1, prepend 0)
-			if (v.length === 3 && parseInt(v[2]) > 1) {
-				v = v.substring(0, 2) + '0' + v[2];
+			if (val.length === 3 && parseInt(val[2]) > 1) {
+				val = val.substring(0, 2) + '0' + val[2];
 			}
 		}
 
-		if (v.length > 4) {
-			dobInput = `${v.substring(0, 2)}/${v.substring(2, 4)}/${v.substring(4)}`;
-		} else if (v.length > 2) {
-			dobInput = `${v.substring(0, 2)}/${v.substring(2)}`;
-		} else {
-			dobInput = v;
+		let formatted = val;
+
+		if (val.length >= 2) {
+			formatted = val.substring(0, 2) + '/';
+			if (val.length >= 4) {
+				formatted += val.substring(2, 4) + '/';
+				if (val.length > 4) {
+					formatted += val.substring(4, 8);
+				}
+			} else if (val.length > 2) {
+				formatted += val.substring(2, 4);
+			}
 		}
 
+		if (inputType === 'deleteContentBackward') {
+			if (val.length === 2) {
+				formatted = val.substring(0, 2);
+			} else if (val.length === 4) {
+				formatted = val.substring(0, 2) + '/' + val.substring(2, 4);
+			}
+		}
+
+		dobInput = formatted;
+
 		// Parse to YYYY-MM-DD when complete
-		if (v.length === 8) {
-			const dd = v.substring(0, 2);
-			const mm = v.substring(2, 4);
-			const yyyy = v.substring(4, 8);
+		if (val.length === 8) {
+			const dd = val.substring(0, 2);
+			const mm = val.substring(2, 4);
+			const yyyy = val.substring(4, 8);
 			dobValue = `${yyyy}-${mm}-${dd}`;
 
 			// Sync to hidden input
@@ -162,7 +181,8 @@
 		if (!phone) return '';
 		let p = phone.replace(/\s+/g, '');
 		if (p.startsWith('+91') && p.length === 13) {
-			return `+91 ${p.slice(3, 8)} ${p.slice(8, 13)}`;
+			// Using U+2006 (Six-Per-Em Space) which is smaller than a regular space
+			return `+91\u2006${p.slice(3, 8)}\u2006${p.slice(8, 13)}`;
 		}
 		return p;
 	}
@@ -249,14 +269,19 @@
 			const userRef = doc(db, 'users', currentUser.uid);
 			const existingDoc = await getDoc(userRef);
 
+			let currentProvider = pendingData?.provider || 'google';
+			if (currentUser.uid.startsWith('wa:')) {
+				currentProvider = 'whatsapp';
+			}
+
 			const profileData = {
 				name: name.trim(),
 				gender: gender,
 				dob: dobValue,
 				email: currentUser.email || '',
 				photoURL: currentUser.photoURL || '',
-				provider: pendingData?.provider || 'google',
-				phone: pendingData?.phone || '',
+				provider: currentProvider,
+				phone: userPhone,
 				profileCompleted: true,
 				lastLogin: serverTimestamp(),
 				updatedAt: serverTimestamp()
@@ -459,7 +484,13 @@
 	{/if}
 
 	{#if showWelcomeModal}
-		<WelcomeModal user={currentUser} onClose={() => { showWelcomeModal = false; goto('/you'); }} />
+		<WelcomeModal
+			user={currentUser}
+			onClose={() => {
+				showWelcomeModal = false;
+				goto('/you');
+			}}
+		/>
 	{/if}
 </div>
 
@@ -516,8 +547,13 @@
 	}
 
 	@keyframes float {
-		0%, 100% { transform: translateY(0); }
-		50% { transform: translateY(-10px); }
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
 	}
 
 	.title {
@@ -586,7 +622,7 @@
 		font-family: inherit;
 		transition: all 0.3s ease;
 		outline: none;
-		box-shadow: inset 0 2px 4px rgba(var(--color-shadow-rgb, 0,0,0), 0.05);
+		box-shadow: inset 0 2px 4px rgba(var(--color-shadow-rgb, 0, 0, 0), 0.05);
 	}
 
 	.glass-input::placeholder {
@@ -597,8 +633,8 @@
 	.glass-input:focus {
 		border-color: var(--color-accent-gold);
 		background: var(--color-surface-active);
-		box-shadow: 
-			inset 0 2px 4px rgba(var(--color-shadow-rgb, 0,0,0), 0.05),
+		box-shadow:
+			inset 0 2px 4px rgba(var(--color-shadow-rgb, 0, 0, 0), 0.05),
 			0 0 0 3px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.2);
 	}
 
@@ -706,13 +742,13 @@
 		border-radius: var(--radius-md);
 		cursor: pointer;
 		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-		box-shadow: 0 2px 8px rgba(var(--color-shadow-rgb, 0,0,0), 0.04);
+		box-shadow: 0 2px 8px rgba(var(--color-shadow-rgb, 0, 0, 0), 0.04);
 	}
 
 	.gender-option:hover {
 		background: var(--color-surface-hover);
 		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(var(--color-shadow-rgb, 0,0,0), 0.08);
+		box-shadow: 0 4px 12px rgba(var(--color-shadow-rgb, 0, 0, 0), 0.08);
 	}
 
 	.gender-option.selected {

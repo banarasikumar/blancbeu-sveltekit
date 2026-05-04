@@ -296,7 +296,10 @@
 						{#if user.photoURL}
 							<img src={user.photoURL} alt="Profile" class="avatar-img" />
 						{:else}
-							<div class="avatar-placeholder" style="background-color: {getAvatarColor(user.displayName || 'U')}">
+							<div
+								class="avatar-placeholder"
+								style="background-color: {getAvatarColor(user.displayName || 'U')}"
+							>
 								{user.displayName ? user.displayName[0].toUpperCase() : 'U'}
 							</div>
 						{/if}
@@ -465,7 +468,6 @@
 		position: relative;
 		box-shadow: 0 0 15px rgba(var(--color-accent-gold-rgb), 0.3);
 		margin-bottom: 12px;
-		overflow: hidden; /* Fix overlap */
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -523,8 +525,8 @@
 	}
 	.edit-btn-mini {
 		position: absolute;
-		bottom: 0;
-		right: 0;
+		bottom: 2px;
+		right: -4px;
 		width: 24px;
 		height: 24px;
 		background: var(--color-accent-gold);
@@ -534,6 +536,7 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
+		z-index: 5;
 	}
 	.edit-icon {
 		background: none;

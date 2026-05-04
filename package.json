@@ -70,6 +70,7 @@
 		"jspdf-autotable": "^5.0.7",
 		"lucide-svelte": "^0.563.0",
 		"qrcode": "^1.5.4",
+		"svelte-easy-crop": "^5.0.1",
 		"svg2pdf.js": "^2.7.0"
 	}
 }

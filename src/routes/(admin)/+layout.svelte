@@ -48,6 +48,7 @@
 		if (path.includes('/admin/settings')) return 'Settings';
 		if (path.includes('/admin/invoice')) return 'Invoice';
 		if (path.includes('/admin/notify')) return 'Notify';
+		if (path.includes('/admin/reports')) return 'Reports';
 		if (path.includes('/admin/login')) return '';
 		return 'Dashboard';
 	});

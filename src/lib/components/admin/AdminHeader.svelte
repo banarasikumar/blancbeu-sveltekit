@@ -1,19 +1,34 @@
 <script lang="ts">
-	import { Bell, Menu, Moon, Sun } from 'lucide-svelte';
+	import { Bell, Menu, Moon, Sun, UploadCloud } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 	import { theme, toggleTheme } from '$lib/stores/theme';
 	import { isOnline } from '$lib/stores/networkStatus';
 	import { adminUnreadCount } from '$lib/stores/adminNotificationsList';
+	import { uploadStore } from '$lib/stores/uploadStore';
 
 	let { title = 'Dashboard' }: { title?: string } = $props();
+
+	let activeUploadsCount = $derived(
+		$uploadStore.filter((u) => u.status === 'uploading' || u.status === 'pending').length
+	);
 </script>
 
 <header class="admin-header">
 	<div class="admin-header-title">{title}</div>
 	<div style="display: flex; gap: 8px;">
+		{#if activeUploadsCount > 0}
+			<button
+				class="admin-header-btn admin-header-upload"
+				onclick={() => goto('/admin/uploads')}
+				aria-label="Uploads"
+			>
+				<UploadCloud size={22} class="animate-bounce-subtle" />
+				<span class="admin-header-badge">{activeUploadsCount}</span>
+			</button>
+		{/if}
 		<button
 			class="admin-header-btn admin-header-bell"
-			onclick={() => goto('/admin/notify')}
+			onclick={() => goto('/admin/notifications')}
 			aria-label="Notifications"
 		>
 			<Bell size={22} />
@@ -86,8 +101,27 @@
 		}
 	}
 
-	.admin-header-bell {
+	.admin-header-bell,
+	.admin-header-upload {
 		position: relative;
+	}
+
+	.admin-header-upload {
+		color: var(--admin-accent, #d4af37);
+	}
+
+	:global(.animate-bounce-subtle) {
+		animation: bounceSubtle 2s infinite ease-in-out;
+	}
+
+	@keyframes bounceSubtle {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-3px);
+		}
 	}
 
 	.admin-header-badge {

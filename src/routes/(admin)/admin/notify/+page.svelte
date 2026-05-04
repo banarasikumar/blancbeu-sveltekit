@@ -613,13 +613,11 @@
 			if (withTokens.length > 0) {
 				console.log(
 					'[Notify Debug] Subscriber sample:',
-					withTokens
-						.slice(0, 3)
-						.map((u) => ({
-							id: u.id,
-							name: u.displayName || u.name,
-							tokenCount: u.fcmTokens?.length
-						}))
+					withTokens.slice(0, 3).map((u) => ({
+						id: u.id,
+						name: u.displayName || u.name,
+						tokenCount: u.fcmTokens?.length
+					}))
 				);
 			} else if (users.length > 0) {
 				console.log('[Notify Debug] Sample user keys:', Object.keys(users[0]));
@@ -636,8 +634,7 @@
 </script>
 
 <!-- Page Header -->
-<div class="admin-view-header">
-	<h2 class="admin-view-title">Notify</h2>
+<div class="admin-view-header" style="justify-content: flex-end;">
 	<div style="display: flex; align-items: center; gap: 8px;">
 		<div class="notify-subscriber-badge">
 			<BellRing size={14} />

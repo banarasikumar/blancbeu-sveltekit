@@ -161,7 +161,6 @@
 		>
 			<ArrowLeft size={18} />
 		</button>
-		<h2 class="admin-view-title" style="margin: 0;">Recycle Bin</h2>
 	</div>
 	<button class="admin-manage-btn" class:active={isManageMode} onclick={toggleManageMode}>
 		{isManageMode ? 'Cancel' : 'Manage'}

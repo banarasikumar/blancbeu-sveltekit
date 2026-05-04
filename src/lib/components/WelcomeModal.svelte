@@ -38,7 +38,7 @@
 			}
 
 			const particleCount = 50 * (timeLeft / duration);
-			
+
 			// Fire from two sides
 			confetti(
 				Object.assign({}, defaults, {
@@ -59,12 +59,14 @@
 
 	async function handleClaim() {
 		await updateBonusClaimed();
+		sessionStorage.setItem('playWalletAnimation', 'true');
 		goto('/you');
 		onClose();
 	}
 
 	async function handleDismiss() {
 		await updateBonusClaimed();
+		sessionStorage.setItem('playWalletAnimation', 'true');
 		onClose();
 	}
 
@@ -86,7 +88,6 @@
 {#if isVisible}
 	<div class="welcome-overlay" in:fade={{ duration: 400 }} out:fade={{ duration: 300 }}>
 		<div class="welcome-card" in:fly={{ y: 50, duration: 600, delay: 100 }}>
-			
 			<!-- Close Button -->
 			<button class="close-btn" on:click={handleDismiss}>
 				<X size={20} />
@@ -105,7 +106,7 @@
 				<div class="icon-container" in:scale={{ duration: 500, delay: 400 }}>
 					<span class="emoji">✨</span>
 				</div>
-				
+
 				<h2 class="title">Welcome to Blancbeu!</h2>
 				<p class="subtitle">We're so glad you're here.</p>
 
@@ -118,7 +119,7 @@
 					<span class="bonus-text">Beu Cash added to your wallet!</span>
 				</div>
 
-				<p class="terms">Use it towards your first booking. <br/>*T&C Apply</p>
+				<p class="terms">Use it towards your first booking. <br />*T&C Apply</p>
 
 				<button class="claim-btn" on:click={handleClaim}>
 					View My Wallet
@@ -156,7 +157,7 @@
 		max-width: 420px;
 		position: relative;
 		overflow: hidden;
-		box-shadow: 
+		box-shadow:
 			0 20px 50px rgba(0, 0, 0, 0.5),
 			inset 0 1px 0 rgba(255, 255, 255, 0.1);
 	}
@@ -211,14 +212,35 @@
 		opacity: 0.8;
 	}
 
-	.shape-1 { top: 15%; left: 10%; animation-delay: 0s; }
-	.shape-2 { top: 25%; right: 15%; animation-delay: -2s; }
-	.shape-3 { bottom: 30%; left: 15%; animation-delay: -4s; }
-	.shape-4 { bottom: 20%; right: 10%; animation-delay: -1s; }
+	.shape-1 {
+		top: 15%;
+		left: 10%;
+		animation-delay: 0s;
+	}
+	.shape-2 {
+		top: 25%;
+		right: 15%;
+		animation-delay: -2s;
+	}
+	.shape-3 {
+		bottom: 30%;
+		left: 15%;
+		animation-delay: -4s;
+	}
+	.shape-4 {
+		bottom: 20%;
+		right: 10%;
+		animation-delay: -1s;
+	}
 
 	@keyframes float {
-		0%, 100% { transform: translateY(0) rotate(0deg); }
-		50% { transform: translateY(-15px) rotate(10deg); }
+		0%,
+		100% {
+			transform: translateY(0) rotate(0deg);
+		}
+		50% {
+			transform: translateY(-15px) rotate(10deg);
+		}
 	}
 
 	/* Content */

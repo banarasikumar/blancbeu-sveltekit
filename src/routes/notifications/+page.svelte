@@ -515,7 +515,7 @@
 		border-color: var(--color-border-hover);
 		box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 	}
-	
+
 	.notification-card.clickable {
 		text-decoration: none;
 		color: inherit;
@@ -653,7 +653,7 @@
 		border-radius: 10px;
 		overflow: hidden;
 	}
-	
+
 	.card-image img {
 		width: 100%;
 		height: auto;

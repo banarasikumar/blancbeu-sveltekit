@@ -236,7 +236,10 @@
 							{#if user.photoURL}
 								<img src={user.photoURL} alt="You" class="nav-avatar-img" />
 							{:else}
-								<div class="nav-avatar-placeholder" style="background-color: {getAvatarColor(user.displayName || 'U')}">
+								<div
+									class="nav-avatar-placeholder"
+									style="background-color: {getAvatarColor(user.displayName || 'U')}"
+								>
 									{user.displayName ? user.displayName[0].toUpperCase() : 'U'}
 								</div>
 							{/if}

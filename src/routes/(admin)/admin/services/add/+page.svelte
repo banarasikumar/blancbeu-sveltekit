@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { db, storage } from '$lib/firebase';
+	import { db } from '$lib/firebase';
 	import {
 		doc,
 		getDoc,
@@ -13,11 +13,11 @@
 		orderBy,
 		getDocs
 	} from 'firebase/firestore';
-	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 	import { showToast } from '$lib/stores/toast';
 	import { onMount } from 'svelte';
-	import { ArrowLeft, Upload, Loader2, Save } from 'lucide-svelte';
+	import { ArrowLeft, Upload, Save } from 'lucide-svelte';
 	import Loader from '$lib/components/ui/Loader.svelte';
+	import { uploadStore } from '$lib/stores/uploadStore';
 
 	let isEditing = $state(false);
 	let loading = $state(false);
@@ -92,14 +92,6 @@
 		}
 	}
 
-	async function uploadImage(): Promise<string | null> {
-		if (!imageFile) return currentImageUrl;
-
-		const storageRef = ref(storage, `services/${Date.now()}_${imageFile.name}`);
-		await uploadBytes(storageRef, imageFile);
-		return await getDownloadURL(storageRef);
-	}
-
 	async function saveService() {
 		if (!name || !price || !duration) {
 			showToast('Please fill in all required fields', 'error');
@@ -109,6 +101,7 @@
 		uploading = true;
 		try {
 			let imageUrl = currentImageUrl;
+			let needsBackgroundUpload = false;
 
 			// Priority 1: Manual Filename
 			if (manualImageFilename) {
@@ -116,7 +109,8 @@
 			}
 			// Priority 2: Uploaded File (if no manual filename entered)
 			else if (imageFile) {
-				imageUrl = await uploadImage();
+				needsBackgroundUpload = true;
+				// Leave imageUrl as currentImageUrl for now or null
 			}
 
 			const serviceData = {
@@ -130,22 +124,38 @@
 				updatedAt: new Date().toISOString()
 			};
 
+			let docRefPath = '';
+
 			if (isEditing && serviceId) {
 				await updateDoc(doc(db, 'services', serviceId), serviceData);
+				docRefPath = `services/${serviceId}`;
 				showToast('Service updated successfully', 'success');
 			} else {
-				const hasImage = !!imageUrl;
-				await addDoc(collection(db, 'services'), {
+				const hasImage = !!imageUrl || needsBackgroundUpload;
+				const docRef = await addDoc(collection(db, 'services'), {
 					...serviceData,
-					isActive: hasImage, // Disabled by default if no image
+					isActive: hasImage, // Active if background upload is starting or image exists
 					createdAt: serverTimestamp() // Use server timestamp for new docs
 				});
+				docRefPath = `services/${docRef.id}`;
 				if (hasImage) {
 					showToast('Service created successfully', 'success');
 				} else {
 					showToast('Service saved as disabled (no image)', 'info');
 				}
 			}
+
+			if (needsBackgroundUpload && imageFile) {
+				const ext = imageFile.name.split('.').pop() || 'jpg';
+				const safeName = name.trim().replace(/\s+/g, '_');
+				const newFileName = `${safeName}_${Date.now()}.${ext}`;
+				const renamedFile = new File([imageFile], newFileName, { type: imageFile.type });
+
+				const storagePath = `services/${newFileName}`;
+				uploadStore.addUpload(renamedFile, storagePath, docRefPath, 'image');
+				showToast('Image uploading in background...', 'info');
+			}
+
 			goto('/admin/services');
 		} catch (error) {
 			console.error('Error saving service:', error);
@@ -330,7 +340,9 @@
 	<button class="admin-btn-secondary" onclick={() => goto('/admin/services')}>Cancel</button>
 	<button class="admin-btn-primary" onclick={saveService} disabled={uploading || loading}>
 		{#if uploading}
-			<Loader2 class="admin-spinner-small" />
+			<div style="width: 24px; height: 24px; margin-right: 8px; display: flex; align-items: center; justify-content: center;">
+				<Loader size={36} fullPage={false} message="" height="24px" />
+			</div>
 			Saving...
 		{:else}
 			<Save size={18} />
