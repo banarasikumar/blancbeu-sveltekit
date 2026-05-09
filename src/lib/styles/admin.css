@@ -606,6 +606,105 @@
 	margin-bottom: 20px;
 }
 
+.admin-icon-btn {
+	background: var(--admin-surface);
+	border: 1px solid var(--admin-border);
+	padding: 8px;
+	border-radius: 50%;
+	color: var(--admin-text-primary);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: var(--admin-shadow-sm);
+	transition: all 0.2s;
+	position: relative;
+}
+
+.admin-icon-btn:hover {
+	background: var(--admin-surface-hover);
+}
+
+.admin-menu-badge {
+	position: absolute;
+	top: -2px;
+	right: -2px;
+	width: 10px;
+	height: 10px;
+	background: var(--admin-red);
+	border-radius: 50%;
+	border: 2px solid var(--admin-surface);
+}
+
+.admin-menu-overlay-click {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 99;
+}
+
+.admin-dropdown-menu {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	background: var(--admin-surface);
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius-md);
+	box-shadow: var(--admin-shadow-lg);
+	padding: 8px;
+	min-width: 180px;
+	z-index: 100;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	animation: adminFadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-dropdown-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	background: transparent;
+	border: none;
+	color: var(--admin-text-primary);
+	border-radius: var(--admin-radius-sm);
+	cursor: pointer;
+	text-align: left;
+	font-family: var(--admin-font);
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s;
+	position: relative;
+}
+
+.admin-dropdown-item:hover {
+	background: var(--admin-surface-hover);
+}
+
+.admin-dropdown-badge {
+	background: var(--admin-red);
+	color: white;
+	font-size: 11px;
+	font-weight: 700;
+	padding: 2px 6px;
+	border-radius: 10px;
+	margin-left: auto;
+}
+
+@keyframes adminFadeInDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 .admin-view-title {
 	font-family: var(--admin-font-display);
 	font-size: 22px;
@@ -653,7 +752,7 @@
 
 .admin-search-bar input {
 	width: 100%;
-	padding: 11px 12px 11px 40px;
+	padding: 11px 40px 11px 40px;
 	border-radius: var(--admin-radius-sm);
 	border: 1px solid var(--admin-border);
 	background: var(--admin-surface);
@@ -682,6 +781,33 @@
 	transform: translateY(-50%);
 	color: var(--admin-text-tertiary);
 	pointer-events: none;
+}
+
+.admin-sort-container {
+	position: absolute;
+	right: 13px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--admin-text-tertiary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: color 0.2s;
+}
+
+.admin-sort-container:hover {
+	color: var(--admin-text-primary);
+}
+
+.admin-sort-select-hidden {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	cursor: pointer;
 }
 
 /* --- Filter Chips --- */
@@ -1279,6 +1405,410 @@
 	color: var(--admin-red);
 	font-size: 15px;
 	cursor: pointer;
+}
+
+/* --- User Detail Page --- */
+.admin-ud-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	margin-bottom: 24px;
+}
+
+.admin-ud-avatar-wrap {
+	position: relative;
+	flex-shrink: 0;
+}
+
+.admin-ud-avatar {
+	width: 72px;
+	height: 72px;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 3px solid var(--admin-accent);
+	box-shadow: 0 0 20px var(--admin-accent-light);
+}
+
+.admin-ud-avatar-fallback {
+	width: 72px;
+	height: 72px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-weight: 800;
+	font-size: 28px;
+	font-family: var(--admin-font-display);
+	text-transform: uppercase;
+	border: 3px solid var(--admin-accent);
+	box-shadow: 0 0 20px var(--admin-accent-light);
+}
+
+.admin-ud-header-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-ud-name-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 4px;
+}
+
+.admin-ud-name {
+	font-family: var(--admin-font-display);
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--admin-text-primary);
+	letter-spacing: -0.3px;
+}
+
+.admin-ud-email {
+	font-size: 13px;
+	color: var(--admin-text-secondary);
+	margin-bottom: 2px;
+	word-break: break-all;
+}
+
+.admin-ud-phone {
+	font-size: 13px;
+	color: var(--admin-accent);
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-weight: 600;
+}
+
+.admin-ud-edit-btn {
+	background: var(--admin-surface);
+	border: 1px solid var(--admin-border);
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: var(--admin-text-secondary);
+	transition: all 0.2s;
+	flex-shrink: 0;
+	box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-ud-edit-btn:active {
+	transform: scale(0.92);
+}
+
+.admin-ud-edit-btn.active {
+	background: var(--admin-accent);
+	color: #fff;
+	border-color: var(--admin-accent);
+	box-shadow: 0 2px 12px var(--admin-accent-light);
+}
+
+/* Profile Card */
+.admin-ud-card {
+	background: var(--admin-surface);
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius-lg);
+	padding: 20px;
+	margin-bottom: 24px;
+	box-shadow: var(--admin-shadow-sm);
+	position: relative;
+	overflow: hidden;
+}
+
+.admin-ud-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--admin-accent), var(--admin-purple), var(--admin-accent));
+	opacity: 0.7;
+}
+
+/* Detail Fields */
+.admin-ud-fields {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+.admin-ud-field {
+	display: flex;
+	flex-direction: column;
+	padding: 12px 14px;
+	background: var(--admin-bg);
+	border-radius: var(--admin-radius-sm);
+	border: 1px solid transparent;
+	transition: all 0.2s;
+}
+
+.admin-ud-field.full {
+	grid-column: span 2;
+}
+
+.admin-ud-field.editing {
+	border-color: var(--admin-accent);
+	background: var(--admin-surface);
+	box-shadow: 0 0 0 3px var(--admin-accent-light);
+}
+
+.admin-ud-field-label {
+	font-size: 10px;
+	color: var(--admin-text-secondary);
+	text-transform: uppercase;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+	margin-bottom: 5px;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.admin-ud-field-value {
+	font-size: 14px;
+	color: var(--admin-text-primary);
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.admin-ud-field-input {
+	width: 100%;
+	padding: 6px 0;
+	border: none;
+	border-bottom: 2px solid var(--admin-accent);
+	background: transparent;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--admin-text-primary);
+	font-family: var(--admin-font);
+	outline: none;
+	transition: border-color 0.2s;
+}
+
+.admin-ud-field-input:focus {
+	border-bottom-color: var(--admin-purple);
+}
+
+.admin-ud-field-input::placeholder {
+	color: var(--admin-text-tertiary);
+}
+
+/* Edit Actions Bar */
+.admin-ud-edit-actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 16px;
+	animation: adminFadeInUp 0.3s ease;
+}
+
+.admin-ud-save-btn,
+.admin-ud-cancel-btn {
+	flex: 1;
+	padding: 11px 16px;
+	border: none;
+	border-radius: var(--admin-radius-sm);
+	font-size: 14px;
+	font-weight: 700;
+	font-family: var(--admin-font);
+	cursor: pointer;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+}
+
+.admin-ud-save-btn {
+	background: linear-gradient(135deg, var(--admin-green), #28a745);
+	color: #fff;
+	box-shadow: 0 3px 10px rgba(48, 209, 88, 0.3);
+}
+
+.admin-ud-save-btn:active {
+	transform: scale(0.97);
+}
+
+.admin-ud-save-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.admin-ud-cancel-btn {
+	background: var(--admin-bg);
+	color: var(--admin-text-secondary);
+	border: 1px solid var(--admin-border);
+}
+
+.admin-ud-cancel-btn:active {
+	transform: scale(0.97);
+}
+
+/* Quick Info Pills */
+.admin-ud-pills {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 16px;
+}
+
+.admin-ud-pill {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: var(--admin-bg);
+	border-radius: var(--admin-radius-full);
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--admin-text-secondary);
+	border: 1px solid var(--admin-border);
+}
+
+.admin-ud-pill-icon {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* Booking History Section */
+.admin-ud-section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 16px;
+}
+
+.admin-ud-section-title {
+	font-family: var(--admin-font-display);
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--admin-text-primary);
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.admin-ud-section-title .admin-title-icon {
+	width: 30px;
+	height: 30px;
+	border-radius: 9px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.admin-ud-section-count {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--admin-text-secondary);
+	padding: 4px 10px;
+	background: var(--admin-bg);
+	border-radius: var(--admin-radius-full);
+	border: 1px solid var(--admin-border);
+}
+
+/* User Booking Card (compact) */
+.admin-ud-booking {
+	background: var(--admin-surface);
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius-md);
+	padding: 14px 16px;
+	margin-bottom: 10px;
+	border-left: 4px solid transparent;
+	box-shadow: var(--admin-shadow-sm);
+	transition: transform 0.15s;
+}
+
+.admin-ud-booking:active {
+	transform: scale(0.985);
+}
+
+.admin-ud-booking.pending {
+	border-left-color: var(--admin-orange);
+}
+
+.admin-ud-booking.confirmed {
+	border-left-color: var(--admin-green);
+}
+
+.admin-ud-booking.completed {
+	border-left-color: var(--admin-accent);
+}
+
+[data-theme='clean'] .admin-ud-booking.completed {
+	border-left-color: var(--admin-accent);
+}
+
+.admin-ud-booking.cancelled {
+	border-left-color: var(--admin-red);
+	opacity: 0.75;
+}
+
+.admin-ud-booking-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.admin-ud-booking-id {
+	font-size: 12px;
+	font-weight: 800;
+	font-family: 'SF Mono', 'Fira Code', monospace;
+	color: var(--admin-text-primary);
+	letter-spacing: 0.3px;
+}
+
+.admin-ud-booking-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 6px;
+}
+
+.admin-ud-booking-date {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--admin-text-primary);
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.admin-ud-booking-time {
+	font-size: 12px;
+	color: var(--admin-text-secondary);
+	font-weight: 500;
+}
+
+.admin-ud-booking-services {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	margin-top: 4px;
+}
+
+.admin-ud-booking-amount {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--admin-accent);
+}
+
+[data-theme='clean'] .admin-ud-booking-amount {
+	color: var(--admin-accent);
 }
 
 /* --- Settings --- */
@@ -2795,9 +3325,50 @@
 	color: var(--admin-text-primary);
 }
 
-/* --- Bar chart zero-height bars dimmed --- */
+/* --- bar chart zero-height bars dimmed --- */
 .dash-bar.bar-zero {
 	background: var(--admin-border);
 	opacity: 0.5;
 }
 
+/* --- Scroll to Top Button --- */
+.scroll-to-top-btn {
+	position: fixed;
+	bottom: calc(var(--admin-nav-height) + var(--admin-safe-bottom) + 20px);
+	right: 20px;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: rgba(128, 128, 128, 0.25);
+	color: var(--admin-text-primary);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	z-index: 90;
+	transition: all 0.2s ease;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	animation: adminFadeInUp 0.3s ease;
+}
+
+.scroll-to-top-btn:hover {
+	background: rgba(128, 128, 128, 0.4);
+	transform: translateY(-2px);
+}
+
+.scroll-to-top-btn:active {
+	transform: scale(0.95);
+}
+
+[data-theme='clean'] .scroll-to-top-btn {
+	background: rgba(0, 0, 0, 0.15);
+	color: #000;
+	border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='clean'] .scroll-to-top-btn:hover {
+	background: rgba(0, 0, 0, 0.25);
+}

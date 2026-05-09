@@ -23,6 +23,7 @@ import { showToast } from './toast';
 // --- Stores ---
 export const staffBookings = writable<Booking[]>([]);
 export const staffServices = writable<Service[]>([]);
+export const customServices = writable<Service[]>([]);
 
 // Track previous bookings to detect new ones
 let previousBookingIds = new Set<string>();
@@ -85,6 +86,7 @@ export const todayBookings = derived(staffBookings, ($b) => {
 // --- Listeners ---
 let bookingsUnsub: (() => void) | null = null;
 let servicesUnsub: (() => void) | null = null;
+let customServicesUnsub: (() => void) | null = null;
 
 export function initStaffDataListener() {
 	if (bookingsUnsub) return;
@@ -156,6 +158,21 @@ export function initStaffDataListener() {
 			console.error('[StaffData] Service listener error:', error);
 		}
 	);
+
+	const qCustomServices = query(collection(db, 'custom_services'));
+	customServicesUnsub = onSnapshot(
+		qCustomServices,
+		(snapshot) => {
+			const services = snapshot.docs.map((d) => ({
+				id: d.id,
+				...d.data()
+			})) as Service[];
+			customServices.set(services);
+		},
+		(error) => {
+			console.error('[StaffData] Custom service listener error:', error);
+		}
+	);
 }
 
 export function destroyStaffDataListeners() {
@@ -166,6 +183,10 @@ export function destroyStaffDataListeners() {
 	if (servicesUnsub) {
 		servicesUnsub();
 		servicesUnsub = null;
+	}
+	if (customServicesUnsub) {
+		customServicesUnsub();
+		customServicesUnsub = null;
 	}
 }
 
@@ -196,6 +217,30 @@ export async function updateBookingDetails(id: string, updates: Partial<Booking>
 		});
 	} catch (e) {
 		console.error('Error updating booking:', e);
+		throw e;
+	}
+}
+
+export async function addCustomService(service: Partial<Service>) {
+	try {
+		const newService = {
+			...service,
+			createdAt: new Date().toISOString()
+		};
+		const docRef = await addDoc(collection(db, 'custom_services'), newService);
+		return docRef.id;
+	} catch (e) {
+		console.error('Error creating custom service:', e);
+		throw e;
+	}
+}
+
+export async function deleteCustomService(id: string) {
+	try {
+		const { deleteDoc } = await import('firebase/firestore');
+		await deleteDoc(doc(db, 'custom_services', id));
+	} catch (e) {
+		console.error('Error deleting custom service:', e);
 		throw e;
 	}
 }

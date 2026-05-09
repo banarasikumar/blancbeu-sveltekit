@@ -1279,7 +1279,7 @@
 								<div class="option-content">
 									<span class="option-label">Pay Online</span>
 								</div>
-								<div class="price-tag-badge">{fmt(offerTotal)}</div>
+								<div class="price-tag-badge">{fmt(finalTotal)}</div>
 							</button>
 
 							<button
@@ -1426,7 +1426,7 @@
 						{:else if paymentType === 'token'}
 							Book with ₹50 & Confirm
 						{:else}
-							Pay {fmt(offerTotal)} & Book
+							Pay {fmt(finalTotal)} & Book
 						{/if}
 					</button>
 				</div>

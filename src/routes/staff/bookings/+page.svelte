@@ -572,6 +572,7 @@
 									</div>
 
 									<div class="bc-meta">
+										<span class="bc-meta-item">📅 {formatDate(booking.date)}</span>
 										<span class="bc-meta-item">🕐 {formatTime12h(booking.time)}</span>
 										{#if booking.servicesList?.some((s: any) => s.duration)}
 											<span class="bc-meta-item"
@@ -587,6 +588,13 @@
 											>₹{booking.totalAmount || booking.price || '-'}</span
 										>
 									</div>
+
+									{#if booking.notes}
+										<div class="bc-notes">
+											<span class="bc-notes-icon">📝</span>
+											<span class="bc-notes-text">{booking.notes}</span>
+										</div>
+									{/if}
 
 									<!-- Payment Info -->
 									{#if booking.payment}
@@ -708,6 +716,7 @@
 							</div>
 
 							<div class="bc-meta">
+								<span class="bc-meta-item">📅 {formatDate(booking.date)}</span>
 								<span class="bc-meta-item">🕐 {formatTime12h(booking.time)}</span>
 								{#if booking.servicesList?.some((s: any) => s.duration)}
 									<span class="bc-meta-item"
@@ -720,6 +729,13 @@
 									>₹{booking.totalAmount || booking.price || '-'}</span
 								>
 							</div>
+
+							{#if booking.notes}
+								<div class="bc-notes">
+									<span class="bc-notes-icon">📝</span>
+									<span class="bc-notes-text">{booking.notes}</span>
+								</div>
+							{/if}
 
 							{#if booking.payment}
 								<div class="bc-payment">
@@ -1258,12 +1274,13 @@
 
 	.bc-body {
 		flex: 1;
+		min-width: 0;
 		padding: var(--s-space-lg);
 	}
 
 	.bc-top {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: var(--s-space-md);
 	}
 
@@ -1298,15 +1315,20 @@
 		font-family: var(--s-font-display);
 		font-size: var(--s-text-md);
 		font-weight: 700;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.bc-services {
 		margin: 2px 0 0;
 		font-size: var(--s-text-sm);
 		color: var(--s-text-secondary);
-		white-space: nowrap;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
 		overflow: hidden;
-		text-overflow: ellipsis;
+		word-break: break-word;
 	}
 
 	.bc-meta {
@@ -1550,6 +1572,32 @@
 		flex-direction: column;
 		align-items: flex-end;
 		gap: 4px;
+		flex-shrink: 0;
+	}
+
+	.bc-notes {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+		margin-top: var(--s-space-sm);
+		padding: 8px 12px;
+		background: var(--s-bg-secondary);
+		border-radius: var(--s-radius-md);
+		border-left: 2px solid var(--s-border-strong);
+	}
+	:global(.staff-app.dark) .bc-notes {
+		background: rgba(255, 255, 255, 0.03);
+		border-left-color: rgba(255, 255, 255, 0.1);
+	}
+	.bc-notes-icon {
+		font-size: 0.8rem;
+		margin-top: 2px;
+	}
+	.bc-notes-text {
+		font-size: var(--s-text-sm);
+		color: var(--s-text-secondary);
+		font-style: italic;
+		line-height: 1.4;
 	}
 
 	.pay-tag {

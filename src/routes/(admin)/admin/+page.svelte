@@ -30,7 +30,8 @@
 		CalendarDays,
 		Clock,
 		ChevronRight,
-		Sparkles
+		Sparkles,
+		Wrench
 	} from 'lucide-svelte';
 	import { flip } from 'svelte/animate';
 	import { onMount, onDestroy } from 'svelte';
@@ -235,7 +236,7 @@
 		{ label: 'Invoice', icon: FileText, bg: 'var(--admin-purple)', handler: () => goto('/admin/invoice') },
 		{ label: 'Service', icon: Plus, bg: 'var(--admin-accent)', handler: () => goto('/admin/services') },
 		{ label: 'Roles', icon: Shield, bg: 'var(--admin-green)', handler: () => goto('/admin/staff') },
-		{ label: 'Notify', icon: Megaphone, bg: 'var(--admin-indigo)', handler: () => goto('/admin/notify') },
+		{ label: 'Tools', icon: Wrench, bg: 'var(--admin-indigo)', handler: () => goto('/admin/tools') },
 		{ label: 'Reports', icon: BarChart3, bg: 'var(--admin-pink)', handler: () => goto('/admin/reports') }
 	]);
 

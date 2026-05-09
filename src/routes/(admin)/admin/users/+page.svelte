@@ -17,9 +17,11 @@
 		Phone,
 		Copy,
 		X,
-		ArrowUp
+		ArrowUp,
+		Wrench
 	} from 'lucide-svelte';
 	import { onMount } from 'svelte';
+	import { headerActions } from '$lib/stores/adminUI';
 
 	let searchQuery = $state('');
 	let selectedUser = $state<AppUser | null>(null);
@@ -42,7 +44,20 @@
 
 	onMount(() => {
 		window.addEventListener('scroll', handleScroll, { passive: true });
-		return () => window.removeEventListener('scroll', handleScroll);
+		
+		// Register Tools shortcut in header
+		headerActions.set([{
+			label: 'Tools',
+			icon: Wrench,
+			handler: () => {
+				goto('/admin/tools');
+			}
+		}]);
+
+		return () => {
+			window.removeEventListener('scroll', handleScroll);
+			headerActions.set([]);
+		};
 	});
 
 	// Filtered & Sorted users
@@ -73,10 +88,6 @@
 			if (sortBy === 'name') {
 				return getUserDisplayName(a).localeCompare(getUserDisplayName(b));
 			} else {
-				// Sort by joined date (assuming created_at or fallback)
-				// Note: AppUser interface might not have a reliable createdAt on client without checking definition.
-				// Falling back to name if no date, or implementation of check.
-				// However, standard fireship-like user objects usually have createdAt timestamps.
 				const tA = (a as any).createdAt?.seconds || 0;
 				const tB = (b as any).createdAt?.seconds || 0;
 				return tB - tA; // Newest first
@@ -113,7 +124,6 @@
 	function viewBookingHistory(uid: string) {
 		closeSheet();
 		goto('/admin/bookings');
-		// After navigation, the bookings page search can be used
 	}
 
 	async function copyUserId(uid: string) {
@@ -191,7 +201,9 @@
 		{@const photo = getUserPhoto(user)}
 		{@const phone = getUserPhone(user)}
 
-		<div class="admin-user-card">
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="admin-user-card" style="cursor: pointer;" onclick={() => goto(`/admin/users/${user.id}`)}>
 			{#if photo}
 				<img src={photo} alt={name} class="admin-avatar-img" />
 			{:else}
@@ -232,7 +244,7 @@
 				</div>
 			</div>
 
-			<button class="admin-options-btn" onclick={() => openUserOptions(user)} aria-label="Options">
+			<button class="admin-options-btn" onclick={(e) => { e.stopPropagation(); openUserOptions(user); }} aria-label="Options">
 				<MoreVertical size={18} />
 			</button>
 		</div>

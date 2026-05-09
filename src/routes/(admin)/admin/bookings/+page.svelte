@@ -20,7 +20,8 @@
 		SquareCheck,
 		Square,
 		CheckSquare,
-		ArrowUp
+		ArrowUp,
+		SlidersHorizontal
 	} from 'lucide-svelte';
 	import {
 		softDeleteBookings,
@@ -28,10 +29,10 @@
 		initRecycleBinListener
 	} from '$lib/stores/adminRecycleBin';
 	import { adminUser } from '$lib/stores/adminAuth';
+	import { headerActions } from '$lib/stores/adminUI';
 	import { onMount } from 'svelte';
 
 	// --- State ---
-	let currentTab = $state<'unfinished' | 'finished'>('unfinished');
 	let currentSort = $state<'createdAt' | 'date' | 'userName'>('createdAt');
 	let searchQuery = $state('');
 	let statusFilter = $state('all');
@@ -40,6 +41,26 @@
 	let dateStart = $state('');
 	let dateEnd = $state('');
 	const itemsPerPage = 50;
+
+	// --- Header Actions ---
+	$effect(() => {
+		headerActions.set([
+			{
+				label: isManageMode ? 'Cancel Manage' : 'Manage Bookings',
+				icon: SquareCheck,
+				handler: toggleManageMode
+			},
+			{
+				label: $recycledCount > 0 ? `Recycle Bin (${$recycledCount})` : 'Recycle Bin',
+				icon: Trash2,
+				handler: () => goto('/admin/recycle-bin')
+			}
+		]);
+
+		return () => {
+			headerActions.set([]);
+		};
+	});
 
 	// --- Processing states ---
 	let processingIds = $state<Record<string, 'processing' | 'vanishing'>>({});
@@ -129,20 +150,14 @@
 	}
 
 	// --- Filter Chips ---
-	const unfinishedChips = [
+	const activeChips = [
 		{ label: 'All', value: 'all', color: 'var(--admin-accent)' },
-		{ label: 'Confirmed', value: 'confirmed', color: 'var(--admin-green)' },
 		{ label: 'Pending', value: 'pending', color: 'var(--admin-orange)' },
+		{ label: 'Confirmed', value: 'confirmed', color: 'var(--admin-green)' },
+		{ label: 'Completed', value: 'completed', color: 'var(--admin-green)' },
+		{ label: 'Cancelled', value: 'cancelled', color: 'var(--admin-red)' },
 		{ label: 'Overdue', value: 'overdue', color: 'var(--admin-red)' }
 	];
-
-	const finishedChips = [
-		{ label: 'All', value: 'all', color: 'var(--admin-accent)' },
-		{ label: 'Completed', value: 'completed', color: 'var(--admin-green)' },
-		{ label: 'Cancelled', value: 'cancelled', color: 'var(--admin-red)' }
-	];
-
-	let activeChips = $derived(currentTab === 'unfinished' ? unfinishedChips : finishedChips);
 
 	// --- Filtered & sorted bookings ---
 	let filteredBookings = $derived.by(() => {
@@ -152,15 +167,6 @@
 			if (processingIds[b.id]) return true;
 
 			const s = (b.status || 'pending').toLowerCase();
-
-			// Tab scoping
-			let inScope = false;
-			if (currentTab === 'unfinished') {
-				inScope = ['pending', 'confirmed'].includes(s);
-			} else {
-				inScope = ['completed', 'cancelled', 'declined'].includes(s);
-			}
-			if (!inScope) return false;
 
 			// Status filter
 			if (statusFilter !== 'all') {
@@ -199,6 +205,12 @@
 
 		// Sort
 		filtered.sort((a, b) => {
+			const sA = (a.status || 'pending').toLowerCase();
+			const sB = (b.status || 'pending').toLowerCase();
+			
+			const isUnfinishedA = ['pending', 'confirmed'].includes(sA);
+			const isUnfinishedB = ['pending', 'confirmed'].includes(sB);
+
 			if (currentSort === 'createdAt') {
 				const tA = a.createdAt?.seconds || new Date(a.createdAt).getTime() || 0;
 				const tB = b.createdAt?.seconds || new Date(b.createdAt).getTime() || 0;
@@ -216,34 +228,21 @@
 		return filtered;
 	});
 
+	let unfinishedBookings = $derived(filteredBookings.filter(b => ['pending', 'confirmed'].includes((b.status || 'pending').toLowerCase())));
+	let historyBookings = $derived(filteredBookings.filter(b => !['pending', 'confirmed'].includes((b.status || 'pending').toLowerCase())));
+
 	// Pagination
-	let totalPages = $derived(Math.ceil(filteredBookings.length / itemsPerPage));
-	let paginatedBookings = $derived.by(() => {
-		if (currentTab === 'finished') {
-			const start = (currentPage - 1) * itemsPerPage;
-			return filteredBookings.slice(start, start + itemsPerPage);
-		}
-		return filteredBookings;
+	let totalPages = $derived(Math.ceil(historyBookings.length / itemsPerPage));
+	let paginatedHistory = $derived.by(() => {
+		const start = (currentPage - 1) * itemsPerPage;
+		return historyBookings.slice(start, start + itemsPerPage);
 	});
 
 	let resultText = $derived.by(() => {
-		if (currentTab === 'finished') {
-			const start = (currentPage - 1) * itemsPerPage;
-			const end = Math.min(start + itemsPerPage, filteredBookings.length);
-			return `Showing ${Math.min(start + 1, filteredBookings.length)}–${end} of ${filteredBookings.length}`;
-		}
-		return `Showing ${filteredBookings.length} results`;
+		const start = (currentPage - 1) * itemsPerPage;
+		const end = Math.min(start + itemsPerPage, historyBookings.length);
+		return `Showing ${Math.min(start + 1, historyBookings.length)}–${end} of ${historyBookings.length} history`;
 	});
-
-	// --- Tab Switch ---
-	function switchTab(tab: 'unfinished' | 'finished') {
-		currentTab = tab;
-		statusFilter = 'all';
-		searchQuery = '';
-		dateStart = '';
-		dateEnd = '';
-		currentPage = 1;
-	}
 
 	// --- Update Booking ---
 	async function handleStatusUpdate(bookingId: string, newStatus: string) {
@@ -390,29 +389,6 @@
 	}
 </script>
 
-<!-- View Header -->
-<div class="admin-view-header" style="justify-content: flex-end;">
-	<div style="display: flex; align-items: center; gap: 8px;">
-		<button class="admin-manage-btn" class:active={isManageMode} onclick={toggleManageMode}>
-			{isManageMode ? 'Cancel' : 'Manage'}
-		</button>
-		<button
-			class="admin-recycle-btn"
-			onclick={() => goto('/admin/recycle-bin')}
-			title="Recycle Bin"
-		>
-			<Trash2 size={16} />
-			{#if $recycledCount > 0}
-				<span class="admin-recycle-badge">{$recycledCount}</span>
-			{/if}
-		</button>
-		<select class="admin-sort-select" bind:value={currentSort} aria-label="Sort bookings">
-			<option value="createdAt">Recent</option>
-			<option value="date">Appt. Date</option>
-			<option value="userName">Client Name</option>
-		</select>
-	</div>
-</div>
 
 <!-- Manage Toolbar -->
 {#if isManageMode}
@@ -441,23 +417,7 @@
 	</div>
 {/if}
 
-<!-- Segmented Tabs -->
-<div class="admin-segmented">
-	<button
-		class="admin-segment-btn"
-		class:active={currentTab === 'unfinished'}
-		onclick={() => switchTab('unfinished')}
-	>
-		Unfinished
-	</button>
-	<button
-		class="admin-segment-btn"
-		class:active={currentTab === 'finished'}
-		onclick={() => switchTab('finished')}
-	>
-		History
-	</button>
-</div>
+
 
 <!-- Controls -->
 <div class="admin-search-bar">
@@ -468,6 +428,14 @@
 		bind:value={searchQuery}
 		oninput={() => (currentPage = 1)}
 	/>
+	<div class="admin-sort-container">
+		<SlidersHorizontal size={16} class="admin-sort-icon" />
+		<select class="admin-sort-select-hidden" bind:value={currentSort} aria-label="Sort bookings">
+			<option value="createdAt">Recent</option>
+			<option value="date">Appt. Date</option>
+			<option value="userName">Client Name</option>
+		</select>
+	</div>
 </div>
 
 <div class="admin-filter-row">
@@ -505,264 +473,283 @@
 	<span>{resultText}</span>
 </div>
 
-<!-- Bookings List -->
-{#if paginatedBookings.length === 0}
-	<div class="admin-empty-state">
-		<ClipboardCheck size={44} color="var(--admin-text-tertiary)" />
-		<p>No {currentTab} bookings</p>
-	</div>
-{:else}
-	{#each paginatedBookings as booking (booking.id)}
-		{@const status = (booking.status || 'pending').toLowerCase()}
-		{@const statusClass = status === 'declined' ? 'cancelled' : status}
-		{@const dateStr = formatFirestoreDate(booking.date)}
-		{@const bookedOn = formatRelativeTime(booking.createdAt)}
-		{@const countdown = calculateCountdown(booking.date, booking.time)}
-		{@const services = getServices(booking)}
-		{@const isProcessing = processingIds[booking.id] === 'processing'}
-		{@const isVanishing = processingIds[booking.id] === 'vanishing'}
-		{@const offset = swipeOffsets[booking.id] || 0}
+<!-- Bookings Snippet -->
+{#snippet bookingCard(booking: Booking)}
+	{@const status = (booking.status || 'pending').toLowerCase()}
+	{@const statusClass = status === 'declined' ? 'cancelled' : status}
+	{@const dateStr = formatFirestoreDate(booking.date)}
+	{@const bookedOn = formatRelativeTime(booking.createdAt)}
+	{@const countdown = calculateCountdown(booking.date, booking.time)}
+	{@const services = getServices(booking)}
+	{@const isProcessing = processingIds[booking.id] === 'processing'}
+	{@const isVanishing = processingIds[booking.id] === 'vanishing'}
+	{@const offset = swipeOffsets[booking.id] || 0}
 
-		<div class="admin-swipe-container" class:admin-card-vanishing={isVanishing}>
-			<!-- Swipe Actions -->
-			<!-- Swipe Actions (Only render if this card is being swiped or is open) -->
-			{#if currentTab === 'unfinished' && (swipingId === booking.id || offset !== 0)}
-				<div class="admin-swipe-actions">
-					<button
-						class="admin-swipe-btn complete"
-						onclick={(e) => {
-							e.stopPropagation();
-							handleStatusUpdate(booking.id, 'completed');
-						}}
-						ontouchend={(e) => {
-							e.stopPropagation();
-						}}
-					>
-						<Check size={18} />
-						Complete
-					</button>
-					<button
-						class="admin-swipe-btn cancel"
-						onclick={(e) => {
-							e.stopPropagation();
-							handleStatusUpdate(booking.id, 'cancelled');
-						}}
-						ontouchend={(e) => {
-							e.stopPropagation();
-						}}
-					>
-						<Ban size={18} />
-						Cancel
-					</button>
+	<div class="admin-swipe-container" class:admin-card-vanishing={isVanishing}>
+		<!-- Swipe Actions -->
+		<!-- Swipe Actions (Only render if this card is being swiped or is open) -->
+		{#if (status === 'pending' || status === 'confirmed') && (swipingId === booking.id || offset !== 0)}
+			<div class="admin-swipe-actions">
+				<button
+					class="admin-swipe-btn complete"
+					onclick={(e) => {
+						e.stopPropagation();
+						handleStatusUpdate(booking.id, 'completed');
+					}}
+					ontouchend={(e) => {
+						e.stopPropagation();
+					}}
+				>
+					<Check size={18} />
+					Complete
+				</button>
+				<button
+					class="admin-swipe-btn cancel"
+					onclick={(e) => {
+						e.stopPropagation();
+						handleStatusUpdate(booking.id, 'cancelled');
+					}}
+					ontouchend={(e) => {
+						e.stopPropagation();
+					}}
+				>
+					<Ban size={18} />
+					Cancel
+				</button>
+			</div>
+		{/if}
+
+		<!-- Card -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div
+			class="admin-swipe-content admin-booking-card {statusClass}"
+			class:admin-card-selected={isManageMode && selectedIds.has(booking.id)}
+			role="region"
+			style="transform: translateX({offset}px); transition: {swipingId === booking.id
+				? 'none'
+				: 'transform 0.3s ease-out'};"
+			ontouchstart={(e) => !isManageMode && onTouchStart(e, booking.id)}
+			ontouchmove={(e) => !isManageMode && onTouchMove(e, booking.id)}
+			ontouchend={(e) => !isManageMode && onTouchEnd(e, booking.id)}
+			onclick={() => (isManageMode ? toggleSelect(booking.id) : closeSwipe(booking.id))}
+		>
+			{#if isProcessing}
+				<div class="admin-processing-overlay">
+					<div class="admin-spinner"></div>
+					<span class="admin-processing-text">Processing...</span>
 				</div>
 			{/if}
 
-			<!-- Card -->
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-			<div
-				class="admin-swipe-content admin-booking-card {statusClass}"
-				class:admin-card-selected={isManageMode && selectedIds.has(booking.id)}
-				role="region"
-				style="transform: translateX({offset}px); transition: {swipingId === booking.id
-					? 'none'
-					: 'transform 0.3s ease-out'};"
-				ontouchstart={(e) => !isManageMode && onTouchStart(e, booking.id)}
-				ontouchmove={(e) => !isManageMode && onTouchMove(e, booking.id)}
-				ontouchend={(e) => !isManageMode && onTouchEnd(e, booking.id)}
-				onclick={() => (isManageMode ? toggleSelect(booking.id) : closeSwipe(booking.id))}
-			>
-				{#if isProcessing}
-					<div class="admin-processing-overlay">
-						<div class="admin-spinner"></div>
-						<span class="admin-processing-text">Processing...</span>
-					</div>
-				{/if}
-
-				<!-- Header -->
-				<div class="admin-booking-header">
-					{#if isManageMode}
-						<button
-							class="admin-select-checkbox"
-							class:checked={selectedIds.has(booking.id)}
-							onclick={(e) => {
-								e.stopPropagation();
-								toggleSelect(booking.id);
-							}}
-						>
-							{#if selectedIds.has(booking.id)}
-								<CheckSquare size={20} />
-							{:else}
-								<Square size={20} />
-							{/if}
-						</button>
-					{/if}
-					<span class="admin-booking-id">#{booking.id.slice(0, 8).toUpperCase()}</span>
-					<span class="admin-status-badge {statusClass}">{status}</span>
-				</div>
-
-				<!-- Details Grid -->
-				<div class="admin-details-grid">
-					<!-- Appointment -->
-					<div
-						class="admin-detail-item full-width"
-						style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.04)); border-color: rgba(99, 102, 241, 0.15);"
+			<!-- Header -->
+			<div class="admin-booking-header">
+				{#if isManageMode}
+					<button
+						class="admin-select-checkbox"
+						class:checked={selectedIds.has(booking.id)}
+						onclick={(e) => {
+							e.stopPropagation();
+							toggleSelect(booking.id);
+						}}
 					>
-						<span class="admin-detail-label">
-							<Calendar size={10} /> Appointment
-						</span>
-						<div
-							style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;"
-						>
-							<span class="admin-detail-value" style="font-size: 15px; font-weight: 700;">
-								{dateStr} • {booking.time || '--:--'}
-							</span>
-							{#if countdown}
-								<span
-									class="admin-countdown"
-									class:upcoming={!countdown.isOverdue}
-									class:overdue={countdown.isOverdue}
-								>
-									{countdown.label}
-								</span>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Client -->
-					<div class="admin-detail-item full-width">
-						<span class="admin-detail-label">Client</span>
-						<div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-							{#if booking.userPhoto}
-								<img src={booking.userPhoto} alt={booking.userName} class="admin-avatar-img" />
-							{:else}
-								<div
-									class="admin-avatar-fallback"
-									style="background: {getAvatarColor(booking.userName || '')};"
-								>
-									{(booking.userName || 'G').charAt(0).toUpperCase()}
-								</div>
-							{/if}
-							<div style="min-width: 0;">
-								<div style="font-size: 14px; font-weight: 700; color: var(--admin-text-primary);">
-									{booking.userName || 'Guest'}
-								</div>
-								<div
-									style="font-size: 12px; color: var(--admin-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-								>
-									{booking.userEmail || 'No Email'}
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<!-- Services -->
-					<div class="admin-detail-item full-width">
-						<span class="admin-detail-label">Services</span>
-						{#if services.length > 0}
-							<div class="admin-service-chips" style="margin-top: 4px;">
-								{#each services as service, i}
-									{@const c = chipColors[(service.length + i) % chipColors.length]}
-									<span class="admin-service-chip" style="background: {c.bg}; color: {c.text};">
-										{service}
-									</span>
-								{/each}
-							</div>
+						{#if selectedIds.has(booking.id)}
+							<CheckSquare size={20} />
 						{:else}
-							<span style="color: var(--admin-text-secondary); font-style: italic; font-size: 13px;"
-								>No services</span
-							>
+							<Square size={20} />
 						{/if}
-					</div>
+					</button>
+				{/if}
+				<span class="admin-booking-id">#{booking.id.slice(0, 8).toUpperCase()}</span>
+				<span class="admin-status-badge {statusClass}">{status}</span>
+			</div>
 
-					<!-- Contact -->
-					<div class="admin-detail-item">
-						<span class="admin-detail-label">Contact</span>
-						<span class="admin-detail-value">{booking.userPhone || 'N/A'}</span>
-					</div>
-
-					<!-- Booked On -->
-					<div class="admin-detail-item">
-						<span class="admin-detail-label">Booked On</span>
-						<span class="admin-detail-value" style="font-size: 11px; font-weight: 500;"
-							>{bookedOn}</span
-						>
-					</div>
-
-					<!-- Special Request -->
-					<div class="admin-detail-item full-width">
-						<span class="admin-detail-label">Special Request</span>
-						{#if booking.notes}
-							<span class="admin-detail-value" style="font-weight: 500; white-space: normal;"
-								>{booking.notes}</span
+			<!-- Details Grid -->
+			<div class="admin-details-grid">
+				<!-- Appointment -->
+				<div
+					class="admin-detail-item full-width"
+					style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.04)); border-color: rgba(99, 102, 241, 0.15);"
+				>
+					<span class="admin-detail-label">
+						<Calendar size={10} /> Appointment
+					</span>
+					<div
+						style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;"
+					>
+						<span class="admin-detail-value" style="font-size: 15px; font-weight: 700;">
+							{dateStr} • {booking.time || '--:--'}
+						</span>
+						{#if countdown}
+							<span
+								class="admin-countdown"
+								class:upcoming={!countdown.isOverdue}
+								class:overdue={countdown.isOverdue}
 							>
-						{:else}
-							<span style="font-size: 13px; color: var(--admin-text-secondary); font-style: italic;"
-								>None</span
-							>
+								{countdown.label}
+							</span>
 						{/if}
 					</div>
 				</div>
 
-				{#if currentTab === 'unfinished' && status === 'pending'}
-					<div class="admin-card-actions">
-						<button
-							class="admin-action-btn confirm"
-							class:awaiting={confirmAction?.id === booking.id &&
-								confirmAction?.action === 'confirmed'}
-							disabled={isProcessing}
-							onclick={(e) => {
-								e.stopPropagation();
-								if (confirmAction?.id === booking.id && confirmAction?.action === 'confirmed') {
-									confirmAction = null;
-									handleStatusUpdate(booking.id, 'confirmed');
-								} else {
-									if (confirmTimer) clearTimeout(confirmTimer);
-									confirmAction = { id: booking.id, action: 'confirmed' };
-									confirmTimer = setTimeout(() => {
-										confirmAction = null;
-									}, 5000);
-								}
-							}}
-						>
-							<Check size={13} />
-							{confirmAction?.id === booking.id && confirmAction?.action === 'confirmed'
-								? 'Sure?'
-								: 'Confirm'}
-						</button>
-						<button
-							class="admin-action-btn cancel"
-							class:awaiting={confirmAction?.id === booking.id &&
-								confirmAction?.action === 'cancelled'}
-							disabled={isProcessing}
-							onclick={(e) => {
-								e.stopPropagation();
-								if (confirmAction?.id === booking.id && confirmAction?.action === 'cancelled') {
-									confirmAction = null;
-									handleStatusUpdate(booking.id, 'cancelled');
-								} else {
-									if (confirmTimer) clearTimeout(confirmTimer);
-									confirmAction = { id: booking.id, action: 'cancelled' };
-									confirmTimer = setTimeout(() => {
-										confirmAction = null;
-									}, 5000);
-								}
-							}}
-						>
-							<Ban size={13} />
-							{confirmAction?.id === booking.id && confirmAction?.action === 'cancelled'
-								? 'Sure?'
-								: 'Cancel'}
-						</button>
+				<!-- Client -->
+				<div class="admin-detail-item full-width">
+					<span class="admin-detail-label">Client</span>
+					<div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+						{#if booking.userPhoto}
+							<img src={booking.userPhoto} alt={booking.userName} class="admin-avatar-img" />
+						{:else}
+							<div
+								class="admin-avatar-fallback"
+								style="background: {getAvatarColor(booking.userName || '')};"
+							>
+								{(booking.userName || 'G').charAt(0).toUpperCase()}
+							</div>
+						{/if}
+						<div style="min-width: 0;">
+							<div style="font-size: 14px; font-weight: 700; color: var(--admin-text-primary);">
+								{booking.userName || 'Guest'}
+							</div>
+							<div
+								style="font-size: 12px; color: var(--admin-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+							>
+								{booking.userEmail || 'No Email'}
+							</div>
+						</div>
 					</div>
-				{/if}
+				</div>
+
+				<!-- Services -->
+				<div class="admin-detail-item full-width">
+					<span class="admin-detail-label">Services</span>
+					{#if services.length > 0}
+						<div class="admin-service-chips" style="margin-top: 4px;">
+							{#each services as service, i}
+								{@const c = chipColors[(service.length + i) % chipColors.length]}
+								<span class="admin-service-chip" style="background: {c.bg}; color: {c.text};">
+									{service}
+								</span>
+							{/each}
+						</div>
+					{:else}
+						<span style="color: var(--admin-text-secondary); font-style: italic; font-size: 13px;"
+							>No services</span
+						>
+					{/if}
+				</div>
+
+				<!-- Contact -->
+				<div class="admin-detail-item">
+					<span class="admin-detail-label">Contact</span>
+					<span class="admin-detail-value">{booking.userPhone || 'N/A'}</span>
+				</div>
+
+				<!-- Booked On -->
+				<div class="admin-detail-item">
+					<span class="admin-detail-label">Booked On</span>
+					<span class="admin-detail-value" style="font-size: 11px; font-weight: 500;"
+						>{bookedOn}</span
+					>
+				</div>
+
+				<!-- Special Request -->
+				<div class="admin-detail-item full-width">
+					<span class="admin-detail-label">Special Request</span>
+					{#if booking.notes}
+						<span class="admin-detail-value" style="font-weight: 500; white-space: normal;"
+							>{booking.notes}</span
+						>
+					{:else}
+						<span style="font-size: 13px; color: var(--admin-text-secondary); font-style: italic;"
+							>None</span
+						>
+					{/if}
+				</div>
 			</div>
+
+			{#if status === 'pending'}
+				<div class="admin-card-actions">
+					<button
+						class="admin-action-btn confirm"
+						class:awaiting={confirmAction?.id === booking.id &&
+							confirmAction?.action === 'confirmed'}
+						disabled={isProcessing}
+						onclick={(e) => {
+							e.stopPropagation();
+							if (confirmAction?.id === booking.id && confirmAction?.action === 'confirmed') {
+								confirmAction = null;
+								handleStatusUpdate(booking.id, 'confirmed');
+							} else {
+								if (confirmTimer) clearTimeout(confirmTimer);
+								confirmAction = { id: booking.id, action: 'confirmed' };
+								confirmTimer = setTimeout(() => {
+									confirmAction = null;
+								}, 5000);
+							}
+						}}
+					>
+						<Check size={13} />
+						{confirmAction?.id === booking.id && confirmAction?.action === 'confirmed'
+							? 'Sure?'
+							: 'Confirm'}
+					</button>
+					<button
+						class="admin-action-btn cancel"
+						class:awaiting={confirmAction?.id === booking.id &&
+							confirmAction?.action === 'cancelled'}
+						disabled={isProcessing}
+						onclick={(e) => {
+							e.stopPropagation();
+							if (confirmAction?.id === booking.id && confirmAction?.action === 'cancelled') {
+								confirmAction = null;
+								handleStatusUpdate(booking.id, 'cancelled');
+							} else {
+								if (confirmTimer) clearTimeout(confirmTimer);
+								confirmAction = { id: booking.id, action: 'cancelled' };
+								confirmTimer = setTimeout(() => {
+									confirmAction = null;
+								}, 5000);
+							}
+						}}
+					>
+						<Ban size={13} />
+						{confirmAction?.id === booking.id && confirmAction?.action === 'cancelled'
+							? 'Sure?'
+							: 'Cancel'}
+					</button>
+				</div>
+			{/if}
 		</div>
+	</div>
+{/snippet}
+
+<!-- Unfinished Section -->
+<div class="admin-section-title" style="margin-top: 10px; font-size: 16px;">Unfinished</div>
+{#if unfinishedBookings.length === 0}
+	<div class="admin-empty-state" style="padding: 24px 16px; min-height: auto; margin-bottom: 24px;">
+		<Calendar size={36} color="var(--admin-text-tertiary)" />
+		<p style="margin-top: 8px;">No unfinished bookings</p>
+	</div>
+{:else}
+	{#each unfinishedBookings as booking (booking.id)}
+		{@render bookingCard(booking)}
+	{/each}
+{/if}
+
+<!-- History Section -->
+<div class="admin-section-title" style="margin-top: 24px; font-size: 16px;">History</div>
+{#if paginatedHistory.length === 0}
+	<div class="admin-empty-state" style="padding: 24px 16px; min-height: auto;">
+		<ClipboardCheck size={36} color="var(--admin-text-tertiary)" />
+		<p style="margin-top: 8px;">No history found</p>
+	</div>
+{:else}
+	{#each paginatedHistory as booking (booking.id)}
+		{@render bookingCard(booking)}
 	{/each}
 {/if}
 
 <!-- Pagination -->
-{#if currentTab === 'finished' && totalPages > 1}
+{#if totalPages > 1}
 	<div class="admin-pagination">
 		<button
 			disabled={currentPage === 1}

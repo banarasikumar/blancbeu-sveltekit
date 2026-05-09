@@ -556,7 +556,17 @@
 				<div class="info-avatar">{originalBooking.userName?.[0]?.toUpperCase() || 'C'}</div>
 				<div class="info-details">
 					<h2>{originalBooking.userName || 'Guest Client'}</h2>
-					{#if originalBooking.userPhone}<p>📞 {originalBooking.userPhone}</p>{/if}
+					{#if originalBooking.userPhone}
+						<div class="phone-wrapper">
+							<p>📞 {originalBooking.userPhone}</p>
+							<a href="tel:{originalBooking.userPhone}" class="call-action-btn" aria-label="Call Client">
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+								</svg>
+								Call
+							</a>
+						</div>
+					{/if}
 				</div>
 				<div class="info-meta">
 					<div class="meta-badge">{originalBooking.date || 'Today'}</div>
@@ -1461,6 +1471,39 @@
 		margin: 0;
 		font-size: var(--s-text-sm);
 		color: var(--s-text-secondary);
+	}
+
+	.phone-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 4px;
+	}
+
+	.call-action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		background: rgba(16, 185, 129, 0.1);
+		color: #059669;
+		padding: 4px 10px;
+		border-radius: var(--s-radius-full);
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-decoration: none;
+		border: 1px solid rgba(16, 185, 129, 0.2);
+		transition: all 0.2s ease;
+	}
+
+	:global(.staff-app.dark) .call-action-btn {
+		background: rgba(52, 211, 153, 0.15);
+		color: #34d399;
+		border-color: rgba(52, 211, 153, 0.25);
+	}
+
+	.call-action-btn:active {
+		transform: scale(0.95);
+		background: rgba(16, 185, 129, 0.2);
 	}
 
 	.info-meta {

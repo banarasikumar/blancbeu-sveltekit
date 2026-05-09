@@ -1,11 +1,13 @@
 <script lang="ts">
 	import {
 		staffServices,
+		customServices,
 		createBooking,
 		updateBookingDetails,
 		searchUsersByPhone,
 		searchUsersByName,
-		upcomingBookings
+		upcomingBookings,
+		addCustomService as addCustomServiceToDb
 	} from '$lib/stores/staffData';
 	import { findOrCreateWalkIn } from '$lib/services/walkInService';
 	import { staffUser } from '$lib/stores/staffAuth';
@@ -46,6 +48,7 @@
 		id: string; // 'custom' or serviceId
 		name: string;
 		price: number | '';
+		mrp?: number;
 		duration?: number;
 	};
 
@@ -56,6 +59,35 @@
 	let isCatalogOpen = $state(false);
 	let sortBy = $state('category'); // 'category', 'name', 'price'
 	let expandedCategories = $state<Record<string, boolean>>({});
+
+	// Smart Service Search States
+	let serviceSearchQuery = $state('');
+	let showServiceSearchDropdown = $state(false);
+	let isSearchFocused = $state(false);
+	let serviceSearchResults = $derived.by(() => {
+		if (!serviceSearchQuery.trim()) return [];
+		const query = serviceSearchQuery.toLowerCase().replace(/\s+/g, '');
+		
+		const allServices = [...$staffServices, ...$customServices];
+		// Deduplicate based on name (case insensitive)
+		const uniqueServices = new Map();
+		allServices.forEach(s => {
+			const lowerName = s.name.toLowerCase();
+			if (!uniqueServices.has(lowerName)) {
+				uniqueServices.set(lowerName, s);
+			}
+		});
+
+		return Array.from(uniqueServices.values()).filter(s => {
+			const nameMatch = s.name.toLowerCase().replace(/\s+/g, '').includes(query);
+			const catMatch = (s.category || '').toLowerCase().replace(/\s+/g, '').includes(query);
+			return nameMatch || catMatch;
+		});
+	});
+
+	// Custom Service Modal States
+	let showCustomServiceModal = $state(false);
+	let newCustomService = $state({ category: '', name: '', mrp: '', price: '' });
 
 	let sortedServices = $derived.by(() => {
 		let s = [...$staffServices];
@@ -167,6 +199,7 @@
 				id: service.id,
 				name: service.name,
 				price: service.price,
+				mrp: service.originalPrice || service.mrp,
 				duration: service.duration
 			}
 		];
@@ -181,19 +214,41 @@
 		selectedServices[index].price = newPrice;
 	}
 
-	async function addCustomService() {
-		selectedServices = [
-			...selectedServices,
-			{
-				id: `custom_${Date.now()}`,
-				name: '',
-				price: ''
-			}
-		];
-		await tick();
-		const inputs = document.querySelectorAll('.name-input');
-		if (inputs.length > 0) {
-			(inputs[inputs.length - 1] as HTMLInputElement).focus();
+	function openCustomServiceModal() {
+		newCustomService = { category: '', name: serviceSearchQuery.trim(), mrp: '', price: '' };
+		showCustomServiceModal = true;
+	}
+
+	async function saveNewCustomService() {
+		if (!newCustomService.name || !newCustomService.category || !newCustomService.price) {
+			showToast('Please fill all required fields', 'error');
+			return;
+		}
+
+		try {
+			const id = await addCustomServiceToDb({
+				name: newCustomService.name,
+				category: newCustomService.category,
+				mrp: Number(newCustomService.mrp) || Number(newCustomService.price),
+				price: Number(newCustomService.price)
+			});
+
+			// Add directly to selected services
+			selectedServices = [
+				...selectedServices,
+				{
+					id,
+					name: newCustomService.name,
+					price: Number(newCustomService.price),
+					mrp: Number(newCustomService.mrp) || undefined
+				}
+			];
+			showCustomServiceModal = false;
+			serviceSearchQuery = '';
+			showServiceSearchDropdown = false;
+			showToast('Custom service added', 'success');
+		} catch (error) {
+			showToast('Failed to save custom service', 'error');
 		}
 	}
 
@@ -560,7 +615,7 @@
 				</div>
 			</div>
 
-			<div class="modal-body">
+			<div class="modal-body" style="{isSearchFocused ? 'padding-bottom: 50vh;' : ''}">
 				{#if internalMode === 'view' && existingBooking}
 					<!-- VIEW MODE (Overview) -->
 					<div class="overview-container">
@@ -583,7 +638,19 @@
 										{/if}
 									</div>
 									<h3>{existingBooking.userName || 'Guest'}</h3>
-									<p>{existingBooking.userPhone || 'No phone provided'}</p>
+									{#if existingBooking.userPhone}
+										<div class="phone-wrapper">
+											<p>{existingBooking.userPhone}</p>
+											<a href="tel:{existingBooking.userPhone}" class="call-action-btn" aria-label="Call Client">
+												<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+												</svg>
+												Call
+											</a>
+										</div>
+									{:else}
+										<p>No phone provided</p>
+									{/if}
 								</div>
 							</div>
 
@@ -804,15 +871,20 @@
 												}}
 											/>
 										</div>
-										<div class="s-price-edit input-container">
-											<span class="currency-symbol">₹</span>
-											<input
-												type="number"
-												value={item.price}
-												oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
-												class="price-input"
-												placeholder="Amount"
-											/>
+										<div class="s-price-edit input-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+											<div style="display: flex; align-items: center;">
+												<span class="currency-symbol">₹</span>
+												<input
+													type="number"
+													value={item.price}
+													oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
+													class="price-input"
+													placeholder="Amount"
+												/>
+											</div>
+											{#if item.mrp && item.mrp > (Number(item.price) || 0)}
+												<span style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through; margin-right: 8px;">₹{item.mrp}</span>
+											{/if}
 										</div>
 									</div>
 									<button
@@ -838,53 +910,121 @@
 							{/each}
 						</div>
 
-						<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
-							<button
-								class="s-btn s-btn-primary s-btn-block"
-								onclick={(e) => {
-									e.preventDefault();
-									isCatalogOpen = true;
-								}}
-							>
-								<svg
-									width="18"
-									height="18"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									><rect x="3" y="3" width="7" height="7"></rect><rect
-										x="14"
-										y="3"
-										width="7"
-										height="7"
-									></rect><rect x="14" y="14" width="7" height="7"></rect><rect
-										x="3"
-										y="14"
-										width="7"
-										height="7"
-									></rect></svg
+						<div class="smart-service-input-container" style="position: relative; margin-top: 24px;">
+							<div class="input-lg" style="display: flex; align-items: center; padding: 0; overflow: visible; background: var(--s-bg-secondary); border: 1px solid var(--s-border); border-radius: var(--s-radius-lg);">
+								<input
+									type="text"
+									bind:value={serviceSearchQuery}
+									oninput={() => showServiceSearchDropdown = serviceSearchQuery.length > 0}
+									onfocus={(e) => { 
+										isSearchFocused = true;
+										if (serviceSearchQuery.length > 0) showServiceSearchDropdown = true; 
+										setTimeout(() => {
+											// Scroll into view so dropdown is visible
+											const container = e.target.closest('.smart-service-input-container');
+											if (container) {
+												container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+											} else {
+												e.target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+											}
+										}, 150);
+									}}
+									onblur={() => {
+										setTimeout(() => {
+											showServiceSearchDropdown = false;
+											isSearchFocused = false;
+										}, 200);
+									}}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											if (serviceSearchResults.length > 0) {
+												selectServiceFromCatalog(serviceSearchResults[0]);
+												serviceSearchQuery = '';
+												showServiceSearchDropdown = false;
+											} else {
+												openCustomServiceModal();
+												showServiceSearchDropdown = false;
+											}
+										}
+									}}
+									placeholder="Type a service to add..."
+									style="flex: 1; border: none; background: transparent; padding: 14px 16px; font-size: 0.95rem; outline: none; width: 100%; color: var(--s-text-primary);"
+								/>
+								<button
+									type="button"
+									class="icon-btn"
+									style="padding: 10px; margin-right: 4px; color: var(--s-text-secondary); cursor: pointer; background: none; border: none;"
+									onclick={(e) => { e.preventDefault(); isCatalogOpen = true; }}
+									aria-label="Browse Catalog"
+									title="Browse Catalog"
 								>
-								Browse Service Catalog
-							</button>
-							<button class="s-btn s-btn-outline s-btn-block" onclick={addCustomService}>
-								<svg
-									width="18"
-									height="18"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"
-									></line></svg
-								>
-								Add Custom Service
-							</button>
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+									</svg>
+								</button>
+							</div>
+
+							{#if showServiceSearchDropdown && serviceSearchQuery.trim()}
+								<ul class="autocomplete-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px;">
+									{#each serviceSearchResults as service}
+										<li class="autocomplete-item" onmousedown={() => {
+											selectServiceFromCatalog(service);
+											serviceSearchQuery = '';
+											showServiceSearchDropdown = false;
+										}}>
+											<div class="svc-search-row">
+												<div class="svc-search-name">
+													<span class="ac-name">{service.name}</span>
+													<span class="svc-cat-tag">({service.category || 'Other'})</span>
+												</div>
+												<div class="svc-search-prices">
+													{#if (service.originalPrice || service.mrp) && (service.originalPrice || service.mrp) > service.price}
+														<span class="svc-search-mrp">₹{service.originalPrice || service.mrp}</span>
+													{/if}
+													<span class="svc-search-price">₹{service.price}</span>
+												</div>
+											</div>
+										</li>
+									{/each}
+									{#if serviceSearchResults.length === 0}
+										<li class="autocomplete-item" onmousedown={() => openCustomServiceModal()}>
+											<div class="ac-info" style="color: var(--s-text-primary);">
+												<span class="ac-name" style="color: #10b981;">+ Add "{serviceSearchQuery}" as Custom Service</span>
+											</div>
+										</li>
+									{/if}
+								</ul>
+							{/if}
 						</div>
+
+						{#if showCustomServiceModal}
+							<div class="custom-service-modal-overlay" style="margin-top: 16px; padding: 16px; border: 1px solid var(--s-border); border-radius: var(--s-radius-lg); background: var(--s-bg-secondary);">
+								<h4 style="margin: 0 0 16px 0; font-size: 1rem; color: var(--s-text-primary);">Add Custom Service</h4>
+								<div class="form-group" style="margin-bottom: 12px;">
+									<label for="cs-category" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">Category</label>
+									<input id="cs-category" type="text" class="input-lg" bind:value={newCustomService.category} placeholder="e.g. Haircut" />
+								</div>
+								<div class="form-group" style="margin-bottom: 12px;">
+									<label for="cs-name" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">Service Name *</label>
+									<input id="cs-name" type="text" class="input-lg" bind:value={newCustomService.name} placeholder="e.g. Special Trim" />
+								</div>
+								<div class="row" style="display: flex; gap: 12px; margin-bottom: 16px;">
+									<div class="form-group" style="flex: 1; margin-bottom: 0;">
+										<label for="cs-mrp" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">MRP (₹)</label>
+										<input id="cs-mrp" type="number" class="input-lg" bind:value={newCustomService.mrp} placeholder="Optional" />
+									</div>
+									<div class="form-group" style="flex: 1; margin-bottom: 0;">
+										<label for="cs-price" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">Price (₹) *</label>
+										<input id="cs-price" type="number" class="input-lg" bind:value={newCustomService.price} placeholder="Final Price" />
+									</div>
+								</div>
+								<div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+									<button class="s-btn s-btn-outline" onclick={() => showCustomServiceModal = false}>Cancel</button>
+									<button class="s-btn s-btn-primary" onclick={saveNewCustomService}>Add & Save</button>
+								</div>
+							</div>
+						{/if}
 					</section>
 
 					<div class="form-group notes-group">
@@ -1156,7 +1296,12 @@
 													}}
 												>
 													<div class="svc-name">{service.name}</div>
-													<span class="svc-price">₹{service.price}</span>
+													<div style="display: flex; flex-direction: column; align-items: flex-end;">
+														<span class="svc-price">₹{service.price}</span>
+														{#if (service.originalPrice || service.mrp) && (service.originalPrice || service.mrp) > service.price}
+															<span style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through;">₹{service.originalPrice || service.mrp}</span>
+														{/if}
+													</div>
 												</button>
 											{/each}
 										</div>
@@ -1178,7 +1323,12 @@
 												{service.name}
 												<span class="svc-cat">{service.category || 'Other'}</span>
 											</div>
-											<span class="svc-price">₹{service.price}</span>
+											<div style="display: flex; flex-direction: column; align-items: flex-end;">
+												<span class="svc-price">₹{service.price}</span>
+												{#if (service.originalPrice || service.mrp) && (service.originalPrice || service.mrp) > service.price}
+													<span style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through;">₹{service.originalPrice || service.mrp}</span>
+												{/if}
+											</div>
 										</button>
 									{/each}
 								</div>
@@ -1396,6 +1546,43 @@
 		margin: 2px 0 0;
 		color: var(--s-text-secondary, #6b7280);
 		font-size: 0.85rem;
+	}
+
+	.phone-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 4px;
+	}
+
+	.phone-wrapper p {
+		margin: 0;
+	}
+
+	.call-action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		background: rgba(16, 185, 129, 0.1);
+		color: #059669;
+		padding: 4px 10px;
+		border-radius: var(--s-radius-full, 20px);
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-decoration: none;
+		border: 1px solid rgba(16, 185, 129, 0.2);
+		transition: all 0.2s ease;
+	}
+
+	:global(.staff-app.dark) .call-action-btn {
+		background: rgba(52, 211, 153, 0.15);
+		color: #34d399;
+		border-color: rgba(52, 211, 153, 0.25);
+	}
+
+	.call-action-btn:active {
+		transform: scale(0.95);
+		background: rgba(16, 185, 129, 0.2);
 	}
 
 	/* Status Badge */
@@ -1797,7 +1984,7 @@
 		list-style: none;
 		margin: 0;
 		padding: 4px;
-		max-height: 200px;
+		max-height: 50vh;
 		overflow-y: auto;
 		z-index: 50; /* Bring it above sibling inputs */
 		animation: s-fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1811,14 +1998,79 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 10px 12px;
-		border-radius: var(--s-radius-sm, 6px);
+		padding: 12px 14px;
+		border-radius: 0;
 		cursor: pointer;
 		transition: background-color 0.15s ease;
+		border-bottom: 1px solid var(--s-border, #e5e7eb);
+	}
+
+	.autocomplete-item:last-child {
+		border-bottom: none;
 	}
 
 	.autocomplete-item:hover {
 		background: var(--s-bg-tertiary, #f3f4f6);
+	}
+
+	.autocomplete-item:active {
+		background: var(--s-border, #e5e7eb);
+		transform: scale(0.99);
+	}
+
+	/* Service search dropdown row */
+	.svc-search-row {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		gap: 10px;
+	}
+
+	.svc-search-name {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		overflow: hidden;
+	}
+
+	.svc-search-name .ac-name {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.svc-cat-tag {
+		font-size: 0.72rem;
+		color: var(--s-text-tertiary, #9ca3af);
+		font-weight: 400;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	.svc-search-prices {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-shrink: 0;
+		min-width: 100px;
+		justify-content: flex-end;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.svc-search-mrp {
+		font-size: 0.8rem;
+		color: var(--s-text-tertiary, #9ca3af);
+		text-decoration: line-through;
+		white-space: nowrap;
+	}
+
+	.svc-search-price {
+		font-weight: 700;
+		font-size: 0.95rem;
+		color: var(--s-text-primary, #1a1a2e);
+		white-space: nowrap;
 	}
 
 	.ac-avatar {

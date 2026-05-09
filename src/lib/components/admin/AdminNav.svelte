@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { Home, CalendarCheck, Users, Settings } from 'lucide-svelte';
+	import { Home, CalendarCheck, Users, Megaphone } from 'lucide-svelte';
+	import { isBottomNavVisible } from '$lib/stores/adminUI';
 
 	const navItems = [
 		{ path: '/admin', label: 'Home', icon: Home, exact: true },
 		{ path: '/admin/bookings', label: 'Bookings', icon: CalendarCheck },
 		{ path: '/admin/users', label: 'Users', icon: Users },
-		{ path: '/admin/settings', label: 'Settings', icon: Settings }
+		{ path: '/admin/notify', label: 'Notify', icon: Megaphone }
 	];
 
 	function isActive(item: (typeof navItems)[0]): boolean {
@@ -20,7 +21,8 @@
 	}
 </script>
 
-<nav class="admin-bottom-nav">
+{#if $isBottomNavVisible}
+	<nav class="admin-bottom-nav">
 	{#each navItems as item}
 		<button
 			class="admin-nav-item"
@@ -32,4 +34,5 @@
 			<span>{item.label}</span>
 		</button>
 	{/each}
-</nav>
+	</nav>
+{/if}

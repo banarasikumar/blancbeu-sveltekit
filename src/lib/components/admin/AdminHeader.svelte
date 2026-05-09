@@ -1,20 +1,42 @@
 <script lang="ts">
-	import { Bell, Menu, Moon, Sun, UploadCloud } from 'lucide-svelte';
+	import { Bell, Menu, Moon, Sun, UploadCloud, MoreVertical } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 	import { theme, toggleTheme } from '$lib/stores/theme';
 	import { isOnline } from '$lib/stores/networkStatus';
 	import { adminUnreadCount } from '$lib/stores/adminNotificationsList';
 	import { uploadStore } from '$lib/stores/uploadStore';
+	import { headerActions } from '$lib/stores/adminUI';
+	import { untrack } from 'svelte';
 
 	let { title = 'Dashboard' }: { title?: string } = $props();
 
 	let activeUploadsCount = $derived(
 		$uploadStore.filter((u) => u.status === 'uploading' || u.status === 'pending').length
 	);
+
+	let showMenu = $state(false);
+
+	function toggleMenu() {
+		showMenu = !showMenu;
+	}
+
+	// Close menu on click outside
+	function handleOutsideClick(e: MouseEvent) {
+		if (showMenu) {
+			showMenu = false;
+		}
+	}
 </script>
 
+<svelte:window onclick={handleOutsideClick} />
+
 <header class="admin-header">
-	<div class="admin-header-title">{title}</div>
+	<div style="display: flex; align-items: center; gap: 12px;">
+		<button class="admin-header-btn" style="padding-left: 0; padding-right: 4px;" onclick={() => goto('/admin/settings')} aria-label="Settings">
+			<Menu size={24} />
+		</button>
+		<div class="admin-header-title">{title}</div>
+	</div>
 	<div style="display: flex; gap: 8px;">
 		{#if activeUploadsCount > 0}
 			<button
@@ -43,9 +65,50 @@
 				<Sun size={22} />
 			{/if}
 		</button>
-		<button class="admin-header-btn" aria-label="Menu">
-			<Menu size={22} />
-		</button>
+		{#if $headerActions.length === 1 && $headerActions[0].direct}
+			<button
+				class="admin-header-btn"
+				onclick={$headerActions[0].handler}
+				aria-label={$headerActions[0].label}
+			>
+				{#if $headerActions[0].icon}
+					{@const Icon = $headerActions[0].icon}
+					<Icon size={22} />
+				{/if}
+			</button>
+		{:else}
+			<div style="position: relative;">
+				<button
+					class="admin-header-btn"
+					onclick={(e) => {
+						e.stopPropagation();
+						toggleMenu();
+					}}
+					aria-label="More Options"
+				>
+					<MoreVertical size={22} />
+				</button>
+
+				{#if showMenu && $headerActions.length > 0}
+					<div class="admin-header-dropdown">
+						{#each $headerActions as action}
+							<button
+								class="admin-header-dropdown-item"
+								onclick={() => {
+									action.handler();
+									showMenu = false;
+								}}
+							>
+								{#if action.icon}
+									<action.icon size={18} />
+								{/if}
+								<span>{action.label}</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 </header>
 
@@ -138,5 +201,57 @@
 		font-weight: 700;
 		line-height: 18px;
 		text-align: center;
+	}
+
+	.admin-header-dropdown {
+		position: absolute;
+		top: 100%;
+		right: 0;
+		margin-top: 8px;
+		background: var(--admin-surface);
+		border: 1px solid var(--admin-border);
+		border-radius: var(--admin-radius-sm);
+		box-shadow: var(--admin-shadow-lg);
+		min-width: 180px;
+		z-index: 1000;
+		overflow: hidden;
+		transform-origin: top right;
+		animation: adminMenuPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+	}
+
+	.admin-header-dropdown-item {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 12px 16px;
+		background: none;
+		border: none;
+		color: var(--admin-text-primary);
+		font-family: var(--admin-font);
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		text-align: left;
+		transition: background 0.2s;
+	}
+
+	.admin-header-dropdown-item:hover {
+		background: var(--admin-surface-hover);
+	}
+
+	.admin-header-dropdown-item:active {
+		background: var(--admin-border);
+	}
+
+	@keyframes adminMenuPopIn {
+		from {
+			opacity: 0;
+			transform: scale(0.85) translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
 	}
 </style>

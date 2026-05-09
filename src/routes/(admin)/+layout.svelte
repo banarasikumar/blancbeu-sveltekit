@@ -43,12 +43,14 @@
 		if (path.includes('/admin/import-walkins')) return 'Import Walk-ins';
 		if (path.includes('/admin/recycle-bin')) return 'Recycle Bin';
 		if (path.includes('/admin/bookings')) return 'Bookings';
+		if (path.includes('/admin/users/') && path.split('/admin/users/')[1]) return 'User Details';
 		if (path.includes('/admin/users')) return 'Users';
 		if (path.includes('/admin/services')) return 'Services';
 		if (path.includes('/admin/settings')) return 'Settings';
 		if (path.includes('/admin/invoice')) return 'Invoice';
 		if (path.includes('/admin/notify')) return 'Notify';
 		if (path.includes('/admin/reports')) return 'Reports';
+		if (path.includes('/admin/tools')) return 'Tools';
 		if (path.includes('/admin/login')) return '';
 		return 'Dashboard';
 	});
