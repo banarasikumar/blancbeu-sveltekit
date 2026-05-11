@@ -39,8 +39,9 @@
 		/>
 		<div class="category-badge">{service.category}</div>
 		{#if service.category === 'Hair'}
-			<button class="tryon-fab" on:click|stopPropagation={() => goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`)} title="Virtual Try-On">
-				<Wand2 size={12} strokeWidth={2.5} /><span>Try On</span>
+			<button class="tryon-pill" on:click|stopPropagation={() => goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`)} title="Virtual Try-On">
+				<span>Try On</span>
+				<div class="icon-circle"><Wand2 size={10} strokeWidth={3} /></div>
 			</button>
 		{/if}
 	</div>
@@ -103,40 +104,62 @@
 		letter-spacing: 0.05em;
 	}
 
-	.tryon-fab {
+	.tryon-pill {
 		position: absolute;
 		top: 8px;
 		right: 8px;
-		border-radius: 999px;
 		border: none;
+		background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.1) 20%, rgba(0, 0, 0, 0.35) 100%);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		display: flex;
+		align-items: center;
+		height: 22px;
+		gap: 4px;
+		padding: 0 1px 0 8px;
+		border-radius: 999px;
+		cursor: pointer;
+		z-index: 2;
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 0, 0, 0.1);
+	}
+
+	.tryon-pill span {
+		font-size: 0.55rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: #fff;
+		line-height: 1;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+	}
+
+	.icon-circle {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
 		background: linear-gradient(135deg, #e040fb, #aa00ff, #d500f9);
 		color: #fff;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 4px;
-		padding: 5px 10px;
-		cursor: pointer;
-		box-shadow: 0 2px 10px rgba(170, 0, 255, 0.5), 0 0 20px rgba(224, 64, 251, 0.25);
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
-		animation: fabPulse 2.5s ease-in-out infinite;
-		z-index: 2;
+		box-shadow: 0 2px 10px rgba(170, 0, 255, 0.5), 0 0 15px rgba(224, 64, 251, 0.2);
+		flex-shrink: 0;
+		margin-right: -1px;
 	}
 
-	.tryon-fab span {
-		font-size: 0.6rem;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
+	.tryon-pill:active {
+		transform: scale(0.94);
+		background: rgba(170, 0, 255, 0.2);
 	}
 
-	.tryon-fab:active {
-		transform: scale(0.9);
+	.tryon-pill:hover .icon-circle {
+		animation: iconPulse 1.5s ease-in-out infinite;
 	}
 
-	@keyframes fabPulse {
-		0%, 100% { box-shadow: 0 2px 10px rgba(170, 0, 255, 0.5), 0 0 20px rgba(224, 64, 251, 0.25); }
-		50% { box-shadow: 0 2px 14px rgba(170, 0, 255, 0.7), 0 0 28px rgba(224, 64, 251, 0.45); }
+	@keyframes iconPulse {
+		0%, 100% { transform: scale(1); box-shadow: 0 2px 6px rgba(170, 0, 255, 0.4); }
+		50% { transform: scale(1.1); box-shadow: 0 2px 10px rgba(170, 0, 255, 0.6); }
 	}
 
 	.content {
