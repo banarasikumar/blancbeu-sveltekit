@@ -23,6 +23,7 @@
 		"@capacitor/cli": "^8.3.1",
 		"@eslint/compat": "^2.0.1",
 		"@eslint/js": "^9.39.2",
+		"@gradio/client": "^2.2.0",
 		"@playwright/test": "^1.58.0",
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/adapter-static": "^3.0.10",
