@@ -24,68 +24,56 @@ export async function POST({ request }) {
 
 		const prompt = generatePrompt(serviceName);
 		
-		const apiKey = env.HF_TOKEN;
+		const apiKey = env.SEGMIND_KEY;
 
 		if (!apiKey) {
-			console.warn("HF_TOKEN is not set. Returning a simulated response.");
+			console.warn("SEGMIND_KEY is not set. Returning a simulated response.");
 			await new Promise(resolve => setTimeout(resolve, 3000));
 			return json({ 
 				success: true, 
 				resultImageBase64: imageBase64,
-				message: "Simulated response. Add HF_TOKEN to .env to enable real AI image generation." 
+				message: "Simulated response. Add SEGMIND_KEY to .env to enable real AI image generation." 
 			});
 		}
 
-		// Real Hugging Face Free API Implementation using InstructPix2Pix
+		// Real Segmind API Implementation using InstructPix2Pix
+		// Segmind provides 100 free reliable requests per day.
 		
 		let formattedBase64 = imageBase64;
 		if (imageBase64.includes('base64,')) {
-			// Hugging Face inference API often expects raw base64 without the data prefix
+			// Segmind expects raw base64 string
 			formattedBase64 = imageBase64.split('base64,')[1];
 		}
 
-		console.log(`Sending image to Hugging Face with prompt: "${prompt}"`);
+		console.log(`Sending image to Segmind with prompt: "${prompt}"`);
 
-		const response = await fetch(`https://api-inference.huggingface.co/models/diffusers/sdxl-instructpix2pix-768`, {
+		const response = await fetch(`https://api.segmind.com/v1/instruct-pix2pix`, {
 			method: 'POST',
 			headers: { 
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${apiKey}` 
+				'x-api-key': apiKey 
 			},
 			body: JSON.stringify({
-				inputs: {
-					image: formattedBase64,
-					prompt: prompt
-				},
-				parameters: {
-					num_inference_steps: 20, 
-					guidance_scale: 7.5,
-					image_guidance_scale: 1.5
-				}
+				image: formattedBase64,
+				prompt: prompt,
+				num_inference_steps: 20, 
+				guidance_scale: 7.5,
+				image_guidance_scale: 1.5,
+				base64: true // Tell Segmind to return the image as base64 instead of a URL
 			})
 		});
 
 		if (!response.ok) {
-			let errorMessage = `Hugging Face API Error ${response.status}: ${response.statusText}`;
+			let errorMessage = `Segmind API Error ${response.status}: ${response.statusText}`;
 			try {
 				const errorText = await response.text();
-				console.error("Raw HF Error:", errorText);
+				console.error("Raw Segmind Error:", errorText);
 				
 				try {
 					const errorData = JSON.parse(errorText);
-					errorMessage = errorData.error || errorMessage;
-					
-					// Handle Model Loading Error
-					if (errorData.estimated_time) {
-						return json({ error: `The free AI model is currently waking up. Please try again in about ${Math.ceil(errorData.estimated_time)} seconds.` }, { status: 503 });
-					}
+					errorMessage = errorData.error || errorData.message || errorMessage;
 				} catch(e) {
-					// If it's not JSON (like a 502/504 HTML page)
-					if (errorText.includes('<html')) {
-						errorMessage = `Hugging Face Server Error (${response.status}). The model might be offline.`;
-					} else {
-						errorMessage = `${errorMessage} - ${errorText.substring(0, 100)}`;
-					}
+					errorMessage = `${errorMessage} - ${errorText.substring(0, 100)}`;
 				}
 			} catch(e) {
 				console.error("Could not read error response");
@@ -93,13 +81,26 @@ export async function POST({ request }) {
 			throw new Error(errorMessage);
 		}
 
-		// Hugging Face returns the actual image blob directly for this endpoint
-		const imageBlob = await response.blob();
-		const arrayBuffer = await imageBlob.arrayBuffer();
-		const buffer = Buffer.from(arrayBuffer);
-		const resultBase64 = `data:${imageBlob.type};base64,${buffer.toString('base64')}`;
+		let resultBase64 = null;
+		
+		// Depending on the 'base64: true' parameter, Segmind either returns a raw image blob or a JSON with base64/url
+		const contentType = response.headers.get("content-type");
+		if (contentType && contentType.includes("application/json")) {
+			const data = await response.json();
+			if (data.image) {
+				resultBase64 = `data:image/jpeg;base64,${data.image}`;
+			} else {
+				throw new Error("Segmind API succeeded but returned no image data.");
+			}
+		} else {
+			// It returned a blob
+			const imageBlob = await response.blob();
+			const arrayBuffer = await imageBlob.arrayBuffer();
+			const buffer = Buffer.from(arrayBuffer);
+			resultBase64 = `data:${imageBlob.type};base64,${buffer.toString('base64')}`;
+		}
 
-		console.log("Hugging Face successfully generated the new image!");
+		console.log("Segmind successfully generated the new image!");
 
 		return json({ 
 			success: true, 
