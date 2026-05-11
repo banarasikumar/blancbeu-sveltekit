@@ -24,54 +24,38 @@ export async function POST({ request }) {
 
 		const prompt = generatePrompt(serviceName);
 		
-		const apiKey = env.SEGMIND_KEY;
+		const apiKey = env.DEEPAI_KEY || 'quickstart-QUdJIGlzIGNvbWluZy4uLiBiaXRjaA=='; // Fallback to free test key if not provided
 
-		if (!apiKey) {
-			console.warn("SEGMIND_KEY is not set. Returning a simulated response.");
-			await new Promise(resolve => setTimeout(resolve, 3000));
-			return json({ 
-				success: true, 
-				resultImageBase64: imageBase64,
-				message: "Simulated response. Add SEGMIND_KEY to .env to enable real AI image generation." 
-			});
-		}
-
-		// Real Segmind API Implementation using InstructPix2Pix
-		// Segmind provides 100 free reliable requests per day.
-		
+		// Real DeepAI API Implementation
 		let formattedBase64 = imageBase64;
-		if (imageBase64.includes('base64,')) {
-			// Segmind expects raw base64 string
-			formattedBase64 = imageBase64.split('base64,')[1];
+		if (!imageBase64.includes('data:')) {
+			formattedBase64 = `data:image/jpeg;base64,${imageBase64}`;
 		}
 
-		console.log(`Sending image to Segmind with prompt: "${prompt}"`);
+		console.log(`Sending image to DeepAI with prompt: "${prompt}"`);
 
-		const response = await fetch(`https://api.segmind.com/v1/instruct-pix2pix`, {
+		// DeepAI expects multipart/form-data
+		const formData = new FormData();
+		formData.append('text', prompt);
+		formData.append('image', formattedBase64);
+
+		const response = await fetch(`https://api.deepai.org/api/image-editor`, {
 			method: 'POST',
 			headers: { 
-				'Content-Type': 'application/json',
-				'x-api-key': apiKey 
+				'api-key': apiKey 
 			},
-			body: JSON.stringify({
-				image: formattedBase64,
-				prompt: prompt,
-				num_inference_steps: 20, 
-				guidance_scale: 7.5,
-				image_guidance_scale: 1.5,
-				base64: true // Tell Segmind to return the image as base64 instead of a URL
-			})
+			body: formData
 		});
 
 		if (!response.ok) {
-			let errorMessage = `Segmind API Error ${response.status}: ${response.statusText}`;
+			let errorMessage = `DeepAI API Error ${response.status}: ${response.statusText}`;
 			try {
 				const errorText = await response.text();
-				console.error("Raw Segmind Error:", errorText);
+				console.error("Raw DeepAI Error:", errorText);
 				
 				try {
 					const errorData = JSON.parse(errorText);
-					errorMessage = errorData.error || errorData.message || errorMessage;
+					errorMessage = errorData.error || errorData.message || errorData.status || errorMessage;
 				} catch(e) {
 					errorMessage = `${errorMessage} - ${errorText.substring(0, 100)}`;
 				}
@@ -81,30 +65,18 @@ export async function POST({ request }) {
 			throw new Error(errorMessage);
 		}
 
-		let resultBase64 = null;
+		const data = await response.json();
 		
-		// Depending on the 'base64: true' parameter, Segmind either returns a raw image blob or a JSON with base64/url
-		const contentType = response.headers.get("content-type");
-		if (contentType && contentType.includes("application/json")) {
-			const data = await response.json();
-			if (data.image) {
-				resultBase64 = `data:image/jpeg;base64,${data.image}`;
-			} else {
-				throw new Error("Segmind API succeeded but returned no image data.");
-			}
-		} else {
-			// It returned a blob
-			const imageBlob = await response.blob();
-			const arrayBuffer = await imageBlob.arrayBuffer();
-			const buffer = Buffer.from(arrayBuffer);
-			resultBase64 = `data:${imageBlob.type};base64,${buffer.toString('base64')}`;
+		if (!data.output_url) {
+			throw new Error("API succeeded but returned no image URL.");
 		}
 
-		console.log("Segmind successfully generated the new image!");
+		console.log("DeepAI successfully generated the new image!");
 
+		// Since DeepAI returns a URL, we can just pass that back directly as the source!
 		return json({ 
 			success: true, 
-			resultImageBase64: resultBase64,
+			resultImageBase64: data.output_url,
 			message: "Image generated successfully!",
 			promptUsed: prompt
 		});
