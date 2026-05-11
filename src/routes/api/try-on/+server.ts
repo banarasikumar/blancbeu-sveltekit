@@ -3,19 +3,14 @@ import { env } from '$env/dynamic/private';
 
 // Helper function to generate the perfect prompt based on the service
 function generatePrompt(serviceName) {
-	// Base instruction for all try-ons
-	const baseInstruction = "Keep the person's face, skin tone, identity, eyes, and the background completely unchanged. Only modify the hair.";
-	
+	// InstructPix2Pix uses direct conversational commands
 	const lowerService = serviceName.toLowerCase();
-	
-	// Determine if it's a color or a cut/style based on keywords
 	const isColor = lowerService.includes('color') || lowerService.includes('balayage') || lowerService.includes('highlights') || lowerService.includes('dye') || lowerService.includes('blonde') || lowerService.includes('brunette') || lowerService.includes('red');
 	
 	if (isColor) {
-		return `Change the person's hair color to match a professional "${serviceName}" salon treatment. Make it look highly realistic, blending naturally with the hair texture. ${baseInstruction}`;
+		return `make the hair ${serviceName} color`;
 	} else {
-		// It's likely a haircut or styling
-		return `Change the person's hairstyle to a professional "${serviceName}". Ensure the new hair texture and styling look highly realistic and natural on this person. ${baseInstruction}`;
+		return `make the haircut a ${serviceName}`;
 	}
 }
 
@@ -29,42 +24,43 @@ export async function POST({ request }) {
 
 		const prompt = generatePrompt(serviceName);
 		
-		const apiKey = env.FAL_KEY;
+		const apiKey = env.HF_TOKEN;
 
 		if (!apiKey) {
-			console.warn("FAL_KEY is not set. Returning a simulated response.");
+			console.warn("HF_TOKEN is not set. Returning a simulated response.");
 			await new Promise(resolve => setTimeout(resolve, 3000));
 			return json({ 
 				success: true, 
 				resultImageBase64: imageBase64,
-				message: "Simulated response. Add FAL_KEY to .env to enable real AI image generation." 
+				message: "Simulated response. Add HF_TOKEN to .env to enable real AI image generation." 
 			});
 		}
 
-		// Real Fal.ai API Implementation using InstructPix2Pix
-		// This model is specifically fine-tuned to modify images based on a text instruction.
-		// It expects the full data URI (e.g., data:image/jpeg;base64,...)
+		// Real Hugging Face Free API Implementation using InstructPix2Pix
 		
 		let formattedBase64 = imageBase64;
 		if (!imageBase64.includes('data:')) {
-			// Fallback if the frontend strips the prefix
 			formattedBase64 = `data:image/jpeg;base64,${imageBase64}`;
 		}
 
-		console.log(`Sending image to Fal.ai InstructPix2Pix with prompt: "${prompt}"`);
+		console.log(`Sending image to Hugging Face with prompt: "${prompt}"`);
 
-		const response = await fetch(`https://fal.run/fal-ai/instruct-pix2pix`, {
+		const response = await fetch(`https://api-inference.huggingface.co/models/timbrooks/instruct-pix2pix`, {
 			method: 'POST',
 			headers: { 
 				'Content-Type': 'application/json',
-				'Authorization': `Key ${apiKey}` 
+				'Authorization': `Bearer ${apiKey}` 
 			},
 			body: JSON.stringify({
-				image_url: formattedBase64,
-				prompt: prompt,
-				num_inference_steps: 30, // Good balance of quality and speed
-				guidance_scale: 7.5,
-				image_guidance_scale: 1.5 // Controls how much the original image is preserved
+				inputs: {
+					image: formattedBase64,
+					prompt: prompt
+				},
+				parameters: {
+					num_inference_steps: 20, 
+					guidance_scale: 7.5,
+					image_guidance_scale: 1.5
+				}
 			})
 		});
 
@@ -72,28 +68,30 @@ export async function POST({ request }) {
 			let errorMessage = "Failed to generate image from AI";
 			try {
 				const errorData = await response.json();
-				errorMessage = errorData.detail || errorData.error || errorMessage;
-				console.error("Fal.ai API Error:", errorData);
+				errorMessage = errorData.error || errorMessage;
+				console.error("Hugging Face API Error:", errorData);
+				
+				// Handle Model Loading Error
+				if (errorData.estimated_time) {
+					return json({ error: `The free AI model is currently waking up. Please try again in about ${Math.ceil(errorData.estimated_time)} seconds.` }, { status: 503 });
+				}
 			} catch(e) {
-				console.error("Fal.ai API Error Status:", response.status);
+				console.error("Hugging Face API Error Status:", response.status);
 			}
 			throw new Error(errorMessage);
 		}
 
-		const data = await response.json();
-		
-		// Fal.ai returns an array of generated images with their URLs
-		const generatedImageResult = data.images?.[0];
-		
-		if (!generatedImageResult || !generatedImageResult.url) {
-			throw new Error("API succeeded but returned no image data.");
-		}
+		// Hugging Face returns the actual image blob directly for this endpoint
+		const imageBlob = await response.blob();
+		const arrayBuffer = await imageBlob.arrayBuffer();
+		const buffer = Buffer.from(arrayBuffer);
+		const resultBase64 = `data:${imageBlob.type};base64,${buffer.toString('base64')}`;
 
-		console.log("Fal.ai successfully generated the new image!");
+		console.log("Hugging Face successfully generated the new image!");
 
 		return json({ 
 			success: true, 
-			resultImageBase64: generatedImageResult.url, // Usually Fal returns a temporary public URL or base64
+			resultImageBase64: resultBase64,
 			message: "Image generated successfully!",
 			promptUsed: prompt
 		});
