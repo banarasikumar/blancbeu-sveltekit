@@ -317,19 +317,17 @@
 
 	.image-preview {
 		width: 100%;
-		max-height: 400px;
 		border-radius: var(--radius-md);
 		overflow: hidden;
-		background: #000;
 		display: flex;
 		justify-content: center;
 		align-items: center;
 	}
 
 	.image-preview img {
-		max-width: 100%;
-		max-height: 400px;
-		object-fit: contain;
+		width: 100%;
+		height: auto;
+		display: block;
 	}
 
 	.controls {
@@ -344,13 +342,14 @@
 	}
 
 	.service-dropdown {
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		color: white;
+		background: var(--color-bg-primary);
+		border: 1px solid var(--color-text-secondary);
+		color: var(--color-text-primary);
 		padding: 12px 16px;
 		border-radius: var(--radius-md);
 		font-size: 1rem;
 		outline: none;
+		width: 100%;
 	}
 
 	.service-dropdown:focus {
@@ -406,14 +405,12 @@
 		position: relative;
 		border-radius: var(--radius-md);
 		overflow: hidden;
-		aspect-ratio: 3/4;
-		background: #000;
 	}
 
 	.result-img {
 		width: 100%;
-		height: 100%;
-		object-fit: cover;
+		height: auto;
+		display: block;
 	}
 
 	.badge {
