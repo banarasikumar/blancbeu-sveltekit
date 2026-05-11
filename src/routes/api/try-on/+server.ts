@@ -39,8 +39,9 @@ export async function POST({ request }) {
 		// Real Hugging Face Free API Implementation using InstructPix2Pix
 		
 		let formattedBase64 = imageBase64;
-		if (!imageBase64.includes('data:')) {
-			formattedBase64 = `data:image/jpeg;base64,${imageBase64}`;
+		if (imageBase64.includes('base64,')) {
+			// Hugging Face inference API often expects raw base64 without the data prefix
+			formattedBase64 = imageBase64.split('base64,')[1];
 		}
 
 		console.log(`Sending image to Hugging Face with prompt: "${prompt}"`);
@@ -65,18 +66,29 @@ export async function POST({ request }) {
 		});
 
 		if (!response.ok) {
-			let errorMessage = "Failed to generate image from AI";
+			let errorMessage = `Hugging Face API Error ${response.status}: ${response.statusText}`;
 			try {
-				const errorData = await response.json();
-				errorMessage = errorData.error || errorMessage;
-				console.error("Hugging Face API Error:", errorData);
+				const errorText = await response.text();
+				console.error("Raw HF Error:", errorText);
 				
-				// Handle Model Loading Error
-				if (errorData.estimated_time) {
-					return json({ error: `The free AI model is currently waking up. Please try again in about ${Math.ceil(errorData.estimated_time)} seconds.` }, { status: 503 });
+				try {
+					const errorData = JSON.parse(errorText);
+					errorMessage = errorData.error || errorMessage;
+					
+					// Handle Model Loading Error
+					if (errorData.estimated_time) {
+						return json({ error: `The free AI model is currently waking up. Please try again in about ${Math.ceil(errorData.estimated_time)} seconds.` }, { status: 503 });
+					}
+				} catch(e) {
+					// If it's not JSON (like a 502/504 HTML page)
+					if (errorText.includes('<html')) {
+						errorMessage = `Hugging Face Server Error (${response.status}). The model might be offline.`;
+					} else {
+						errorMessage = `${errorMessage} - ${errorText.substring(0, 100)}`;
+					}
 				}
 			} catch(e) {
-				console.error("Hugging Face API Error Status:", response.status);
+				console.error("Could not read error response");
 			}
 			throw new Error(errorMessage);
 		}
