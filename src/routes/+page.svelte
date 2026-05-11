@@ -46,6 +46,19 @@
 	<SpecialOffers />
 	<HomeGallery />
 	<TransformationGallery />
+
+	<section class="container" style="margin-bottom: 40px; text-align: center;">
+		<a href="/try-on" class="virtual-tryon-btn">
+			<div class="btn-content">
+				<span class="icon">✨</span>
+				<div class="text-group">
+					<span class="text">AI Virtual Try-On</span>
+					<span class="subtext">See how our styles look on you!</span>
+				</div>
+				<span class="arrow">→</span>
+			</div>
+		</a>
+	</section>
 	<StaffSpotlight />
 	<Testimonials />
 	<AboutSection />
@@ -112,4 +125,87 @@
 		border-bottom-color: var(--color-accent-gold);
 		letter-spacing: 0.5px;
 	}
+
+	.virtual-tryon-btn {
+		display: inline-block;
+		width: 100%;
+		max-width: 400px;
+		background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+		border: 1px solid rgba(212, 175, 55, 0.3); /* Gold border */
+		border-radius: var(--radius-lg);
+		padding: 16px 20px;
+		text-decoration: none;
+		color: white;
+		transition: all 0.3s ease;
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+		position: relative;
+		overflow: hidden;
+	}
+
+	.virtual-tryon-btn::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+		transition: left 0.5s ease;
+	}
+
+	.virtual-tryon-btn:hover {
+		transform: translateY(-2px);
+		border-color: rgba(212, 175, 55, 0.6);
+		box-shadow: 0 6px 20px rgba(212, 175, 55, 0.15);
+	}
+
+	.virtual-tryon-btn:hover::before {
+		left: 100%;
+	}
+
+	.virtual-tryon-btn .btn-content {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
+	.virtual-tryon-btn .icon {
+		font-size: 1.5rem;
+		filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5));
+	}
+
+	.virtual-tryon-btn .text-group {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		text-align: left;
+	}
+
+	.virtual-tryon-btn .text {
+		font-size: 1.1rem;
+		font-weight: 700;
+		background: var(--gradient-gold);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
+
+	.virtual-tryon-btn .subtext {
+		font-size: 0.8rem;
+		color: var(--color-text-secondary);
+		margin-top: 2px;
+	}
+
+	.virtual-tryon-btn .arrow {
+		color: var(--color-accent-gold);
+		font-size: 1.2rem;
+		font-weight: bold;
+		transition: transform 0.3s ease;
+	}
+
+	.virtual-tryon-btn:hover .arrow {
+		transform: translateX(4px);
+	}
+	
 </style>

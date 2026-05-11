@@ -57,6 +57,7 @@
 		"@capacitor/push-notifications": "^8.0.3",
 		"@capacitor/share": "^8.0.1",
 		"@capacitor/status-bar": "^8.0.0",
+		"@google/generative-ai": "^0.24.1",
 		"@lottiefiles/dotlottie-svelte": "^0.9.12",
 		"@types/canvas-confetti": "^1.9.0",
 		"canvas-confetti": "^1.9.4",

@@ -58,7 +58,14 @@
 					<span class="orig">₹{service.originalPrice}</span>
 				{/if}
 			</div>
-			<button class="book-btn" on:click={handleBook}>Book</button>
+			<div class="actions">
+				{#if service.category === 'Hair'}
+					<button class="try-on-btn" on:click={(e) => { e.stopPropagation(); goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`); }}>
+						✨ Try on
+					</button>
+				{/if}
+				<button class="book-btn" on:click={handleBook}>Book</button>
+			</div>
 		</div>
 	</div>
 </div>
@@ -158,6 +165,31 @@
 		font-size: 0.75rem;
 		text-decoration: line-through;
 		color: var(--color-text-secondary);
+	}
+
+	.actions {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.try-on-btn {
+		background: rgba(212, 175, 55, 0.1);
+		color: var(--color-accent-gold);
+		padding: 8px 12px;
+		font-size: 0.8rem;
+		font-weight: 600;
+		border-radius: var(--radius-full);
+		border: 1px solid rgba(212, 175, 55, 0.3);
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.try-on-btn:hover {
+		background: rgba(212, 175, 55, 0.2);
+		border-color: var(--color-accent-gold);
 	}
 
 	.book-btn {
