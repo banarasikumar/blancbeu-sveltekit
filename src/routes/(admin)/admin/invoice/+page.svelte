@@ -151,8 +151,10 @@
 			link.download = `${invoiceNumber || 'Invoice'}.pdf`;
 			document.body.appendChild(link);
 			link.click();
-			document.body.removeChild(link);
-			URL.revokeObjectURL(url);
+			setTimeout(() => {
+				document.body.removeChild(link);
+				URL.revokeObjectURL(url);
+			}, 100);
 			showToast('Invoice downloaded!', 'success');
 		} catch (err) {
 			console.error('PDF download failed:', err);
@@ -187,8 +189,10 @@
 				link.download = `${invoiceNumber || 'Invoice'}.pdf`;
 				document.body.appendChild(link);
 				link.click();
-				document.body.removeChild(link);
-				URL.revokeObjectURL(url);
+				setTimeout(() => {
+					document.body.removeChild(link);
+					URL.revokeObjectURL(url);
+				}, 100);
 				showToast('Share not supported — downloaded instead', 'info');
 			}
 		} catch (err: any) {

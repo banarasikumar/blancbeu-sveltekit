@@ -12,6 +12,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(301, `https://${host}${path}${event.url.search}`);
 	}
 
+	// Redirect rogue /favicon.ico requests to the correct app-specific PNG icon
+	if (path === '/favicon.ico') {
+		if (host.includes('admin.blancbeu.in')) {
+			throw redirect(301, '/admin-favicon.png');
+		} else if (host.includes('staff.blancbeu.in')) {
+			throw redirect(301, '/staff-favicon.png');
+		} else {
+			throw redirect(301, '/favicon.png');
+		}
+	}
+
 	// Skip routing for static files, manifest, and api routes inside the handler
 	// to prevent infinite redirect loops on subdomains.
 	if (path.startsWith('/_app/') || path.startsWith('/api/') || path.includes('.')) {
@@ -63,10 +74,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 export const handleError: HandleServerError = async ({ error, event }) => {
 	const errorObj = error as any;
+	const status = errorObj?.status ?? 500;
+
+	// Ignore 404 Not Found errors (like missing /favicon.ico)
+	if (status === 404) {
+		return { message: 'Not found' };
+	}
+
 	console.error('Unhandled Server Error:', errorObj);
 
 	try {
-		// Find admin tokens to notify them of the actual unmasked 500 error
+		// Find admin tokens to notify them of the actual unmasked error
 		const usersSnapshot = await adminDb.collection('users').where('role', '==', 'admin').get();
 		const tokens: string[] = [];
 
@@ -82,7 +100,7 @@ export const handleError: HandleServerError = async ({ error, event }) => {
 		if (uniqueTokens.length > 0) {
 			const fcmMessage = {
 				notification: {
-					title: 'Critical System Error (500)',
+					title: `Critical System Error (${status})`,
 					body: `Path: ${event.url.pathname}\nMessage: ${errorObj?.message || 'Unknown internal error'}`
 				},
 				data: {

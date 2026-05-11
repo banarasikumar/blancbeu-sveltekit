@@ -1054,6 +1054,9 @@
 							<span class="text-xs" style="color: var(--color-text-secondary); opacity: 0.7;"
 								>{paymentType === 'free' ? 'Pay at Salon' : 'Online Payment Encrypted'}</span
 							>
+							<span class="text-[10px] mt-1 opacity-50" style="color: var(--color-text-secondary);">
+								Free Cancellations (T&C Apply)
+							</span>
 						</div>
 					</div>
 				</div>
@@ -1429,6 +1432,9 @@
 							Pay {fmt(finalTotal)} & Book
 						{/if}
 					</button>
+					<p class="text-center text-[10px] mt-2 opacity-50" style="color: var(--color-text-secondary);">
+						Free Cancellations (T&C Apply)
+					</p>
 				</div>
 			</div>
 		</div>
@@ -3719,15 +3725,16 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 14px 16px;
-		background: #ffffff;
-		border: 1px solid rgba(0, 0, 0, 0.08);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+		box-shadow: var(--color-card-shadow);
 		transition: all 0.2s ease;
 		cursor: pointer;
 	}
 	.view-coupons-btn:hover {
 		border-color: var(--color-accent-gold);
+		background: var(--color-surface-hover);
 		box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
 	}
 	.view-coupons-left {
@@ -3740,13 +3747,20 @@
 	}
 
 	.coupons-modal {
-		max-height: 80vh;
+		height: auto;
+		max-height: 85vh;
 		display: flex;
 		flex-direction: column;
 	}
 	.coupons-body {
 		padding: 20px;
 		overflow-y: auto;
+		flex: 1;
+	}
+	.section-divider {
+		height: 1px;
+		background: var(--color-border);
+		width: 100%;
 	}
 	.coupon-card {
 		display: flex;
@@ -3765,7 +3779,7 @@
 		position: absolute;
 		width: 16px;
 		height: 16px;
-		background: white;
+		background: var(--color-bg-primary);
 		border-radius: 50%;
 		top: 50%;
 		transform: translateY(-50%);
@@ -3786,7 +3800,7 @@
 	.coupon-code-badge {
 		display: inline-block;
 		background: rgba(212, 175, 55, 0.15);
-		color: #b8860b;
+		color: var(--color-accent-gold);
 		padding: 4px 10px;
 		border-radius: 6px;
 		font-weight: 800;
