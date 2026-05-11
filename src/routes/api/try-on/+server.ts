@@ -46,7 +46,7 @@ export async function POST({ request }) {
 
 		console.log(`Sending image to Hugging Face with prompt: "${prompt}"`);
 
-		const response = await fetch(`https://api-inference.huggingface.co/models/timbrooks/instruct-pix2pix`, {
+		const response = await fetch(`https://api-inference.huggingface.co/models/diffusers/sdxl-instructpix2pix-768`, {
 			method: 'POST',
 			headers: { 
 				'Content-Type': 'application/json',
