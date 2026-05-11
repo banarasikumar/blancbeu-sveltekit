@@ -19,9 +19,33 @@
 			const file = target.files[0];
 			const reader = new FileReader();
 			reader.onload = (e) => {
-				originalImageBase64 = e.target?.result as string;
-				resultImageBase64 = null; // Reset result when new image is chosen
-				errorMsg = '';
+				const img = new Image();
+				img.onload = () => {
+					const canvas = document.createElement('canvas');
+					let width = img.width;
+					let height = img.height;
+					const maxDimension = 800; // Optimal size for AI processing to prevent large payload errors
+
+					if (width > height && width > maxDimension) {
+						height = Math.round((height * maxDimension) / width);
+						width = maxDimension;
+					} else if (height > maxDimension) {
+						width = Math.round((width * maxDimension) / height);
+						height = maxDimension;
+					}
+
+					canvas.width = width;
+					canvas.height = height;
+					const ctx = canvas.getContext('2d');
+					if (ctx) {
+						ctx.drawImage(img, 0, 0, width, height);
+						// Compress to JPEG with 0.8 quality to drastically reduce base64 size
+						originalImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+						resultImageBase64 = null; 
+						errorMsg = '';
+					}
+				};
+				img.src = e.target?.result as string;
 			};
 			reader.readAsDataURL(file);
 		}
