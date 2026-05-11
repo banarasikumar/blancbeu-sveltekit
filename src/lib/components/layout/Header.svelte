@@ -6,6 +6,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
+	$: isTryOnPage = $page.url.pathname.startsWith('/try-on');
+
 	function handleNotificationClick(e: MouseEvent) {
 		e.preventDefault();
 		if ($page.url.pathname === '/notifications') {
@@ -26,7 +28,7 @@
 		<!-- Optional: Menu Icon or Empty -->
 	</div>
 
-	<div class="logo-text">BLANCBEU</div>
+	<div class="logo-text">{isTryOnPage ? 'VIRTUAL TRY ON' : 'BLANCBEU'}</div>
 
 	<div class="header-right">
 		<a

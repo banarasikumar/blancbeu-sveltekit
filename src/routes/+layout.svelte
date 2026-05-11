@@ -30,6 +30,8 @@
 	let welcomeUser: any = $state(null);
 
 	let isHomePage = $derived(page.url.pathname === '/');
+	let isTryOnPage = $derived(page.url.pathname.startsWith('/try-on'));
+	let isImmersivePage = $derived(isHomePage || isTryOnPage);
 	let isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
 	let isStaffRoute = $derived(page.url.pathname.startsWith('/staff'));
 	let isShowcaseRoute = $derived(page.url.pathname.startsWith('/showcase'));

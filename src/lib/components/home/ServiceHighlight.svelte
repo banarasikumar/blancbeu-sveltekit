@@ -3,7 +3,7 @@
 	import { cart } from '$lib/stores/booking';
 	import { goto } from '$app/navigation';
 	import type { Service } from '$lib/stores/appData';
-	import { Clock } from 'lucide-svelte';
+	import { Clock, Wand2 } from 'lucide-svelte';
 	import { user } from '$lib/stores/auth';
 
 	export let service: Service;
@@ -38,6 +38,11 @@
 			className="card-img"
 		/>
 		<div class="category-badge">{service.category}</div>
+		{#if service.category === 'Hair'}
+			<button class="tryon-fab" on:click|stopPropagation={() => goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`)} title="Virtual Try-On">
+				<Wand2 size={12} strokeWidth={2.5} /><span>Try On</span>
+			</button>
+		{/if}
 	</div>
 
 	<div class="content">
@@ -59,11 +64,6 @@
 				{/if}
 			</div>
 			<div class="actions">
-				{#if service.category === 'Hair'}
-					<button class="try-on-btn" on:click={(e) => { e.stopPropagation(); goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`); }}>
-						✨ Try on
-					</button>
-				{/if}
 				<button class="book-btn" on:click={handleBook}>Book</button>
 			</div>
 		</div>
@@ -101,6 +101,42 @@
 		border-radius: 4px;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+
+	.tryon-fab {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		border-radius: 999px;
+		border: none;
+		background: linear-gradient(135deg, #e040fb, #aa00ff, #d500f9);
+		color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		padding: 5px 10px;
+		cursor: pointer;
+		box-shadow: 0 2px 10px rgba(170, 0, 255, 0.5), 0 0 20px rgba(224, 64, 251, 0.25);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		animation: fabPulse 2.5s ease-in-out infinite;
+		z-index: 2;
+	}
+
+	.tryon-fab span {
+		font-size: 0.6rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
+	.tryon-fab:active {
+		transform: scale(0.9);
+	}
+
+	@keyframes fabPulse {
+		0%, 100% { box-shadow: 0 2px 10px rgba(170, 0, 255, 0.5), 0 0 20px rgba(224, 64, 251, 0.25); }
+		50% { box-shadow: 0 2px 14px rgba(170, 0, 255, 0.7), 0 0 28px rgba(224, 64, 251, 0.45); }
 	}
 
 	.content {
@@ -171,25 +207,6 @@
 		display: flex;
 		gap: 8px;
 		align-items: center;
-	}
-
-	.try-on-btn {
-		background: rgba(212, 175, 55, 0.1);
-		color: var(--color-accent-gold);
-		padding: 8px 12px;
-		font-size: 0.8rem;
-		font-weight: 600;
-		border-radius: var(--radius-full);
-		border: 1px solid rgba(212, 175, 55, 0.3);
-		transition: all 0.2s;
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
-	.try-on-btn:hover {
-		background: rgba(212, 175, 55, 0.2);
-		border-color: var(--color-accent-gold);
 	}
 
 	.book-btn {
