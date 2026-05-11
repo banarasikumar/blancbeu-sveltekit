@@ -33,6 +33,7 @@ export async function POST({ request }) {
 		}
 
 		console.log(`Sending image to DeepAI with prompt: "${prompt}"`);
+		console.log(`Using DeepAI Key starting with: ${apiKey.substring(0, 5)}...`);
 
 		// DeepAI expects multipart/form-data
 		const formData = new FormData();
@@ -42,7 +43,7 @@ export async function POST({ request }) {
 		const response = await fetch(`https://api.deepai.org/api/image-editor`, {
 			method: 'POST',
 			headers: { 
-				'api-key': apiKey 
+				'Api-Key': apiKey 
 			},
 			body: formData
 		});
