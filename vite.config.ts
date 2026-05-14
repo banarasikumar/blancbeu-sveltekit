@@ -14,7 +14,8 @@ export default defineConfig({
 			injectRegister: 'auto',
 			injectManifest: {
 				globPatterns: ['**/*.{js,css,html,ico,woff,woff2,ttf,json}'],
-				globIgnores: ['**/node_modules/**', '**/dev-dist/**']
+				globIgnores: ['**/node_modules/**', '**/dev-dist/**'],
+				maximumFileSizeToCacheInBytes: 10 * 1024 * 1024 // 10MB
 			},
 			manifest: false // Multi-scope: Manifests are handled manually in static/
 		})
