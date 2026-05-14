@@ -16,7 +16,6 @@
 	let mouthVolume = $state(0);
 	let showMenu = $state(false);
 	let showSubtitle = $state('');
-	let chatContainer: HTMLElement;
 	let recognition: any = null;
 
 	// Reactive metadata from AI
@@ -117,23 +116,13 @@
 			// Reset action/emotion after speech so they don't stay stuck
 			activeAction = 'None';
 			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; }, 8000);
-			scrollToBottom();
 		} catch {
 			const errorMsg = "Ah... my network fluttered for a second. Try once more, darling~";
 			messages = [...messages, { role: 'assistant', text: errorMsg }];
 			showSubtitle = errorMsg;
 			isThinking = false;
 			setTimeout(() => { showSubtitle = ''; }, 5000);
-			scrollToBottom();
 		}
-	}
-
-	function scrollToBottom() {
-		setTimeout(() => {
-			if (chatContainer) {
-				chatContainer.scrollTop = chatContainer.scrollHeight;
-			}
-		}, 100);
 	}
 
 	async function speakText(text: string) {
@@ -393,27 +382,18 @@
 	{/if}
 
 	<!-- Subtitle -->
-	{#if showSubtitle && messages.length === 0}
+	{#if showSubtitle}
 		<div class="subtitle-area" transition:fade={{ duration: 200 }}>
 			<p class="subtitle-text" class:whisper={activeEmotion === 'Whisper'}>{showSubtitle}</p>
 		</div>
 	{/if}
 
-	<!-- Chat History Overlay -->
-	<div class="chat-history-overlay">
-		<div class="chat-history-inner" bind:this={chatContainer}>
-			{#each messages as msg}
-				<div class="chat-bubble {msg.role}" transition:fly={{ y: 20, duration: 300 }}>
-					{msg.text}
-				</div>
-			{/each}
-			{#if isThinking}
-				<div class="chat-bubble assistant thinking-inline" transition:fade={{ duration: 150 }}>
-					<div class="thinking-dots"><span></span><span></span><span></span></div>
-				</div>
-			{/if}
+	<!-- Thinking -->
+	{#if isThinking}
+		<div class="thinking-indicator" transition:fade={{ duration: 150 }}>
+			<div class="thinking-dots"><span></span><span></span><span></span></div>
 		</div>
-	</div>
+	{/if}
 
 	<!-- Bottom controls -->
 	<div class="bottom-controls">
@@ -514,20 +494,12 @@
 	.subtitle-text { display: inline-block; background: rgba(15,8,20,0.75); backdrop-filter: blur(12px); border: 1px solid rgba(220,50,100,0.15); padding: 10px 22px; border-radius: 18px; color: rgba(255,255,255,0.95); font-size: 0.88rem; line-height: 1.5; max-width: 90%; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
 	.subtitle-text.whisper { font-style: italic; font-weight: 300; letter-spacing: 0.5px; color: #ffd1dc; border-color: rgba(255,182,193,0.3); background: rgba(30,10,25,0.85); }
 
-	/* Chat History */
-	.chat-history-overlay { position: absolute; bottom: 110px; left: 16px; right: 16px; height: 45vh; pointer-events: none; display: flex; flex-direction: column; justify-content: flex-end; z-index: 15; }
-	.chat-history-inner { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; pointer-events: auto; scrollbar-width: none; mask-image: linear-gradient(to top, transparent 0%, black 15%, black 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 100%); padding-top: 40px; padding-bottom: 10px; }
-	.chat-history-inner::-webkit-scrollbar { display: none; }
-	.chat-bubble { max-width: 85%; padding: 10px 16px; border-radius: 18px; font-size: 0.9rem; line-height: 1.4; backdrop-filter: blur(12px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-	.chat-bubble.user { align-self: flex-end; background: rgba(220, 50, 100, 0.25); border: 1px solid rgba(220, 50, 100, 0.4); color: rgba(255, 255, 255, 0.95); border-bottom-right-radius: 4px; }
-	.chat-bubble.assistant { align-self: flex-start; background: rgba(30, 20, 35, 0.7); border: 1px solid rgba(255, 255, 255, 0.15); color: rgba(255, 255, 255, 0.85); border-bottom-left-radius: 4px; }
-	.chat-bubble.thinking-inline { padding: 14px 20px; }
-
-	.thinking-dots { display: flex; gap: 6px; }
-	.thinking-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(220,50,100,0.9); animation: bounce-dot 1s infinite alternate; }
+	.thinking-indicator { position: absolute; bottom: 185px; left: 50%; transform: translateX(-50%); z-index: 15; }
+	.thinking-dots { display: flex; gap: 6px; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); padding: 10px 18px; border-radius: 20px; }
+	.thinking-dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(220,50,100,0.9); animation: bounce-dot 1s infinite alternate; }
 	.thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
 	.thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
-	@keyframes bounce-dot { 0% { transform: translateY(0); opacity: 0.4; } 100% { transform: translateY(-6px); opacity: 1; } }
+	@keyframes bounce-dot { 0% { transform: translateY(0); opacity: 0.4; } 100% { transform: translateY(-8px); opacity: 1; } }
 
 	.bottom-controls { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; padding: 0 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; }
 	.control-row { display: flex; align-items: center; justify-content: center; gap: 16px; }
