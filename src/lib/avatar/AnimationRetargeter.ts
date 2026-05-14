@@ -2,137 +2,137 @@ import * as THREE from 'three';
 import { VRMHumanBoneName, type VRM } from '@pixiv/three-vrm';
 
 /**
- * Mixamo to VRM Bone Mapping
+ * Mixamo to VRM Bone Mapping (using string bone names as per official pixiv example)
  */
-export const mixamoVRMRigMap: Record<string, VRMHumanBoneName> = {
-	mixamorigHips: VRMHumanBoneName.Hips,
-	mixamorigSpine: VRMHumanBoneName.Spine,
-	mixamorigSpine1: VRMHumanBoneName.Chest,
-	mixamorigSpine2: VRMHumanBoneName.UpperChest,
-	mixamorigNeck: VRMHumanBoneName.Neck,
-	mixamorigHead: VRMHumanBoneName.Head,
-	mixamorigLeftShoulder: VRMHumanBoneName.LeftShoulder,
-	mixamorigLeftArm: VRMHumanBoneName.LeftUpperArm,
-	mixamorigLeftForeArm: VRMHumanBoneName.LeftLowerArm,
-	mixamorigLeftHand: VRMHumanBoneName.LeftHand,
-	mixamorigRightShoulder: VRMHumanBoneName.RightShoulder,
-	mixamorigRightArm: VRMHumanBoneName.RightUpperArm,
-	mixamorigRightForeArm: VRMHumanBoneName.RightLowerArm,
-	mixamorigRightHand: VRMHumanBoneName.RightHand,
-	mixamorigLeftUpLeg: VRMHumanBoneName.LeftUpperLeg,
-	mixamorigLeftLeg: VRMHumanBoneName.LeftLowerLeg,
-	mixamorigLeftFoot: VRMHumanBoneName.LeftFoot,
-	mixamorigLeftToeBase: VRMHumanBoneName.LeftToes,
-	mixamorigRightUpLeg: VRMHumanBoneName.RightUpperLeg,
-	mixamorigRightLeg: VRMHumanBoneName.RightLowerLeg,
-	mixamorigRightFoot: VRMHumanBoneName.RightFoot,
-	mixamorigRightToeBase: VRMHumanBoneName.RightToes,
-	mixamorigLeftHandThumb1: VRMHumanBoneName.LeftThumbProximal,
-	mixamorigLeftHandThumb2: VRMHumanBoneName.LeftThumbIntermediate,
-	mixamorigLeftHandThumb3: VRMHumanBoneName.LeftThumbDistal,
-	mixamorigLeftHandIndex1: VRMHumanBoneName.LeftIndexProximal,
-	mixamorigLeftHandIndex2: VRMHumanBoneName.LeftIndexIntermediate,
-	mixamorigLeftHandIndex3: VRMHumanBoneName.LeftIndexDistal,
-	mixamorigLeftHandMiddle1: VRMHumanBoneName.LeftMiddleProximal,
-	mixamorigLeftHandMiddle2: VRMHumanBoneName.LeftMiddleIntermediate,
-	mixamorigLeftHandMiddle3: VRMHumanBoneName.LeftMiddleDistal,
-	mixamorigLeftHandRing1: VRMHumanBoneName.LeftRingProximal,
-	mixamorigLeftHandRing2: VRMHumanBoneName.LeftRingIntermediate,
-	mixamorigLeftHandRing3: VRMHumanBoneName.LeftRingDistal,
-	mixamorigLeftHandPinky1: VRMHumanBoneName.LeftLittleProximal,
-	mixamorigLeftHandPinky2: VRMHumanBoneName.LeftLittleIntermediate,
-	mixamorigLeftHandPinky3: VRMHumanBoneName.LeftLittleDistal,
-	mixamorigRightHandThumb1: VRMHumanBoneName.RightThumbProximal,
-	mixamorigRightHandThumb2: VRMHumanBoneName.RightThumbIntermediate,
-	mixamorigRightHandThumb3: VRMHumanBoneName.RightThumbDistal,
-	mixamorigRightHandIndex1: VRMHumanBoneName.RightIndexProximal,
-	mixamorigRightHandIndex2: VRMHumanBoneName.RightIndexIntermediate,
-	mixamorigRightHandIndex3: VRMHumanBoneName.RightIndexDistal,
-	mixamorigRightHandMiddle1: VRMHumanBoneName.RightMiddleProximal,
-	mixamorigRightHandMiddle2: VRMHumanBoneName.RightMiddleIntermediate,
-	mixamorigRightHandMiddle3: VRMHumanBoneName.RightMiddleDistal,
-	mixamorigRightHandRing1: VRMHumanBoneName.RightRingProximal,
-	mixamorigRightHandRing2: VRMHumanBoneName.RightRingIntermediate,
-	mixamorigRightHandRing3: VRMHumanBoneName.RightRingDistal,
-	mixamorigRightHandPinky1: VRMHumanBoneName.RightLittleProximal,
-	mixamorigRightHandPinky2: VRMHumanBoneName.RightLittleIntermediate,
-	mixamorigRightHandPinky3: VRMHumanBoneName.RightLittleDistal
+export const mixamoVRMRigMap: Record<string, string> = {
+	mixamorigHips: 'hips',
+	mixamorigSpine: 'spine',
+	mixamorigSpine1: 'chest',
+	mixamorigSpine2: 'upperChest',
+	mixamorigNeck: 'neck',
+	mixamorigHead: 'head',
+	mixamorigLeftShoulder: 'leftShoulder',
+	mixamorigLeftArm: 'leftUpperArm',
+	mixamorigLeftForeArm: 'leftLowerArm',
+	mixamorigLeftHand: 'leftHand',
+	mixamorigLeftHandThumb1: 'leftThumbMetacarpal',
+	mixamorigLeftHandThumb2: 'leftThumbProximal',
+	mixamorigLeftHandThumb3: 'leftThumbDistal',
+	mixamorigLeftHandIndex1: 'leftIndexProximal',
+	mixamorigLeftHandIndex2: 'leftIndexIntermediate',
+	mixamorigLeftHandIndex3: 'leftIndexDistal',
+	mixamorigLeftHandMiddle1: 'leftMiddleProximal',
+	mixamorigLeftHandMiddle2: 'leftMiddleIntermediate',
+	mixamorigLeftHandMiddle3: 'leftMiddleDistal',
+	mixamorigLeftHandRing1: 'leftRingProximal',
+	mixamorigLeftHandRing2: 'leftRingIntermediate',
+	mixamorigLeftHandRing3: 'leftRingDistal',
+	mixamorigLeftHandPinky1: 'leftLittleProximal',
+	mixamorigLeftHandPinky2: 'leftLittleIntermediate',
+	mixamorigLeftHandPinky3: 'leftLittleDistal',
+	mixamorigRightShoulder: 'rightShoulder',
+	mixamorigRightArm: 'rightUpperArm',
+	mixamorigRightForeArm: 'rightLowerArm',
+	mixamorigRightHand: 'rightHand',
+	mixamorigRightHandPinky1: 'rightLittleProximal',
+	mixamorigRightHandPinky2: 'rightLittleIntermediate',
+	mixamorigRightHandPinky3: 'rightLittleDistal',
+	mixamorigRightHandRing1: 'rightRingProximal',
+	mixamorigRightHandRing2: 'rightRingIntermediate',
+	mixamorigRightHandRing3: 'rightRingDistal',
+	mixamorigRightHandMiddle1: 'rightMiddleProximal',
+	mixamorigRightHandMiddle2: 'rightMiddleIntermediate',
+	mixamorigRightHandMiddle3: 'rightMiddleDistal',
+	mixamorigRightHandIndex1: 'rightIndexProximal',
+	mixamorigRightHandIndex2: 'rightIndexIntermediate',
+	mixamorigRightHandIndex3: 'rightIndexDistal',
+	mixamorigRightHandThumb1: 'rightThumbMetacarpal',
+	mixamorigRightHandThumb2: 'rightThumbProximal',
+	mixamorigRightHandThumb3: 'rightThumbDistal',
+	mixamorigLeftUpLeg: 'leftUpperLeg',
+	mixamorigLeftLeg: 'leftLowerLeg',
+	mixamorigLeftFoot: 'leftFoot',
+	mixamorigLeftToeBase: 'leftToes',
+	mixamorigRightUpLeg: 'rightUpperLeg',
+	mixamorigRightLeg: 'rightLowerLeg',
+	mixamorigRightFoot: 'rightFoot',
+	mixamorigRightToeBase: 'rightToes'
 };
 
 /**
- * Retargets a Mixamo animation clip to a VRM model.
- * Mixamo models are T-pose, VRM models are T-pose but arms might differ.
- * This class maps tracks correctly.
+ * Retargets a Mixamo FBX animation clip to a VRM model.
+ * Based on the official pixiv/three-vrm loadMixamoAnimation example.
  */
 export class AnimationRetargeter {
 	/**
 	 * Converts a Mixamo FBX animation clip into a VRM-compatible animation clip.
+	 * This follows the exact algorithm from the official pixiv three-vrm example.
 	 */
-	static retargetClip(vrm: VRM, fbxClip: THREE.AnimationClip, mixamoRig: THREE.Group): THREE.AnimationClip {
+	public static retargetClip(vrm: VRM, fbxClip: THREE.AnimationClip, fbxAsset: THREE.Group): THREE.AnimationClip {
 		const tracks: THREE.KeyframeTrack[] = [];
-		const humanoid = vrm.humanoid;
-		if (!humanoid) return fbxClip;
 
-		// Ensure world matrices are computed for the rest pose before reading them
-		mixamoRig.updateMatrixWorld(true);
+		const restRotationInverse = new THREE.Quaternion();
+		const parentRestWorldRotation = new THREE.Quaternion();
+		const _quatA = new THREE.Quaternion();
+		const _vec3 = new THREE.Vector3();
 
-		const positionScale = 0.01;
+		// Adjust with reference to hips height
+		const motionHipsNode = fbxAsset.getObjectByName('mixamorigHips');
+		const vrmHipsY = vrm.humanoid?.getNormalizedBoneNode('hips' as VRMHumanBoneName)?.position?.y ?? 1;
+		const motionHipsY = motionHipsNode?.position?.y ?? 100;
+		const hipsPositionScale = vrmHipsY / motionHipsY;
 
 		fbxClip.tracks.forEach((track) => {
-			const trackSplits = track.name.split('.');
-			const mixamoBoneName = trackSplits[0];
-			const propertyName = trackSplits[1];
+			const trackSplitted = track.name.split('.');
+			const mixamoRigName = trackSplitted[0];
+			const propertyName = trackSplitted[1];
 
-			const vrmBoneName = mixamoVRMRigMap[mixamoBoneName];
+			const vrmBoneName = mixamoVRMRigMap[mixamoRigName];
 			if (!vrmBoneName) return;
 
-			const vrmNode = humanoid.getNormalizedBoneNode(vrmBoneName);
-			const mixamoNode = mixamoRig.getObjectByName(mixamoBoneName);
-			if (!vrmNode || !mixamoNode) return;
+			const vrmNodeName = vrm.humanoid?.getNormalizedBoneNode(vrmBoneName as VRMHumanBoneName)?.name;
+			const mixamoRigNode = fbxAsset.getObjectByName(mixamoRigName);
 
-			if (track instanceof THREE.QuaternionKeyframeTrack) {
-				const restRotationInverse = new THREE.Quaternion();
-				const parentRestWorldRotation = new THREE.Quaternion();
-
-				mixamoNode.getWorldQuaternion(restRotationInverse).invert();
-				if (mixamoNode.parent) {
-					mixamoNode.parent.getWorldQuaternion(parentRestWorldRotation);
+			if (vrmNodeName != null && mixamoRigNode != null) {
+				// Store rotations of rest-pose
+				mixamoRigNode.getWorldQuaternion(restRotationInverse).invert();
+				if (mixamoRigNode.parent) {
+					mixamoRigNode.parent.getWorldQuaternion(parentRestWorldRotation);
 				}
 
-				const values = new Float32Array(track.values.length);
-				const _q = new THREE.Quaternion();
+				if (track instanceof THREE.QuaternionKeyframeTrack) {
+					// Retarget rotation of mixamoRig to NormalizedBone
+					for (let i = 0; i < track.values.length; i += 4) {
+						const flatQuaternion = track.values.slice(i, i + 4);
 
-				for (let i = 0; i < track.values.length; i += 4) {
-					_q.fromArray(track.values, i);
-					_q.premultiply(parentRestWorldRotation);
-					_q.multiply(restRotationInverse);
-					_q.toArray(values, i);
-				}
+						_quatA.fromArray(flatQuaternion);
 
-				const newTrack = new THREE.QuaternionKeyframeTrack(
-					`${vrmNode.uuid}.quaternion`,
-					track.times,
-					values
-				);
-				tracks.push(newTrack);
-			} else if (track instanceof THREE.VectorKeyframeTrack) {
-				if (vrmBoneName === VRMHumanBoneName.Hips) {
-					const scaledValues = new Float32Array(track.values.length);
-					for (let i = 0; i < track.values.length; i++) {
-						scaledValues[i] = track.values[i] * positionScale;
+						// parentRestWorldRotation * trackRotation * restRotationInverse
+						_quatA
+							.premultiply(parentRestWorldRotation)
+							.multiply(restRotationInverse);
+
+						_quatA.toArray(flatQuaternion);
+
+						flatQuaternion.forEach((v, index) => {
+							track.values[index + i] = v;
+						});
 					}
 
-					const newTrack = new THREE.VectorKeyframeTrack(
-						`${vrmNode.uuid}.position`,
-						track.times,
-						scaledValues
+					tracks.push(
+						new THREE.QuaternionKeyframeTrack(
+							`${vrmNodeName}.${propertyName}`,
+							track.times,
+							track.values.map((v, i) => (vrm.meta?.metaVersion === '0' && i % 2 === 0 ? -v : v)),
+						),
 					);
-					tracks.push(newTrack);
+				} else if (track instanceof THREE.VectorKeyframeTrack) {
+					const value = track.values.map((v, i) => (vrm.meta?.metaVersion === '0' && i % 3 !== 1 ? -v : v) * hipsPositionScale);
+					tracks.push(new THREE.VectorKeyframeTrack(`${vrmNodeName}.${propertyName}`, track.times, value));
 				}
 			}
 		});
 
-		const newClip = new THREE.AnimationClip(fbxClip.name, fbxClip.duration, tracks);
-		return newClip;
+		return new THREE.AnimationClip(fbxClip.name, fbxClip.duration, tracks);
 	}
 }

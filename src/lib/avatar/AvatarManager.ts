@@ -27,6 +27,11 @@ export class AvatarManager {
 	// Mouse tracking
 	private mouseTarget = new THREE.Vector3(0, 1.4, 2);
 
+	// Dynamic Camera
+	private targetCameraPos = new THREE.Vector3(0, 1.1, 2.6);
+	private targetCameraLookAt = new THREE.Vector3(0, 1.1, 0);
+	private currentCameraLookAt = new THREE.Vector3(0, 1.1, 0);
+
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
 		this.clock = new THREE.Clock();
@@ -39,14 +44,14 @@ export class AvatarManager {
 		// Scene
 		this.scene = new THREE.Scene();
 
-		// Camera
+		// Camera - dynamic positioning
 		this.camera = new THREE.PerspectiveCamera(30, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
-		this.camera.position.set(0, 1.35, 2.2);
-		this.camera.lookAt(0, 1.3, 0);
+		this.camera.position.copy(this.targetCameraPos);
+		this.camera.lookAt(this.currentCameraLookAt);
 
-		// LookAt Target
+		// LookAt Target - Position it exactly where the camera is
 		this.lookAtTarget = new THREE.Object3D();
-		this.lookAtTarget.position.set(0, 1.4, 2);
+		this.lookAtTarget.position.copy(this.camera.position);
 		this.scene.add(this.lookAtTarget);
 
 		this.setupLighting();
@@ -80,8 +85,8 @@ export class AvatarManager {
 	private onMouseMove(e: MouseEvent) {
 		const x = (e.clientX / window.innerWidth) * 2 - 1;
 		const y = -(e.clientY / window.innerHeight) * 2 + 1;
-		// Map mouse to a reasonable look area
-		this.mouseTarget.set(x * 1.5, 1.4 + y * 0.5, 2);
+		// Map mouse to a reasonable look area based on dynamic camera
+		this.mouseTarget.set(x * 1.5, this.currentCameraLookAt.y + y * 0.5, this.camera.position.z);
 	}
 
 	public async loadModel(url: string = '/Ani.vrm') {
@@ -127,19 +132,30 @@ export class AvatarManager {
 		if (this.emotionManager) this.emotionManager.setEmotion(emotion);
 		if (this.lipSyncManager) this.lipSyncManager.update(mouthVolume, this.clock.getDelta(), isSpeaking);
 
+		// Adjust camera dynamically based on context
+		if (emotion === 'Whisper') {
+			this.targetCameraPos.set(0, 1.35, 1.5); // Intimate close up
+			this.targetCameraLookAt.set(0, 1.35, 0);
+		} else if (['Dance', 'TurnAround', 'Bow', 'Sit'].includes(action)) {
+			this.targetCameraPos.set(0, 0.9, 3.8); // Full body visible, lower angle
+			this.targetCameraLookAt.set(0, 0.9, 0);
+		} else {
+			this.targetCameraPos.set(0, 1.1, 2.6); // Normal framing (head to knee)
+			this.targetCameraLookAt.set(0, 1.1, 0);
+		}
+
 		if (this.animationManager) {
+			const IDLE_STATES = ['Idle', 'BreathingIdle', 'Idle1', 'SittingIdle', 'StandingIdle'];
 			if (action !== 'None') {
 				this.animationManager.playState(action);
 			} else if (isSpeaking) {
 				// Only play a specific talking state if we are speaking and no specific action is requested
-				// Otherwise let the gesture cooldown trigger random talking animations
-				if (this.animationManager.getCurrentState() === 'Idle' || 
-					this.animationManager.getCurrentState() === 'BreathingIdle') {
+				if (IDLE_STATES.includes(this.animationManager.getCurrentState())) {
 					this.animationManager.playState('Talking');
 				}
 			} else {
 				// Return to idle
-				if (!['Idle', 'BreathingIdle'].includes(this.animationManager.getCurrentState())) {
+				if (!IDLE_STATES.includes(this.animationManager.getCurrentState())) {
 					this.animationManager.playState('Idle');
 				}
 			}
@@ -166,18 +182,24 @@ export class AvatarManager {
 		} else {
 			this.gestureCooldown = 0;
 			// Idle state variations
-			if (this.animationManager && ['Idle', 'BreathingIdle'].includes(this.animationManager.getCurrentState())) {
+			const IDLE_STATES = ['Idle', 'BreathingIdle', 'Idle1', 'StandingIdle'];
+			if (this.animationManager && IDLE_STATES.includes(this.animationManager.getCurrentState())) {
 				if (Math.random() < 0.005) { // Occasional shift
-					const nextIdle = this.animationManager.getCurrentState() === 'Idle' ? 'BreathingIdle' : 'Idle';
+					const nextIdle = IDLE_STATES[Math.floor(Math.random() * IDLE_STATES.length)];
 					this.animationManager.playState(nextIdle, 1.0);
 				}
 			}
 		}
 
+		// Dynamic camera movement
+		this.camera.position.lerp(this.targetCameraPos, delta * 1.5);
+		this.currentCameraLookAt.lerp(this.targetCameraLookAt, delta * 1.5);
+		this.camera.lookAt(this.currentCameraLookAt);
+
 		// --- LookAt Update ---
 		if (this.isSpeaking) {
-			// Look near camera when speaking
-			this.lookAtTarget.position.lerp(new THREE.Vector3(0, 1.4, 2), delta * 5);
+			// Look directly into camera when speaking
+			this.lookAtTarget.position.lerp(this.camera.position, delta * 5);
 		} else {
 			// Follow mouse or wander
 			const wanderX = Math.sin(t * 0.5) * 0.2;

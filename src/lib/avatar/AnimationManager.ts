@@ -6,6 +6,9 @@ import { AnimationRetargeter } from './AnimationRetargeter';
 const ANIMATION_MAP: Record<string, string> = {
 	'Idle': '/animations/Happy Idle.fbx',
 	'BreathingIdle': '/animations/Breathing Idle.fbx',
+	'Idle1': '/animations/Idle (1).fbx',
+	'SittingIdle': '/animations/Sitting Idle.fbx',
+	'StandingIdle': '/animations/Standing Idle.fbx',
 	'Talking': '/animations/Talking.fbx',
 	'Talking1': '/animations/Talking (1).fbx',
 	'Talking2': '/animations/Talking (2).fbx',

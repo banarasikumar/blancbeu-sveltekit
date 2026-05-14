@@ -94,9 +94,9 @@ export class EmotionManager {
 				this.expressionManager.setExpression(P.Joy, 0.2);
 				break;
 			case 'Flirty':
-				// One-eye wink
-				this.expressionManager.setExpression(P.BlinkLeft, 0.85);
-				this.expressionManager.setExpression(P.Joy, 0.4);
+				// A softer relaxed look instead of a permanent wink
+				this.expressionManager.setExpression(P.Relaxed, 0.6);
+				this.expressionManager.setExpression(P.Joy, 0.5);
 				break;
 			case 'Sarcastic':
 				this.expressionManager.setExpression(P.Relaxed, 0.4);

@@ -96,26 +96,24 @@
 			const data = await res.json();
 			const reply = data.reply || "Mm... I got lost in your eyes for a moment~";
 
-			activeEmotion = data.emotion || 'Romantic';
-			activeAction = data.action || 'None';
-			activeEffect = data.effect || 'None';
-
-			if (activeEffect === 'Hearts') heartsKey++;
-			if (activeEffect === 'Petals') petalsKey++;
-
 			messages = [...messages, { role: 'assistant', text: reply }];
 			isThinking = false;
 
 			if (!isMuted) {
-				// Subtitle shows when speech actually starts, not before
-				await speakText(reply);
+				// We pass 'data' so animations/emotions are delayed until TTS audio is ready
+				await speakText(reply, data);
 			} else {
-				showSubtitle = reply;
-			}
+				activeEmotion = data.emotion || 'Romantic';
+				activeAction = data.action || 'None';
+				activeEffect = data.effect || 'None';
 
-			// Reset action/emotion after speech so they don't stay stuck
-			activeAction = 'None';
-			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; }, 8000);
+				if (activeEffect === 'Hearts') heartsKey++;
+				if (activeEffect === 'Petals') petalsKey++;
+
+				showSubtitle = reply;
+				// Reset action/emotion after reading time
+				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 8000);
+			}
 		} catch {
 			const errorMsg = "Ah... my network fluttered for a second. Try once more, darling~";
 			messages = [...messages, { role: 'assistant', text: errorMsg }];
@@ -125,24 +123,40 @@
 		}
 	}
 
-	async function speakText(text: string) {
+	async function speakText(text: string, data?: any) {
 		try {
-			isSpeaking = true;
 			const res = await fetch('/api/companion', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ action: 'tts', message: text })
 			});
-			const data = await res.json();
-			if (data.audio) {
+			const ttsData = await res.json();
+
+			// Audio is ready to play, NOW we trigger the expressions and effects
+			if (data) {
+				activeEmotion = data.emotion || 'Romantic';
+				activeAction = data.action || 'None';
+				activeEffect = data.effect || 'None';
+				if (activeEffect === 'Hearts') heartsKey++;
+				if (activeEffect === 'Petals') petalsKey++;
+			}
+
+			if (ttsData.audio) {
 				// Show subtitle only when audio starts
 				showSubtitle = text;
-				await audioAnalyser.playPcm(data.audio);
+				isSpeaking = true;
+				await audioAnalyser.playPcm(ttsData.audio);
 			} else {
 				showSubtitle = text;
 			}
-		} catch (e) { console.error('TTS playback error:', e); showSubtitle = text; }
-		finally { isSpeaking = false; mouthVolume = 0; }
+		} catch (e) { 
+			console.error('TTS playback error:', e); 
+			showSubtitle = text; 
+		} finally { 
+			isSpeaking = false; 
+			mouthVolume = 0; 
+			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 8000);
+		}
 	}
 
 	function toggleMute() {
