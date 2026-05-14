@@ -12,6 +12,9 @@ export class AudioAnalyser {
 	private dataArray: Uint8Array | null = null;
 	private _isPlaying = false;
 
+	private nextStartTime = 0;
+	private activeSources: AudioBufferSourceNode[] = [];
+
 	get isPlaying(): boolean {
 		return this._isPlaying;
 	}
@@ -28,12 +31,10 @@ export class AudioAnalyser {
 	}
 
 	/**
-	 * Play raw PCM 16-bit LE audio data at the given sample rate.
-	 * Returns a promise that resolves when playback ends.
+	 * Queue raw PCM 16-bit LE audio data to play seamlessly after the current buffer.
+	 * Returns a promise that resolves when this specific chunk finishes playing.
 	 */
-	async playPcm(pcmBase64: string, sampleRate = 24000): Promise<void> {
-		this.stop(); // stop any previous playback
-
+	async enqueuePcm(pcmBase64: string, sampleRate = 24000): Promise<void> {
 		const ctx = this.ensureContext();
 
 		// Decode base64 to raw bytes
@@ -54,29 +55,53 @@ export class AudioAnalyser {
 		const audioBuffer = ctx.createBuffer(1, float32.length, sampleRate);
 		audioBuffer.copyToChannel(float32, 0);
 
-		// Setup nodes
-		this.analyser = ctx.createAnalyser();
-		this.analyser.fftSize = 256;
-		this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+		if (!this.analyser) {
+			this.analyser = ctx.createAnalyser();
+			this.analyser.fftSize = 256;
+			this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+			
+			if (!this.gainNode) {
+				this.gainNode = ctx.createGain();
+				this.gainNode.gain.value = 1.0;
+			}
+			
+			this.analyser.connect(this.gainNode);
+			this.gainNode.connect(ctx.destination);
+		}
 
-		this.gainNode = ctx.createGain();
-		this.gainNode.gain.value = 1.0;
+		const source = ctx.createBufferSource();
+		source.buffer = audioBuffer;
+		source.connect(this.analyser);
+		this.activeSources.push(source);
 
-		this.source = ctx.createBufferSource();
-		this.source.buffer = audioBuffer;
-		this.source.connect(this.analyser);
-		this.analyser.connect(this.gainNode);
-		this.gainNode.connect(ctx.destination);
+		const currentTime = ctx.currentTime;
+		if (this.nextStartTime < currentTime) {
+			this.nextStartTime = currentTime + 0.05; // Slight buffer to prevent glitch
+		}
 
 		this._isPlaying = true;
+		const scheduledStart = this.nextStartTime;
+		this.nextStartTime += audioBuffer.duration;
 
 		return new Promise<void>((resolve) => {
-			this.source!.onended = () => {
-				this._isPlaying = false;
+			source.onended = () => {
+				// Remove this source from active list
+				this.activeSources = this.activeSources.filter(s => s !== source);
+				
+				// If no more sources are scheduled to play after this one, we are done playing
+				if (ctx.currentTime >= this.nextStartTime - 0.1) {
+					this._isPlaying = false;
+				}
 				resolve();
 			};
-			this.source!.start(0);
+			source.start(scheduledStart);
 		});
+	}
+
+	/** Play PCM (retained for backward compatibility, though enqueuePcm is preferred) */
+	async playPcm(pcmBase64: string, sampleRate = 24000): Promise<void> {
+		this.stop();
+		return this.enqueuePcm(pcmBase64, sampleRate);
 	}
 
 	/** Get the current normalized audio volume (0..1) */
@@ -118,10 +143,16 @@ export class AudioAnalyser {
 				this.source.stop();
 				this.source.disconnect();
 			}
+			for (const s of this.activeSources) {
+				s.stop();
+				s.disconnect();
+			}
 		} catch {
 			// ignore
 		}
 		this.source = null;
+		this.activeSources = [];
+		this.nextStartTime = 0;
 		this._isPlaying = false;
 	}
 

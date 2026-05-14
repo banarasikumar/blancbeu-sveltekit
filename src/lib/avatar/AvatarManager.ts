@@ -24,13 +24,11 @@ export class AvatarManager {
 	private isSpeaking: boolean = false;
 	private gestureCooldown: number = 0;
 	
-	// Mouse tracking
-	private mouseTarget = new THREE.Vector3(0, 1.4, 2);
 
-	// Dynamic Camera
-	private targetCameraPos = new THREE.Vector3(0, 1.1, 2.6);
-	private targetCameraLookAt = new THREE.Vector3(0, 1.1, 0);
-	private currentCameraLookAt = new THREE.Vector3(0, 1.1, 0);
+	// Dynamic Camera — positioned low, looking at the chest to keep head near top of screen
+	private targetCameraPos = new THREE.Vector3(0, 0.75, 1.9);
+	private targetCameraLookAt = new THREE.Vector3(0, 0.9, 0);
+	private currentCameraLookAt = new THREE.Vector3(0, 0.9, 0);
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
@@ -44,8 +42,8 @@ export class AvatarManager {
 		// Scene
 		this.scene = new THREE.Scene();
 
-		// Camera - dynamic positioning
-		this.camera = new THREE.PerspectiveCamera(30, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+		// Camera - low angle looking up, like Grok companion
+		this.camera = new THREE.PerspectiveCamera(32, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
 		this.camera.position.copy(this.targetCameraPos);
 		this.camera.lookAt(this.currentCameraLookAt);
 
@@ -58,7 +56,6 @@ export class AvatarManager {
 		this.updateSize();
 
 		window.addEventListener('resize', this.updateSize.bind(this));
-		window.addEventListener('mousemove', this.onMouseMove.bind(this));
 	}
 
 	private setupLighting() {
@@ -82,12 +79,6 @@ export class AvatarManager {
 		this.camera.updateProjectionMatrix();
 	}
 
-	private onMouseMove(e: MouseEvent) {
-		const x = (e.clientX / window.innerWidth) * 2 - 1;
-		const y = -(e.clientY / window.innerHeight) * 2 + 1;
-		// Map mouse to a reasonable look area based on dynamic camera
-		this.mouseTarget.set(x * 1.5, this.currentCameraLookAt.y + y * 0.5, this.camera.position.z);
-	}
 
 	public async loadModel(url: string = '/Ani.vrm') {
 		const loader = new GLTFLoader();
@@ -112,6 +103,9 @@ export class AvatarManager {
 			this.vrm.lookAt.target = this.lookAtTarget;
 		}
 
+		// Set relaxed hand pose so fingers are visible (natural curl instead of flat/extended)
+		this.applyRelaxedHandPose();
+
 		// Initialize Managers
 		this.animationManager = new AnimationManager(this.vrm);
 		await this.animationManager.preload();
@@ -126,68 +120,78 @@ export class AvatarManager {
 		this.animate();
 	}
 
+	// Cached state values updated by the Svelte component
+	private pendingMouthVolume: number = 0;
+	private pendingEmotion: string = 'Neutral';
+	private pendingAction: string = 'None';
+
 	public updateState(mouthVolume: number, isSpeaking: boolean, emotion: string, action: string) {
+		// Store values — actual processing happens in animate() with a single clock.getDelta()
 		this.isSpeaking = isSpeaking;
-
-		if (this.emotionManager) this.emotionManager.setEmotion(emotion);
-		if (this.lipSyncManager) this.lipSyncManager.update(mouthVolume, this.clock.getDelta(), isSpeaking);
-
-		// Adjust camera dynamically based on context
-		if (emotion === 'Whisper') {
-			this.targetCameraPos.set(0, 1.35, 1.5); // Intimate close up
-			this.targetCameraLookAt.set(0, 1.35, 0);
-		} else if (['Dance', 'TurnAround', 'Bow', 'Sit'].includes(action)) {
-			this.targetCameraPos.set(0, 0.9, 3.8); // Full body visible, lower angle
-			this.targetCameraLookAt.set(0, 0.9, 0);
-		} else {
-			this.targetCameraPos.set(0, 1.1, 2.6); // Normal framing (head to knee)
-			this.targetCameraLookAt.set(0, 1.1, 0);
-		}
-
-		if (this.animationManager) {
-			const IDLE_STATES = ['Idle', 'BreathingIdle', 'Idle1', 'SittingIdle', 'StandingIdle'];
-			if (action !== 'None') {
-				this.animationManager.playState(action);
-			} else if (isSpeaking) {
-				// Only play a specific talking state if we are speaking and no specific action is requested
-				if (IDLE_STATES.includes(this.animationManager.getCurrentState())) {
-					this.animationManager.playState('Talking');
-				}
-			} else {
-				// Return to idle
-				if (!IDLE_STATES.includes(this.animationManager.getCurrentState())) {
-					this.animationManager.playState('Idle');
-				}
-			}
-		}
+		this.pendingMouthVolume = mouthVolume;
+		this.pendingEmotion = emotion;
+		this.pendingAction = action;
 	}
 
 	private animate() {
 		this.animFrameId = requestAnimationFrame(this.animate.bind(this));
 		const delta = this.clock.getDelta();
-		const t = this.clock.getElapsedTime();
 
 		if (!this.vrm) return;
 
-		// --- Gestures & Conversational Movement ---
-		if (this.isSpeaking && this.animationManager) {
-			this.gestureCooldown -= delta;
-			if (this.gestureCooldown <= 0) {
-				// Random talking gesture
-				const talkAnims = ['Talking', 'Talking1', 'Talking2'];
-				const anim = talkAnims[Math.floor(Math.random() * talkAnims.length)];
-				this.animationManager.playState(anim, 0.4);
-				this.gestureCooldown = 3 + Math.random() * 4;
-			}
+		// --- Process pending state (emotion, lip sync, camera, animation transitions) ---
+		const action = this.pendingAction;
+		const emotion = this.pendingEmotion;
+
+		if (this.emotionManager) this.emotionManager.setEmotion(emotion);
+		if (this.lipSyncManager) this.lipSyncManager.update(this.pendingMouthVolume, delta, this.isSpeaking);
+
+		// Adjust camera dynamically
+		if (emotion === 'Whisper') {
+			this.targetCameraPos.set(0, 0.9, 1.2);
+			this.targetCameraLookAt.set(0, 1.1, 0);
+		} else if (['Dance', 'TurnAround', 'Bow', 'Sit'].includes(action)) {
+			this.targetCameraPos.set(0, 0.5, 3.0);
+			this.targetCameraLookAt.set(0, 0.8, 0);
 		} else {
-			this.gestureCooldown = 0;
-			// Idle state variations
-			const IDLE_STATES = ['Idle', 'BreathingIdle', 'Idle1', 'StandingIdle'];
-			if (this.animationManager && IDLE_STATES.includes(this.animationManager.getCurrentState())) {
-				if (Math.random() < 0.005) { // Occasional shift
-					const nextIdle = IDLE_STATES[Math.floor(Math.random() * IDLE_STATES.length)];
-					this.animationManager.playState(nextIdle, 1.0);
+			this.targetCameraPos.set(0, 0.75, 1.9);
+			this.targetCameraLookAt.set(0, 0.9, 0);
+		}
+
+		// --- Animation state machine ---
+		const IDLE_STATES = ['Idle', 'BreathingIdle', 'Idle1', 'StandingIdle', 'SittingIdle'];
+		const ONE_SHOT_ACTIONS = ['Wave', 'Greeting', 'TurnAround', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Happy', 'LeanForward', 'RomanticPose'];
+		const TALKING_STATE = 'Talking';
+
+		if (this.animationManager) {
+			const curState = this.animationManager.getCurrentState();
+
+			if (action !== 'None') {
+				// Explicit action requested by AI
+				this.animationManager.playState(action);
+			} else if (this.isSpeaking) {
+				// Speaking — play talking animation with body gestures
+				if (curState !== TALKING_STATE) {
+					// Transition to talking from ANY state (idle, finished one-shot, etc.)
+					this.animationManager.playState(TALKING_STATE, 0.4);
+					this.gestureCooldown = 4 + Math.random() * 3;
+				} else {
+					// Already talking — cycle to a different talking variant periodically
+					this.gestureCooldown -= delta;
+					if (this.gestureCooldown <= 0) {
+						this.animationManager.playState(TALKING_STATE, 0.5, true);
+						this.gestureCooldown = 4 + Math.random() * 3;
+					}
 				}
+			} else {
+				// Not speaking, no action — idle
+				if (!IDLE_STATES.includes(curState)) {
+					this.animationManager.playState('Idle', 0.6);
+				} else if (Math.random() < 0.003) {
+					// Occasional organic idle shift
+					this.animationManager.playState('Idle', 1.0, true);
+				}
+				this.gestureCooldown = 0;
 			}
 		}
 
@@ -196,34 +200,75 @@ export class AvatarManager {
 		this.currentCameraLookAt.lerp(this.targetCameraLookAt, delta * 1.5);
 		this.camera.lookAt(this.currentCameraLookAt);
 
-		// --- LookAt Update ---
-		if (this.isSpeaking) {
-			// Look directly into camera when speaking
-			this.lookAtTarget.position.lerp(this.camera.position, delta * 5);
-		} else {
-			// Follow mouse or wander
-			const wanderX = Math.sin(t * 0.5) * 0.2;
-			const wanderY = Math.cos(t * 0.3) * 0.1;
-			this.mouseTarget.x += wanderX;
-			this.mouseTarget.y += wanderY;
-			this.lookAtTarget.position.lerp(this.mouseTarget, delta * 3);
-			this.mouseTarget.x -= wanderX;
-			this.mouseTarget.y -= wanderY;
-		}
+		// --- LookAt: ALWAYS gaze directly into camera (direct eye contact) ---
+		this.lookAtTarget.position.copy(this.camera.position);
 
 		// Update sub-managers
 		if (this.animationManager) this.animationManager.update(delta);
 		if (this.expressionManager) this.expressionManager.update(delta);
+
+		// Re-apply relaxed hand pose AFTER mixer update so animations can't flatten fingers
+		this.applyRelaxedHandPose();
 
 		// VRM & Render
 		this.vrm.update(delta);
 		this.renderer.render(this.scene, this.camera);
 	}
 
+	/**
+	 * Apply a natural relaxed hand pose so fingers curl slightly.
+	 * This prevents the "empty sleeves" look where flat/extended fingers
+	 * clip inside the sleeve mesh and become invisible.
+	 */
+	private applyRelaxedHandPose() {
+		if (!this.vrm?.humanoid) return;
+
+		// Finger bones to curl with a gentle ~15-25° bend per joint
+		const fingerCurl: Array<{ bone: string; angle: number }> = [
+			// Left hand fingers
+			{ bone: 'leftIndexProximal', angle: 0.25 },
+			{ bone: 'leftIndexIntermediate', angle: 0.35 },
+			{ bone: 'leftIndexDistal', angle: 0.20 },
+			{ bone: 'leftMiddleProximal', angle: 0.30 },
+			{ bone: 'leftMiddleIntermediate', angle: 0.40 },
+			{ bone: 'leftMiddleDistal', angle: 0.25 },
+			{ bone: 'leftRingProximal', angle: 0.30 },
+			{ bone: 'leftRingIntermediate', angle: 0.40 },
+			{ bone: 'leftRingDistal', angle: 0.25 },
+			{ bone: 'leftLittleProximal', angle: 0.35 },
+			{ bone: 'leftLittleIntermediate', angle: 0.45 },
+			{ bone: 'leftLittleDistal', angle: 0.30 },
+			{ bone: 'leftThumbProximal', angle: 0.15 },
+			{ bone: 'leftThumbDistal', angle: 0.20 },
+			// Right hand fingers
+			{ bone: 'rightIndexProximal', angle: 0.25 },
+			{ bone: 'rightIndexIntermediate', angle: 0.35 },
+			{ bone: 'rightIndexDistal', angle: 0.20 },
+			{ bone: 'rightMiddleProximal', angle: 0.30 },
+			{ bone: 'rightMiddleIntermediate', angle: 0.40 },
+			{ bone: 'rightMiddleDistal', angle: 0.25 },
+			{ bone: 'rightRingProximal', angle: 0.30 },
+			{ bone: 'rightRingIntermediate', angle: 0.40 },
+			{ bone: 'rightRingDistal', angle: 0.25 },
+			{ bone: 'rightLittleProximal', angle: 0.35 },
+			{ bone: 'rightLittleIntermediate', angle: 0.45 },
+			{ bone: 'rightLittleDistal', angle: 0.30 },
+			{ bone: 'rightThumbProximal', angle: 0.15 },
+			{ bone: 'rightThumbDistal', angle: 0.20 },
+		];
+
+		for (const { bone, angle } of fingerCurl) {
+			const node = this.vrm.humanoid.getNormalizedBoneNode(bone as any);
+			if (node) {
+				// Curl around the local X axis (flex the finger joint)
+				node.rotation.x = angle;
+			}
+		}
+	}
+
 	public dispose() {
 		if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
 		window.removeEventListener('resize', this.updateSize.bind(this));
-		window.removeEventListener('mousemove', this.onMouseMove.bind(this));
 		if (this.animationManager) this.animationManager.dispose();
 		if (this.renderer) {
 			this.renderer.dispose();

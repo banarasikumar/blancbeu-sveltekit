@@ -9,8 +9,8 @@ export const mixamoVRMRigMap: Record<string, string> = {
 	mixamorigSpine: 'spine',
 	mixamorigSpine1: 'chest',
 	mixamorigSpine2: 'upperChest',
-	mixamorigNeck: 'neck',
-	mixamorigHead: 'head',
+	// mixamorigNeck: 'neck', // Disabled so VRM LookAt can control head
+	// mixamorigHead: 'head', // Disabled so VRM LookAt can control head
 	mixamorigLeftShoulder: 'leftShoulder',
 	mixamorigLeftArm: 'leftUpperArm',
 	mixamorigLeftForeArm: 'leftLowerArm',
@@ -127,8 +127,12 @@ export class AnimationRetargeter {
 						),
 					);
 				} else if (track instanceof THREE.VectorKeyframeTrack) {
-					const value = track.values.map((v, i) => (vrm.meta?.metaVersion === '0' && i % 3 !== 1 ? -v : v) * hipsPositionScale);
-					tracks.push(new THREE.VectorKeyframeTrack(`${vrmNodeName}.${propertyName}`, track.times, value));
+					// IMPORTANT: Only the hips bone is allowed to have position changes in VRM!
+					// If we apply Mixamo position tracks to other bones (like hands/arms), it will rip the mesh apart and hide the hands.
+					if (vrmBoneName === 'hips') {
+						const value = track.values.map((v, i) => (vrm.meta?.metaVersion === '0' && i % 3 !== 1 ? -v : v) * hipsPositionScale);
+						tracks.push(new THREE.VectorKeyframeTrack(`${vrmNodeName}.${propertyName}`, track.times, value));
+					}
 				}
 			}
 		});

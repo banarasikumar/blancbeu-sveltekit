@@ -13,6 +13,7 @@
 	let isSpeaking = $state(false);
 	let isMuted = $state(false);
 	let isListening = $state(false);
+	let isProcessing = $state(false); // Hard lock: true from send until Ani fully finishes speaking
 	let mouthVolume = $state(0);
 	let showMenu = $state(false);
 	let showSubtitle = $state('');
@@ -23,8 +24,6 @@
 	let activeAction = $state('None');
 	let activeEffect = $state('None');
 
-	// Debug test mode
-	let debugMode = $state(false);
 
 	// Particle re-trigger keys
 	let heartsKey = $state(0);
@@ -37,7 +36,25 @@
 	function pollVolume() {
 		volumeRafId = requestAnimationFrame(pollVolume);
 		mouthVolume = audioAnalyser.getVolume();
-		isSpeaking = audioAnalyser.isPlaying;
+		
+		const currentlyPlaying = audioAnalyser.isPlaying;
+		if (currentlyPlaying && !isSpeaking) {
+			isSpeaking = true;
+		} else if (!currentlyPlaying && isSpeaking) {
+			isSpeaking = false;
+			isProcessing = false; // Ani fully finished speaking — unlock mic
+			// Clear UI state shortly after speaking ends
+			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 3000);
+			
+			// Auto-resume listening if voice mode is enabled (safe now — Ani is silent)
+			if (voiceModeEnabled && recognition && !isListening && !isMuted) {
+				setTimeout(() => {
+					if (voiceModeEnabled && !isProcessing && !isSpeaking && !isListening) {
+						try { recognition.start(); isListening = true; } catch {}
+					}
+				}, 500); // 500ms grace period to let speaker fully drain
+			}
+		}
 	}
 
 	onMount(() => {
@@ -52,11 +69,26 @@
 				recognition.lang = 'en-US';
 
 				recognition.onresult = (event: any) => {
-					const transcript = event.results[0][0].transcript;
-					inputText = transcript;
-					sendMessage();
+					const lastResult = event.results[event.results.length - 1];
+					if (lastResult.isFinal) {
+						const transcript = lastResult[0].transcript.trim();
+						if (transcript) {
+							inputText = transcript;
+							sendMessage();
+						}
+					}
 				};
-				recognition.onend = () => (isListening = false);
+				recognition.onend = () => {
+					isListening = false;
+					// Only auto-resume if NOT processing (Ani is fully silent and idle)
+					if (voiceModeEnabled && !isProcessing && !isSpeaking && !isThinking && !isMuted) {
+						setTimeout(() => {
+							if (voiceModeEnabled && !isProcessing && !isSpeaking && !isListening) {
+								try { recognition.start(); isListening = true; } catch {}
+							}
+						}, 300);
+					}
+				};
 				recognition.onerror = () => (isListening = false);
 			}
 		}
@@ -81,81 +113,106 @@
 		const msg = text || inputText.trim();
 		if (!msg || isThinking) return;
 
+		// Stop listening while thinking/speaking
+		if (isListening && recognition) {
+			try { recognition.stop(); isListening = false; } catch {}
+		}
+
+		isProcessing = true; // Lock mic until Ani fully finishes speaking
 		inputText = '';
 		messages = [...messages, { role: 'user', text: msg }];
 		isThinking = true;
 		activeEffect = 'None';
+		showSubtitle = '';
 
 		try {
 			const res = await fetch('/api/companion', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ message: msg })
+				body: JSON.stringify({ message: msg, isMuted })
 			});
 
-			const data = await res.json();
-			const reply = data.reply || "Mm... I got lost in your eyes for a moment~";
+			if (!res.body) throw new Error('No response body');
 
-			messages = [...messages, { role: 'assistant', text: reply }];
-			isThinking = false;
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			
+			// Add empty assistant message
+			messages = [...messages, { role: 'assistant', text: '' }];
+			
+			let buffer = '';
 
-			if (!isMuted) {
-				// We pass 'data' so animations/emotions are delayed until TTS audio is ready
-				await speakText(reply, data);
-			} else {
-				activeEmotion = data.emotion || 'Romantic';
-				activeAction = data.action || 'None';
-				activeEffect = data.effect || 'None';
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
 
-				if (activeEffect === 'Hearts') heartsKey++;
-				if (activeEffect === 'Petals') petalsKey++;
+				buffer += decoder.decode(value, { stream: true });
+				
+				const lines = buffer.split('\n\n');
+				buffer = lines.pop() || ''; // Keep the last incomplete line in buffer
 
-				showSubtitle = reply;
-				// Reset action/emotion after reading time
-				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 8000);
+				for (const line of lines) {
+					if (line.startsWith('data: ')) {
+						const dataStr = line.slice(6);
+						if (!dataStr.trim()) continue;
+
+						try {
+							const data = JSON.parse(dataStr);
+
+							if (data.type === 'metadata') {
+								activeEmotion = data.emotion || 'Neutral';
+								activeAction = data.action || 'None';
+								activeEffect = data.effect || 'None';
+								
+								if (activeEffect === 'Hearts') heartsKey++;
+								if (activeEffect === 'Petals') petalsKey++;
+							} else if (data.type === 'text_chunk') {
+								isThinking = false;
+								messages[messages.length - 1].text += data.text;
+								showSubtitle += data.text;
+							} else if (data.type === 'audio_chunk') {
+								isThinking = false;
+								if (!isMuted) {
+									audioAnalyser.enqueuePcm(data.audio).catch(e => console.error('Audio playback error', e));
+								}
+								if (data.text) {
+									messages[messages.length - 1].text += data.text;
+									showSubtitle += data.text;
+								}
+							} else if (data.type === 'error') {
+								console.error(data.message);
+							}
+						} catch (e) {
+							console.error('Failed to parse SSE chunk', e);
+						}
+					}
+				}
 			}
+
+			if (isMuted) {
+				isThinking = false;
+				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 5000);
+			}
+
 		} catch {
 			const errorMsg = "Ah... my network fluttered for a second. Try once more, darling~";
 			messages = [...messages, { role: 'assistant', text: errorMsg }];
 			showSubtitle = errorMsg;
 			isThinking = false;
+			isProcessing = false; // Unlock on error
 			setTimeout(() => { showSubtitle = ''; }, 5000);
 		}
-	}
 
-	async function speakText(text: string, data?: any) {
-		try {
-			const res = await fetch('/api/companion', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ action: 'tts', message: text })
-			});
-			const ttsData = await res.json();
-
-			// Audio is ready to play, NOW we trigger the expressions and effects
-			if (data) {
-				activeEmotion = data.emotion || 'Romantic';
-				activeAction = data.action || 'None';
-				activeEffect = data.effect || 'None';
-				if (activeEffect === 'Hearts') heartsKey++;
-				if (activeEffect === 'Petals') petalsKey++;
+		// If muted, there's no audio to wait for — unlock immediately after stream ends
+		if (isMuted) {
+			isProcessing = false;
+			if (voiceModeEnabled && recognition && !isListening) {
+				setTimeout(() => {
+					if (voiceModeEnabled && !isProcessing && !isListening) {
+						try { recognition.start(); isListening = true; } catch {}
+					}
+				}, 300);
 			}
-
-			if (ttsData.audio) {
-				// Show subtitle only when audio starts
-				showSubtitle = text;
-				isSpeaking = true;
-				await audioAnalyser.playPcm(ttsData.audio);
-			} else {
-				showSubtitle = text;
-			}
-		} catch (e) { 
-			console.error('TTS playback error:', e); 
-			showSubtitle = text; 
-		} finally { 
-			isSpeaking = false; 
-			mouthVolume = 0; 
-			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 8000);
 		}
 	}
 
@@ -165,10 +222,21 @@
 		if (isMuted) { audioAnalyser.stop(); isSpeaking = false; mouthVolume = 0; }
 	}
 
+	let voiceModeEnabled = $state(false);
+
 	function toggleListen() {
-		if (!recognition) return;
-		if (isListening) { recognition.stop(); }
-		else { try { recognition.start(); isListening = true; } catch {} }
+		if (!recognition) {
+			alert("Voice recognition is not supported in this browser.");
+			return;
+		}
+		
+		voiceModeEnabled = !voiceModeEnabled;
+		
+		if (voiceModeEnabled) {
+			try { recognition.start(); isListening = true; } catch {}
+		} else {
+			try { recognition.stop(); isListening = false; } catch {}
+		}
 	}
 
 	function stopSpeaking() {
@@ -186,44 +254,7 @@
 
 	function goBack() { goto('/assistant'); }
 
-	// Debug helpers
-	const ALL_ACTIONS = ['None','FlyingKiss','Dance','TurnAround','RomanticPose','Bow','Wave','Sit','LeanForward','Laugh','Cry','StandCasual','ThinkingPose','Shrug'];
-	const ALL_EMOTIONS = ['Neutral','Happy','Sad','Romantic','Flirty','Sarcastic','Enthusiastic','Blessed','Whisper'];
-	const ALL_EFFECTS = ['None','Hearts','Petals'];
 
-	function debugSetAction(a: string) {
-		activeAction = a;
-		showSubtitle = `Action: ${a}`;
-		setTimeout(() => { showSubtitle = ''; }, 3000);
-	}
-	function debugSetEmotion(e: string) {
-		activeEmotion = e;
-		showSubtitle = `Emotion: ${e}`;
-		setTimeout(() => { showSubtitle = ''; }, 3000);
-	}
-	function debugSetEffect(fx: string) {
-		activeEffect = fx;
-		if (fx === 'Hearts') heartsKey++;
-		if (fx === 'Petals') petalsKey++;
-		showSubtitle = `Effect: ${fx}`;
-		setTimeout(() => { showSubtitle = ''; activeEffect = 'None'; }, 5000);
-	}
-	function debugSimulateSpeech() {
-		isSpeaking = true;
-		mouthVolume = 0.5;
-		showSubtitle = 'Simulating speech (gestures active)...';
-		let tick = 0;
-		const iv = setInterval(() => {
-			tick++;
-			mouthVolume = 0.3 + Math.random() * 0.5;
-			if (tick > 80) {
-				clearInterval(iv);
-				isSpeaking = false;
-				mouthVolume = 0;
-				showSubtitle = '';
-			}
-		}, 60);
-	}
 </script>
 
 <svelte:head>
@@ -325,9 +356,6 @@
 			<Menu size={22} strokeWidth={1.5} />
 		</button>
 		<div style="display:flex;gap:8px;">
-			<button class="capture-btn" onclick={() => debugMode = !debugMode} style="background:{debugMode ? 'rgba(220,50,100,0.5)' : 'rgba(0,0,0,0.35)'}">
-				<span>🎮 Debug</span>
-			</button>
 			<button class="capture-btn" aria-label="Capture">
 				<Camera size={16} strokeWidth={2} />
 				<span>Capture</span>
@@ -335,49 +363,6 @@
 		</div>
 	</div>
 
-	<!-- DEBUG TEST PANEL -->
-	{#if debugMode}
-		<div class="debug-panel" transition:fly={{ x: 300, duration: 250 }}>
-			<div class="debug-header">
-				<span>🎮 Debug Panel</span>
-				<span class="debug-state">E:{activeEmotion} A:{activeAction}</span>
-			</div>
-
-			<div class="debug-section">
-				<p class="debug-label">Actions / Choreographies</p>
-				<div class="debug-grid">
-					{#each ALL_ACTIONS as a}
-						<button class="debug-btn" class:active={activeAction === a} onclick={() => debugSetAction(a)}>{a}</button>
-					{/each}
-				</div>
-			</div>
-
-			<div class="debug-section">
-				<p class="debug-label">Emotions / Expressions</p>
-				<div class="debug-grid">
-					{#each ALL_EMOTIONS as e}
-						<button class="debug-btn" class:active={activeEmotion === e} onclick={() => debugSetEmotion(e)}>{e}</button>
-					{/each}
-				</div>
-			</div>
-
-			<div class="debug-section">
-				<p class="debug-label">Visual Effects</p>
-				<div class="debug-grid">
-					{#each ALL_EFFECTS as fx}
-						<button class="debug-btn" class:active={activeEffect === fx} onclick={() => debugSetEffect(fx)}>{fx}</button>
-					{/each}
-				</div>
-			</div>
-
-			<div class="debug-section">
-				<p class="debug-label">Simulate</p>
-				<div class="debug-grid">
-					<button class="debug-btn sim" onclick={debugSimulateSpeech}>▶ Simulate Speech (5s)</button>
-				</div>
-			</div>
-		</div>
-	{/if}
 
 	<!-- Slide-out menu -->
 	{#if showMenu}
@@ -535,32 +520,5 @@
 	.stop-btn:active { transform: scale(0.95); }
 	.stop-btn.send-active { background: rgba(200,50,90,0.6); border-color: rgba(220,50,100,0.5); }
 
-	/* Debug Panel */
-	.debug-panel {
-		position: absolute; top: 60px; right: 8px; bottom: 170px; width: 200px;
-		background: rgba(10,5,18,0.45); backdrop-filter: blur(8px);
-		border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
-		z-index: 25; overflow-y: auto; padding: 10px;
-		display: flex; flex-direction: column; gap: 8px;
-		scrollbar-width: thin; scrollbar-color: rgba(220,50,100,0.3) transparent;
-	}
-	.debug-header {
-		display: flex; justify-content: space-between; align-items: center;
-		padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08);
-		font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 600;
-	}
-	.debug-state { font-size: 0.6rem; color: rgba(220,50,100,0.8); font-weight: 400; }
-	.debug-section { display: flex; flex-direction: column; gap: 4px; }
-	.debug-label { font-size: 0.65rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 2px; }
-	.debug-grid { display: flex; flex-wrap: wrap; gap: 4px; }
-	.debug-btn {
-		padding: 5px 10px; border-radius: 8px; font-size: 0.68rem; font-weight: 500;
-		background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-		color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.15s; font-family: inherit;
-	}
-	.debug-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
-	.debug-btn:active { transform: scale(0.93); }
-	.debug-btn.active { background: rgba(220,50,100,0.4); border-color: rgba(220,50,100,0.6); color: #fff; }
-	.debug-btn.sim { width: 100%; background: rgba(50,120,220,0.3); border-color: rgba(50,120,220,0.4); }
-	.debug-btn.sim:hover { background: rgba(50,120,220,0.5); }
+
 </style>

@@ -1,6 +1,5 @@
-import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 
 const SYSTEM_PROMPT = `You are Ani, a highly intelligent, witty, and slightly cheeky virtual companion, modeled after the Grok AI persona but with a charmingly affectionate twist.
 Your personality:
@@ -11,144 +10,160 @@ Your personality:
 - Keep responses concise, conversational, and direct (under 2-3 sentences).
 - You know everything about Blancbeu salon services, booking, and beauty, and can seamlessly blend this knowledge into your witty banter.
 
-IMPORTANT RULES FOR ACTION FIELD:
-- For normal conversation, ALWAYS set action to "None". Your body will automatically gesture while speaking.
-- Only use FlyingKiss, Dance, TurnAround, RomanticPose, Bow, or Wave when the user EXPLICITLY asks you to perform a physical action (e.g. "dance for me", "give me a kiss", "wave at me", "turn around").
-- Use Hearts or Petals effect when being romantic, affectionate, or exceptionally cheeky.
-- Vary your emotions frequently - don't always use the same one, and use Sarcastic or Flirty when making witty remarks.
-- ALWAYS use the "Whisper" emotion when sharing a secret, being intimately close, or saying something soft and romantic.`;
+IMPORTANT: Do NOT output JSON. You must begin your response with these three exact tags, followed by your spoken reply.
+[Emotion: <one of Happy, Sad, Blessed, Romantic, Flirty, Sarcastic, Enthusiastic, Whisper, Neutral>]
+[Action: <one of FlyingKiss, Dance, TurnAround, RomanticPose, Bow, Wave, Sit, LeanForward, Laugh, Cry, StandCasual, ThinkingPose, Shrug, None>]
+[Effect: <one of Hearts, Petals, None>]
+
+Example:
+[Emotion: Flirty] [Action: Wave] [Effect: Hearts] Mm... hello there darling. I missed you.
+`;
 
 // Chat memory per session
 const chatHistory: { role: string; text: string }[] = [];
 
-// Define the exact JSON schema required for responses
-const responseSchema = {
-	type: Type.OBJECT,
-	properties: {
-		reply: {
-			type: Type.STRING,
-			description: 'The spoken dialogue text, written with sensual pacing, fillers, and flirty charm.'
-		},
-		emotion: {
-			type: Type.STRING,
-			description: 'Current facial emotion state.',
-			enum: ['Happy', 'Sad', 'Blessed', 'Romantic', 'Flirty', 'Sarcastic', 'Enthusiastic', 'Whisper', 'Neutral']
-		},
-		action: {
-			type: Type.STRING,
-			description: 'Physical action. Use None for normal talking (gestures are automatic). Only use others when user explicitly asks.',
-			enum: ['FlyingKiss', 'Dance', 'TurnAround', 'RomanticPose', 'Bow', 'Wave', 'Sit', 'LeanForward', 'Laugh', 'Cry', 'StandCasual', 'ThinkingPose', 'Shrug', 'None']
-		},
-		effect: {
-			type: Type.STRING,
-			description: 'Atmospheric visual overlay to trigger on screen.',
-			enum: ['Hearts', 'Petals', 'None']
-		}
-	},
-	required: ['reply', 'emotion', 'action', 'effect']
-};
-
 export async function POST({ request }) {
-	try {
-		const { message, action } = await request.json();
+	const { message, isMuted } = await request.json();
 
-		if (action === 'tts') {
-			return await handleTTS(message);
-		}
-
-		if (!message) {
-			return json({ error: 'Message is required' }, { status: 400 });
-		}
-
-		const apiKey = env.GOOGLE_AI_API_KEY;
-		if (!apiKey) {
-			return json(
-				{
-					reply: "Mm... my AI connection isn't configured yet, darling. Please check your Google AI API key.",
-					emotion: 'Sad',
-					action: 'None',
-					effect: 'None'
-				},
-				{ status: 200 }
-			);
-		}
-
-		chatHistory.push({ role: 'user', text: message });
-		if (chatHistory.length > 20) {
-			chatHistory.splice(0, chatHistory.length - 20);
-		}
-
-		const ai = new GoogleGenAI({ apiKey });
-
-		const conversationContext = chatHistory
-			.map((m) => `${m.role === 'user' ? 'User' : 'Ani'}: ${m.text}`)
-			.join('\n');
-
-		const prompt = `${SYSTEM_PROMPT}\n\nConversation so far:\n${conversationContext}\n\nRespond as Ani:`;
-
-		// Request structured JSON matching our schema
-		const response = await ai.models.generateContent({
-			model: 'gemini-2.5-flash',
-			contents: [{ parts: [{ text: prompt }] }],
-			config: {
-				responseMimeType: 'application/json',
-				responseSchema: responseSchema
-			}
-		});
-
-		const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text;
-		let parsedResponse = {
-			reply: "Mm... I'm slightly lost in thought right now, gorgeous. Could you say that again?",
-			emotion: 'Romantic',
-			action: 'None',
-			effect: 'None'
-		};
-
-		if (rawText) {
-			try {
-				parsedResponse = JSON.parse(rawText);
-				// Push clean spoken reply text to memory so context stays clean
-				chatHistory.push({ role: 'assistant', text: parsedResponse.reply });
-				return json(parsedResponse);
-			} catch (e) {
-				console.error('Failed to parse Gemini JSON output:', e);
-				// Fallback string push
-				chatHistory.push({ role: 'assistant', text: rawText });
-				return json({
-					reply: rawText,
-					emotion: 'Neutral',
-					action: 'None',
-					effect: 'None'
-				});
-			}
-		}
-
-		chatHistory.push({ role: 'assistant', text: parsedResponse.reply });
-		return json(parsedResponse);
-	} catch (error) {
-		console.error('Companion API error:', error);
-		return json(
-			{
-				reply: "Ah... something went wrong on my end, sweetheart. Give me just a second.",
-				emotion: 'Sad',
-				action: 'None',
-				effect: 'None',
-				error: 'Internal error'
-			},
-			{ status: 500 }
-		);
+	if (!message) {
+		return new Response('Message required', { status: 400 });
 	}
+
+	const apiKey = env.GOOGLE_AI_API_KEY;
+	if (!apiKey) {
+		return new Response('API Key not configured', { status: 500 });
+	}
+
+	chatHistory.push({ role: 'user', text: message });
+	if (chatHistory.length > 20) {
+		chatHistory.splice(0, chatHistory.length - 20);
+	}
+
+	const conversationContext = chatHistory
+		.map((m) => `${m.role === 'user' ? 'User' : 'Ani'}: ${m.text}`)
+		.join('\n');
+
+	const prompt = `${SYSTEM_PROMPT}\n\nConversation so far:\n${conversationContext}\n\nRespond as Ani:`;
+
+	const ai = new GoogleGenAI({ apiKey });
+
+	const stream = new ReadableStream({
+		async start(controller) {
+			const sendEvent = (data: any) => {
+				controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
+			};
+
+			try {
+				const responseStream = await ai.models.generateContentStream({
+					model: 'gemini-2.5-flash',
+					contents: [{ parts: [{ text: prompt }] }]
+				});
+
+				let fullReply = '';
+				let buffer = '';
+				let tagsParsed = false;
+				let audioQueue = Promise.resolve();
+
+				// Regex to match our exact expected tags at the start of the string
+				const tagRegex = /\[Emotion:\s*([^\]]+)\]\s*\[Action:\s*([^\]]+)\]\s*\[Effect:\s*([^\]]+)\]\s*/i;
+
+				for await (const chunk of responseStream) {
+					const textChunk = chunk.text;
+					if (!textChunk) continue;
+
+					buffer += textChunk;
+
+					if (!tagsParsed) {
+						if (buffer.split(']').length >= 4 || !buffer.trimStart().startsWith('[')) {
+							tagsParsed = true;
+
+							const emotionMatch = buffer.match(/\[Emotion:\s*([^\]]+)\]/i);
+							const actionMatch = buffer.match(/\[Action:\s*([^\]]+)\]/i);
+							const effectMatch = buffer.match(/\[Effect:\s*([^\]]+)\]/i);
+
+							sendEvent({
+								type: 'metadata',
+								emotion: emotionMatch ? emotionMatch[1].trim() : 'Neutral',
+								action: actionMatch ? actionMatch[1].trim() : 'None',
+								effect: effectMatch ? effectMatch[1].trim() : 'None'
+							});
+
+							// Strip all tags
+							buffer = buffer.replace(/\[.*?\]/g, '').trimStart();
+							fullReply += buffer;
+						}
+					} else {
+						buffer += textChunk;
+						fullReply += textChunk;
+					}
+
+						// Check for complete sentences in buffer to generate audio
+						let match = buffer.match(/([^.?!]+[.?!]+[\s]*)/);
+						while (match) {
+							const sentence = match[1];
+							buffer = buffer.substring(sentence.length);
+							
+							const currentSentence = sentence.trim();
+							if (currentSentence.length > 0) {
+								if (isMuted) {
+									sendEvent({ type: 'text_chunk', text: currentSentence + ' ' });
+								} else {
+									audioQueue = audioQueue.then(async () => {
+										const audio = await handleTTS(ai, currentSentence);
+										if (audio) {
+											sendEvent({ type: 'audio_chunk', audio, text: currentSentence + ' ' });
+										} else {
+											sendEvent({ type: 'text_chunk', text: currentSentence + ' ' });
+										}
+									});
+								}
+							}
+							match = buffer.match(/([^.?!]+[.?!]+[\s]*)/);
+						}
+				}
+
+				// Flush remaining buffer
+				if (buffer.trim().length > 0) {
+					const finalSentence = buffer.trim();
+					if (isMuted) {
+						sendEvent({ type: 'text_chunk', text: finalSentence });
+					} else {
+						audioQueue = audioQueue.then(async () => {
+							const audio = await handleTTS(ai, finalSentence);
+							if (audio) {
+								sendEvent({ type: 'audio_chunk', audio, text: finalSentence });
+							} else {
+								sendEvent({ type: 'text_chunk', text: finalSentence });
+							}
+						});
+					}
+				}
+
+				// Wait for all audio generation to finish before closing stream
+				await audioQueue;
+				
+				chatHistory.push({ role: 'assistant', text: fullReply.trim() });
+				
+			} catch (error) {
+				console.error('Streaming error:', error);
+				sendEvent({ type: 'error', message: 'Failed to generate response' });
+			} finally {
+				controller.close();
+			}
+		}
+	});
+
+	return new Response(stream, {
+		headers: {
+			'Content-Type': 'text/event-stream',
+			'Cache-Control': 'no-cache',
+			'Connection': 'keep-alive'
+		}
+	});
 }
 
-async function handleTTS(text: string) {
+async function handleTTS(ai: GoogleGenAI, text: string): Promise<string | null> {
 	try {
-		const apiKey = env.GOOGLE_AI_API_KEY;
-		if (!apiKey) {
-			return json({ error: 'No API key configured' }, { status: 500 });
-		}
-
-		const ai = new GoogleGenAI({ apiKey });
-
 		const response = await ai.models.generateContent({
 			model: 'gemini-2.5-flash-preview-tts',
 			contents: [{ parts: [{ text: text }] }],
@@ -157,22 +172,16 @@ async function handleTTS(text: string) {
 				speechConfig: {
 					voiceConfig: {
 						prebuiltVoiceConfig: {
-							voiceName: 'Kore' // Female voice for Ani
+							voiceName: 'Kore'
 						}
 					}
 				}
 			}
 		});
 
-		const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-
-		if (!audioData) {
-			return json({ error: 'No audio generated' }, { status: 500 });
-		}
-
-		return json({ audio: audioData });
+		return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
 	} catch (error) {
 		console.error('TTS error:', error);
-		return json({ error: 'TTS generation failed' }, { status: 500 });
+		return null;
 	}
 }
