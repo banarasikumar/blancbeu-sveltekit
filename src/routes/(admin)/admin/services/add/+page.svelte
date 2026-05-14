@@ -340,7 +340,9 @@
 	<button class="admin-btn-secondary" onclick={() => goto('/admin/services')}>Cancel</button>
 	<button class="admin-btn-primary" onclick={saveService} disabled={uploading || loading}>
 		{#if uploading}
-			<div style="width: 24px; height: 24px; margin-right: 8px; display: flex; align-items: center; justify-content: center;">
+			<div
+				style="width: 24px; height: 24px; margin-right: 8px; display: flex; align-items: center; justify-content: center;"
+			>
 				<Loader size={36} fullPage={false} message="" height="24px" />
 			</div>
 			Saving...

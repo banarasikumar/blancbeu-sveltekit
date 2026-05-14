@@ -44,15 +44,17 @@
 
 	onMount(() => {
 		window.addEventListener('scroll', handleScroll, { passive: true });
-		
+
 		// Register Tools shortcut in header
-		headerActions.set([{
-			label: 'Tools',
-			icon: Wrench,
-			handler: () => {
-				goto('/admin/tools');
+		headerActions.set([
+			{
+				label: 'Tools',
+				icon: Wrench,
+				handler: () => {
+					goto('/admin/tools');
+				}
 			}
-		}]);
+		]);
 
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
@@ -203,7 +205,11 @@
 
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="admin-user-card" style="cursor: pointer;" onclick={() => goto(`/admin/users/${user.id}`)}>
+		<div
+			class="admin-user-card"
+			style="cursor: pointer;"
+			onclick={() => goto(`/admin/users/${user.id}`)}
+		>
 			{#if photo}
 				<img src={photo} alt={name} class="admin-avatar-img" />
 			{:else}
@@ -244,7 +250,14 @@
 				</div>
 			</div>
 
-			<button class="admin-options-btn" onclick={(e) => { e.stopPropagation(); openUserOptions(user); }} aria-label="Options">
+			<button
+				class="admin-options-btn"
+				onclick={(e) => {
+					e.stopPropagation();
+					openUserOptions(user);
+				}}
+				aria-label="Options"
+			>
 				<MoreVertical size={18} />
 			</button>
 		</div>

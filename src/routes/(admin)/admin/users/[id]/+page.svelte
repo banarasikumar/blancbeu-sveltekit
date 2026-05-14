@@ -162,7 +162,16 @@
 		}
 	}
 
-	const avatarColors = ['#FF9F0A', '#30D158', '#D4AF37', '#BF5AF2', '#FF375F', '#AC8E68', '#5E5CE6', '#32ADE6'];
+	const avatarColors = [
+		'#FF9F0A',
+		'#30D158',
+		'#D4AF37',
+		'#BF5AF2',
+		'#FF375F',
+		'#AC8E68',
+		'#5E5CE6',
+		'#32ADE6'
+	];
 
 	function getAvatarColor(n: string): string {
 		return avatarColors[(n || '?').charCodeAt(0) % avatarColors.length];
@@ -356,7 +365,10 @@
 	<!-- ═══════════ Booking History ═══════════ -->
 	<div class="admin-ud-section-header">
 		<div class="admin-ud-section-title">
-			<div class="admin-title-icon" style="background: var(--admin-accent-light); color: var(--admin-accent);">
+			<div
+				class="admin-title-icon"
+				style="background: var(--admin-accent-light); color: var(--admin-accent);"
+			>
 				<History size={16} />
 			</div>
 			Booking History
@@ -413,7 +425,9 @@
 				{/if}
 
 				{#if booking.notes}
-					<div style="margin-top: 6px; font-size: 12px; color: var(--admin-text-secondary); font-style: italic;">
+					<div
+						style="margin-top: 6px; font-size: 12px; color: var(--admin-text-secondary); font-style: italic;"
+					>
 						"{booking.notes}"
 					</div>
 				{/if}

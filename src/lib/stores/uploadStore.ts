@@ -49,9 +49,7 @@ function createUploadStore() {
 				'state_changed',
 				(snapshot) => {
 					const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-					update((items) =>
-						items.map((item) => (item.id === id ? { ...item, progress } : item))
-					);
+					update((items) => items.map((item) => (item.id === id ? { ...item, progress } : item)));
 				},
 				(error: any) => {
 					const code = error?.code || '';
@@ -62,7 +60,10 @@ function createUploadStore() {
 						userMessage = 'Upload was cancelled.';
 					} else if (code === 'storage/unknown') {
 						userMessage = 'Upload failed. Firebase Storage may not be enabled for this project.';
-					} else if (code.includes('storage/bucket-not-found') || code.includes('storage/invalid-url')) {
+					} else if (
+						code.includes('storage/bucket-not-found') ||
+						code.includes('storage/invalid-url')
+					) {
 						userMessage = 'Storage bucket not found. Firebase Storage needs to be set up.';
 					}
 					console.error(`[UploadStore] Upload failed (${code}):`, error);
@@ -85,9 +86,7 @@ function createUploadStore() {
 
 						update((items) =>
 							items.map((item) =>
-								item.id === id
-									? { ...item, status: 'completed', progress: 100, downloadUrl }
-									: item
+								item.id === id ? { ...item, status: 'completed', progress: 100, downloadUrl } : item
 							)
 						);
 

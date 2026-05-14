@@ -7,6 +7,7 @@
 	import NotificationPrompt from '$lib/components/NotificationPrompt.svelte';
 	import SplashScreen from '$lib/components/layout/SplashScreen.svelte';
 	import WelcomeModal from '$lib/components/WelcomeModal.svelte';
+	import AssistantOrb from '$lib/components/AssistantOrb.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { onNavigate, afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { initAuth, user } from '$lib/stores/auth';
@@ -221,12 +222,17 @@
 		<main class="app-content" class:immersive={isHomePage}>
 			{@render children()}
 		</main>
-		<MobileNav />
+		{#if !page.url.pathname.startsWith('/assistant')}
+			<MobileNav />
+		{/if}
 		<InstallPrompt />
 		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
 		{#if showWelcomeModal && welcomeUser}
 			<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
+		{/if}
+		{#if !page.url.pathname.startsWith('/assistant')}
+			<AssistantOrb />
 		{/if}
 	</div>
 {:else if isDesktop}
@@ -237,12 +243,17 @@
 				<main class="app-content" class:immersive={isHomePage}>
 					{@render children()}
 				</main>
-				<MobileNav />
+				{#if !page.url.pathname.startsWith('/assistant')}
+					<MobileNav />
+				{/if}
 				<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
 				<NotificationPrompt bind:this={notificationPromptRef} />
 				<Toast />
 				{#if showWelcomeModal && welcomeUser}
 					<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
+				{/if}
+				{#if !page.url.pathname.startsWith('/assistant')}
+					<AssistantOrb />
 				{/if}
 			</div>
 		</SimulatorComponent>
@@ -253,12 +264,17 @@
 		<main class="app-content" class:immersive={isHomePage}>
 			{@render children()}
 		</main>
-		<MobileNav />
+		{#if !page.url.pathname.startsWith('/assistant')}
+			<MobileNav />
+		{/if}
 		<InstallPrompt />
 		<NotificationPrompt bind:this={notificationPromptRef} />
 		<Toast />
 		{#if showWelcomeModal && welcomeUser}
 			<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
+		{/if}
+		{#if !page.url.pathname.startsWith('/assistant')}
+			<AssistantOrb />
 		{/if}
 	</div>
 {/if}

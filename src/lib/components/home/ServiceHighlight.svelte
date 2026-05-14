@@ -39,7 +39,12 @@
 		/>
 		<div class="category-badge">{service.category}</div>
 		{#if service.category === 'Hair'}
-			<button class="tryon-pill" on:click|stopPropagation={() => goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`)} title="Virtual Try-On">
+			<button
+				class="tryon-pill"
+				on:click|stopPropagation={() =>
+					goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`)}
+				title="Virtual Try-On"
+			>
 				<span>Try On</span>
 				<div class="icon-circle"><Wand2 size={10} strokeWidth={3} /></div>
 			</button>
@@ -109,7 +114,12 @@
 		top: 8px;
 		right: 8px;
 		border: none;
-		background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.1) 20%, rgba(0, 0, 0, 0.35) 100%);
+		background: linear-gradient(
+			90deg,
+			transparent 0%,
+			rgba(0, 0, 0, 0.1) 20%,
+			rgba(0, 0, 0, 0.35) 100%
+		);
 		backdrop-filter: blur(20px);
 		-webkit-backdrop-filter: blur(20px);
 		display: flex;
@@ -121,7 +131,9 @@
 		cursor: pointer;
 		z-index: 2;
 		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 0, 0, 0.1);
+		box-shadow:
+			0 4px 25px rgba(0, 0, 0, 0.4),
+			0 0 15px rgba(0, 0, 0, 0.1);
 	}
 
 	.tryon-pill span {
@@ -143,7 +155,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 2px 10px rgba(170, 0, 255, 0.5), 0 0 15px rgba(224, 64, 251, 0.2);
+		box-shadow:
+			0 2px 10px rgba(170, 0, 255, 0.5),
+			0 0 15px rgba(224, 64, 251, 0.2);
 		flex-shrink: 0;
 		margin-right: -1px;
 	}
@@ -158,8 +172,15 @@
 	}
 
 	@keyframes iconPulse {
-		0%, 100% { transform: scale(1); box-shadow: 0 2px 6px rgba(170, 0, 255, 0.4); }
-		50% { transform: scale(1.1); box-shadow: 0 2px 10px rgba(170, 0, 255, 0.6); }
+		0%,
+		100% {
+			transform: scale(1);
+			box-shadow: 0 2px 6px rgba(170, 0, 255, 0.4);
+		}
+		50% {
+			transform: scale(1.1);
+			box-shadow: 0 2px 10px rgba(170, 0, 255, 0.6);
+		}
 	}
 
 	.content {

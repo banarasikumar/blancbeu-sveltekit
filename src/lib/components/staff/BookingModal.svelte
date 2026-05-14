@@ -67,18 +67,18 @@
 	let serviceSearchResults = $derived.by(() => {
 		if (!serviceSearchQuery.trim()) return [];
 		const query = serviceSearchQuery.toLowerCase().replace(/\s+/g, '');
-		
+
 		const allServices = [...$staffServices, ...$customServices];
 		// Deduplicate based on name (case insensitive)
 		const uniqueServices = new Map();
-		allServices.forEach(s => {
+		allServices.forEach((s) => {
 			const lowerName = s.name.toLowerCase();
 			if (!uniqueServices.has(lowerName)) {
 				uniqueServices.set(lowerName, s);
 			}
 		});
 
-		return Array.from(uniqueServices.values()).filter(s => {
+		return Array.from(uniqueServices.values()).filter((s) => {
 			const nameMatch = s.name.toLowerCase().replace(/\s+/g, '').includes(query);
 			const catMatch = (s.category || '').toLowerCase().replace(/\s+/g, '').includes(query);
 			return nameMatch || catMatch;
@@ -615,7 +615,7 @@
 				</div>
 			</div>
 
-			<div class="modal-body" style="{isSearchFocused ? 'padding-bottom: 50vh;' : ''}">
+			<div class="modal-body" style={isSearchFocused ? 'padding-bottom: 50vh;' : ''}>
 				{#if internalMode === 'view' && existingBooking}
 					<!-- VIEW MODE (Overview) -->
 					<div class="overview-container">
@@ -641,9 +641,24 @@
 									{#if existingBooking.userPhone}
 										<div class="phone-wrapper">
 											<p>{existingBooking.userPhone}</p>
-											<a href="tel:{existingBooking.userPhone}" class="call-action-btn" aria-label="Call Client">
-												<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-													<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+											<a
+												href="tel:{existingBooking.userPhone}"
+												class="call-action-btn"
+												aria-label="Call Client"
+											>
+												<svg
+													width="14"
+													height="14"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path
+														d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+													></path>
 												</svg>
 												Call
 											</a>
@@ -871,7 +886,10 @@
 												}}
 											/>
 										</div>
-										<div class="s-price-edit input-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+										<div
+											class="s-price-edit input-container"
+											style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"
+										>
 											<div style="display: flex; align-items: center;">
 												<span class="currency-symbol">₹</span>
 												<input
@@ -883,7 +901,10 @@
 												/>
 											</div>
 											{#if item.mrp && item.mrp > (Number(item.price) || 0)}
-												<span style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through; margin-right: 8px;">₹{item.mrp}</span>
+												<span
+													style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through; margin-right: 8px;"
+													>₹{item.mrp}</span
+												>
 											{/if}
 										</div>
 									</div>
@@ -910,15 +931,21 @@
 							{/each}
 						</div>
 
-						<div class="smart-service-input-container" style="position: relative; margin-top: 24px;">
-							<div class="input-lg" style="display: flex; align-items: center; padding: 0; overflow: visible; background: var(--s-bg-secondary); border: 1px solid var(--s-border); border-radius: var(--s-radius-lg);">
+						<div
+							class="smart-service-input-container"
+							style="position: relative; margin-top: 24px;"
+						>
+							<div
+								class="input-lg"
+								style="display: flex; align-items: center; padding: 0; overflow: visible; background: var(--s-bg-secondary); border: 1px solid var(--s-border); border-radius: var(--s-radius-lg);"
+							>
 								<input
 									type="text"
 									bind:value={serviceSearchQuery}
-									oninput={() => showServiceSearchDropdown = serviceSearchQuery.length > 0}
-									onfocus={(e) => { 
+									oninput={() => (showServiceSearchDropdown = serviceSearchQuery.length > 0)}
+									onfocus={(e) => {
 										isSearchFocused = true;
-										if (serviceSearchQuery.length > 0) showServiceSearchDropdown = true; 
+										if (serviceSearchQuery.length > 0) showServiceSearchDropdown = true;
 										setTimeout(() => {
 											// Scroll into view so dropdown is visible
 											const container = e.target.closest('.smart-service-input-container');
@@ -955,24 +982,52 @@
 									type="button"
 									class="icon-btn"
 									style="padding: 10px; margin-right: 4px; color: var(--s-text-secondary); cursor: pointer; background: none; border: none;"
-									onclick={(e) => { e.preventDefault(); isCatalogOpen = true; }}
+									onclick={(e) => {
+										e.preventDefault();
+										isCatalogOpen = true;
+									}}
 									aria-label="Browse Catalog"
 									title="Browse Catalog"
 								>
-									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-										<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+									<svg
+										width="20"
+										height="20"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									>
+										<rect x="3" y="3" width="7" height="7"></rect><rect
+											x="14"
+											y="3"
+											width="7"
+											height="7"
+										></rect><rect x="14" y="14" width="7" height="7"></rect><rect
+											x="3"
+											y="14"
+											width="7"
+											height="7"
+										></rect>
 									</svg>
 								</button>
 							</div>
 
 							{#if showServiceSearchDropdown && serviceSearchQuery.trim()}
-								<ul class="autocomplete-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px;">
+								<ul
+									class="autocomplete-dropdown"
+									style="position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px;"
+								>
 									{#each serviceSearchResults as service}
-										<li class="autocomplete-item" onmousedown={() => {
-											selectServiceFromCatalog(service);
-											serviceSearchQuery = '';
-											showServiceSearchDropdown = false;
-										}}>
+										<li
+											class="autocomplete-item"
+											onmousedown={() => {
+												selectServiceFromCatalog(service);
+												serviceSearchQuery = '';
+												showServiceSearchDropdown = false;
+											}}
+										>
 											<div class="svc-search-row">
 												<div class="svc-search-name">
 													<span class="ac-name">{service.name}</span>
@@ -980,7 +1035,9 @@
 												</div>
 												<div class="svc-search-prices">
 													{#if (service.originalPrice || service.mrp) && (service.originalPrice || service.mrp) > service.price}
-														<span class="svc-search-mrp">₹{service.originalPrice || service.mrp}</span>
+														<span class="svc-search-mrp"
+															>₹{service.originalPrice || service.mrp}</span
+														>
 													{/if}
 													<span class="svc-search-price">₹{service.price}</span>
 												</div>
@@ -990,7 +1047,9 @@
 									{#if serviceSearchResults.length === 0}
 										<li class="autocomplete-item" onmousedown={() => openCustomServiceModal()}>
 											<div class="ac-info" style="color: var(--s-text-primary);">
-												<span class="ac-name" style="color: #10b981;">+ Add "{serviceSearchQuery}" as Custom Service</span>
+												<span class="ac-name" style="color: #10b981;"
+													>+ Add "{serviceSearchQuery}" as Custom Service</span
+												>
 											</div>
 										</li>
 									{/if}
@@ -999,29 +1058,82 @@
 						</div>
 
 						{#if showCustomServiceModal}
-							<div class="custom-service-modal-overlay" style="margin-top: 16px; padding: 16px; border: 1px solid var(--s-border); border-radius: var(--s-radius-lg); background: var(--s-bg-secondary);">
-								<h4 style="margin: 0 0 16px 0; font-size: 1rem; color: var(--s-text-primary);">Add Custom Service</h4>
+							<div
+								class="custom-service-modal-overlay"
+								style="margin-top: 16px; padding: 16px; border: 1px solid var(--s-border); border-radius: var(--s-radius-lg); background: var(--s-bg-secondary);"
+							>
+								<h4 style="margin: 0 0 16px 0; font-size: 1rem; color: var(--s-text-primary);">
+									Add Custom Service
+								</h4>
 								<div class="form-group" style="margin-bottom: 12px;">
-									<label for="cs-category" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">Category</label>
-									<input id="cs-category" type="text" class="input-lg" bind:value={newCustomService.category} placeholder="e.g. Haircut" />
+									<label
+										for="cs-category"
+										style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);"
+										>Category</label
+									>
+									<input
+										id="cs-category"
+										type="text"
+										class="input-lg"
+										bind:value={newCustomService.category}
+										placeholder="e.g. Haircut"
+									/>
 								</div>
 								<div class="form-group" style="margin-bottom: 12px;">
-									<label for="cs-name" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">Service Name *</label>
-									<input id="cs-name" type="text" class="input-lg" bind:value={newCustomService.name} placeholder="e.g. Special Trim" />
+									<label
+										for="cs-name"
+										style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);"
+										>Service Name *</label
+									>
+									<input
+										id="cs-name"
+										type="text"
+										class="input-lg"
+										bind:value={newCustomService.name}
+										placeholder="e.g. Special Trim"
+									/>
 								</div>
 								<div class="row" style="display: flex; gap: 12px; margin-bottom: 16px;">
 									<div class="form-group" style="flex: 1; margin-bottom: 0;">
-										<label for="cs-mrp" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">MRP (₹)</label>
-										<input id="cs-mrp" type="number" class="input-lg" bind:value={newCustomService.mrp} placeholder="Optional" />
+										<label
+											for="cs-mrp"
+											style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);"
+											>MRP (₹)</label
+										>
+										<input
+											id="cs-mrp"
+											type="number"
+											class="input-lg"
+											bind:value={newCustomService.mrp}
+											placeholder="Optional"
+										/>
 									</div>
 									<div class="form-group" style="flex: 1; margin-bottom: 0;">
-										<label for="cs-price" style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);">Price (₹) *</label>
-										<input id="cs-price" type="number" class="input-lg" bind:value={newCustomService.price} placeholder="Final Price" />
+										<label
+											for="cs-price"
+											style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);"
+											>Price (₹) *</label
+										>
+										<input
+											id="cs-price"
+											type="number"
+											class="input-lg"
+											bind:value={newCustomService.price}
+											placeholder="Final Price"
+										/>
 									</div>
 								</div>
-								<div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
-									<button class="s-btn s-btn-outline" onclick={() => showCustomServiceModal = false}>Cancel</button>
-									<button class="s-btn s-btn-primary" onclick={saveNewCustomService}>Add & Save</button>
+								<div
+									class="modal-actions"
+									style="display: flex; gap: 12px; justify-content: flex-end;"
+								>
+									<button
+										class="s-btn s-btn-outline"
+										onclick={() => (showCustomServiceModal = false)}>Cancel</button
+									>
+									<button class="s-btn s-btn-primary" onclick={saveNewCustomService}
+										>Add & Save</button
+									>
 								</div>
 							</div>
 						{/if}
@@ -1296,10 +1408,15 @@
 													}}
 												>
 													<div class="svc-name">{service.name}</div>
-													<div style="display: flex; flex-direction: column; align-items: flex-end;">
+													<div
+														style="display: flex; flex-direction: column; align-items: flex-end;"
+													>
 														<span class="svc-price">₹{service.price}</span>
 														{#if (service.originalPrice || service.mrp) && (service.originalPrice || service.mrp) > service.price}
-															<span style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through;">₹{service.originalPrice || service.mrp}</span>
+															<span
+																style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through;"
+																>₹{service.originalPrice || service.mrp}</span
+															>
 														{/if}
 													</div>
 												</button>
@@ -1326,7 +1443,10 @@
 											<div style="display: flex; flex-direction: column; align-items: flex-end;">
 												<span class="svc-price">₹{service.price}</span>
 												{#if (service.originalPrice || service.mrp) && (service.originalPrice || service.mrp) > service.price}
-													<span style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through;">₹{service.originalPrice || service.mrp}</span>
+													<span
+														style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through;"
+														>₹{service.originalPrice || service.mrp}</span
+													>
 												{/if}
 											</div>
 										</button>

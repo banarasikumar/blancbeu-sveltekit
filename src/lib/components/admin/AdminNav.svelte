@@ -23,16 +23,16 @@
 
 {#if $isBottomNavVisible}
 	<nav class="admin-bottom-nav">
-	{#each navItems as item}
-		<button
-			class="admin-nav-item"
-			class:active={isActive(item)}
-			onclick={() => navigate(item.path)}
-			aria-label={item.label}
-		>
-			<item.icon size={22} strokeWidth={isActive(item) ? 2.5 : 1.8} />
-			<span>{item.label}</span>
-		</button>
-	{/each}
+		{#each navItems as item}
+			<button
+				class="admin-nav-item"
+				class:active={isActive(item)}
+				onclick={() => navigate(item.path)}
+				aria-label={item.label}
+			>
+				<item.icon size={22} strokeWidth={isActive(item) ? 2.5 : 1.8} />
+				<span>{item.label}</span>
+			</button>
+		{/each}
 	</nav>
 {/if}

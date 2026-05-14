@@ -39,7 +39,20 @@
 
 	// ─── Helpers ────────────────────────────────────────────────────
 	const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-	const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	const MONTH_NAMES = [
+		'Jan',
+		'Feb',
+		'Mar',
+		'Apr',
+		'May',
+		'Jun',
+		'Jul',
+		'Aug',
+		'Sep',
+		'Oct',
+		'Nov',
+		'Dec'
+	];
 
 	function getGreeting(): string {
 		const h = new Date().getHours();
@@ -233,11 +246,31 @@
 
 	// ─── Quick Actions ──────────────────────────────────────────────
 	let actions = $state([
-		{ label: 'Invoice', icon: FileText, bg: 'var(--admin-purple)', handler: () => goto('/admin/invoice') },
-		{ label: 'Service', icon: Plus, bg: 'var(--admin-accent)', handler: () => goto('/admin/services') },
+		{
+			label: 'Invoice',
+			icon: FileText,
+			bg: 'var(--admin-purple)',
+			handler: () => goto('/admin/invoice')
+		},
+		{
+			label: 'Service',
+			icon: Plus,
+			bg: 'var(--admin-accent)',
+			handler: () => goto('/admin/services')
+		},
 		{ label: 'Roles', icon: Shield, bg: 'var(--admin-green)', handler: () => goto('/admin/staff') },
-		{ label: 'Tools', icon: Wrench, bg: 'var(--admin-indigo)', handler: () => goto('/admin/tools') },
-		{ label: 'Reports', icon: BarChart3, bg: 'var(--admin-pink)', handler: () => goto('/admin/reports') }
+		{
+			label: 'Tools',
+			icon: Wrench,
+			bg: 'var(--admin-indigo)',
+			handler: () => goto('/admin/tools')
+		},
+		{
+			label: 'Reports',
+			icon: BarChart3,
+			bg: 'var(--admin-pink)',
+			handler: () => goto('/admin/reports')
+		}
 	]);
 
 	/* --- Drag & Drop Reordering --- */
@@ -257,7 +290,9 @@
 						if (idxB === -1) return -1;
 						return idxA - idxB;
 					});
-				} catch { /* ignore */ }
+				} catch {
+					/* ignore */
+				}
 			}
 		}
 	});
@@ -305,16 +340,21 @@
 		}
 	});
 
-	function toggleEdit() { isEditing = !isEditing; }
+	function toggleEdit() {
+		isEditing = !isEditing;
+	}
 
 	// SVG Donut helpers
 	function getDonutSegments(breakdown: typeof statusBreakdown) {
-		const total = breakdown.pending + breakdown.confirmed + breakdown.completed + breakdown.cancelled;
+		const total =
+			breakdown.pending + breakdown.confirmed + breakdown.completed + breakdown.cancelled;
 		if (total === 0) return [];
 		const segments: { key: string; pct: number; offset: number; color: string }[] = [];
 		const colorMap: Record<string, string> = {
-			pending: 'var(--admin-orange)', confirmed: 'var(--admin-green)',
-			completed: 'var(--admin-accent)', cancelled: 'var(--admin-red)'
+			pending: 'var(--admin-orange)',
+			confirmed: 'var(--admin-green)',
+			completed: 'var(--admin-accent)',
+			cancelled: 'var(--admin-red)'
 		};
 		let offset = 0;
 		for (const [key, count] of Object.entries(breakdown)) {
@@ -347,7 +387,10 @@
 <div class="dash-kpi-strip dash-animate dash-delay-2">
 	<button class="dash-kpi-card kpi-revenue" onclick={() => goto('/admin/bookings')}>
 		<div class="dash-kpi-top">
-			<div class="dash-kpi-icon" style="background: var(--admin-green-light); color: var(--admin-green);">
+			<div
+				class="dash-kpi-icon"
+				style="background: var(--admin-green-light); color: var(--admin-green);"
+			>
 				<IndianRupee size={18} />
 			</div>
 			{#if todayRevenue > 0}
@@ -362,7 +405,10 @@
 
 	<button class="dash-kpi-card kpi-bookings" onclick={() => goto('/admin/bookings')}>
 		<div class="dash-kpi-top">
-			<div class="dash-kpi-icon" style="background: var(--admin-accent-light); color: var(--admin-accent);">
+			<div
+				class="dash-kpi-icon"
+				style="background: var(--admin-accent-light); color: var(--admin-accent);"
+			>
 				<CalendarCheck size={18} />
 			</div>
 			<span class="dash-kpi-trend {bookingTrend}">
@@ -381,10 +427,19 @@
 
 	<button class="dash-kpi-card kpi-rate" onclick={() => goto('/admin/reports')}>
 		<div class="dash-kpi-top">
-			<div class="dash-kpi-icon" style="background: var(--admin-purple-light); color: var(--admin-purple);">
+			<div
+				class="dash-kpi-icon"
+				style="background: var(--admin-purple-light); color: var(--admin-purple);"
+			>
 				<Activity size={18} />
 			</div>
-			<span class="dash-kpi-trend {completionRate >= 50 ? 'up' : completionRate > 0 ? 'down' : 'neutral'}">
+			<span
+				class="dash-kpi-trend {completionRate >= 50
+					? 'up'
+					: completionRate > 0
+						? 'down'
+						: 'neutral'}"
+			>
 				{#if completionRate >= 50}<TrendingUp size={11} />
 				{:else if completionRate > 0}<TrendingDown size={11} />
 				{:else}<Minus size={11} />
@@ -397,7 +452,10 @@
 
 	<button class="dash-kpi-card kpi-users" onclick={() => goto('/admin/users')}>
 		<div class="dash-kpi-top">
-			<div class="dash-kpi-icon" style="background: rgba(94,92,230,0.15); color: var(--admin-indigo);">
+			<div
+				class="dash-kpi-icon"
+				style="background: rgba(94,92,230,0.15); color: var(--admin-indigo);"
+			>
 				<UserPlus size={18} />
 			</div>
 			{#if newUsersLast7Days > 0}
@@ -416,7 +474,10 @@
 	<div class="dash-upcoming-card dash-animate dash-delay-3">
 		<div class="dash-section-header">
 			<div class="dash-section-title">
-				<div class="dash-title-icon" style="background: var(--admin-orange-light); color: var(--admin-orange);">
+				<div
+					class="dash-title-icon"
+					style="background: var(--admin-orange-light); color: var(--admin-orange);"
+				>
 					<Clock size={15} />
 				</div>
 				Upcoming Today
@@ -440,7 +501,9 @@
 						<span class="dash-upcoming-service">{getServiceLabel(booking)}</span>
 					</div>
 					{#if getBookingAmount(booking) > 0}
-						<span class="dash-upcoming-amount">₹{getBookingAmount(booking).toLocaleString('en-IN')}</span>
+						<span class="dash-upcoming-amount"
+							>₹{getBookingAmount(booking).toLocaleString('en-IN')}</span
+						>
 					{/if}
 				</button>
 			{/each}
@@ -453,7 +516,10 @@
 	<div class="dash-section-header">
 		<div>
 			<div class="dash-section-title">
-				<div class="dash-title-icon" style="background: var(--admin-accent-light); color: var(--admin-accent);">
+				<div
+					class="dash-title-icon"
+					style="background: var(--admin-accent-light); color: var(--admin-accent);"
+				>
 					<BarChart3 size={15} />
 				</div>
 				Booking Trend
@@ -471,7 +537,9 @@
 					class="dash-bar"
 					class:bar-max={day.count === maxDailyCount && day.count > 0}
 					class:bar-zero={day.count === 0}
-					style="height: {day.count === 0 ? '4px' : `${Math.max((day.count / maxDailyCount) * 100, 8)}%`};"
+					style="height: {day.count === 0
+						? '4px'
+						: `${Math.max((day.count / maxDailyCount) * 100, 8)}%`};"
 				></div>
 				<span class="dash-bar-day">{day.isToday ? 'Today' : day.day}</span>
 			</div>
@@ -502,7 +570,10 @@
 <div class="dash-status-card dash-animate dash-delay-4">
 	<div class="dash-section-header" style="margin-bottom: 16px;">
 		<div class="dash-section-title">
-			<div class="dash-title-icon" style="background: var(--admin-purple-light); color: var(--admin-purple);">
+			<div
+				class="dash-title-icon"
+				style="background: var(--admin-purple-light); color: var(--admin-purple);"
+			>
 				<PieChart size={15} />
 			</div>
 			Booking Status
@@ -513,14 +584,26 @@
 	<div class="dash-status-grid">
 		<div class="dash-donut-wrap">
 			<svg viewBox="0 0 36 36" width="110" height="110">
-				<circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--admin-border)" stroke-width="3.2" />
+				<circle
+					cx="18"
+					cy="18"
+					r="15.915"
+					fill="none"
+					stroke="var(--admin-border)"
+					stroke-width="3.2"
+				/>
 				{#each donutSegments as seg}
 					<circle
-						cx="18" cy="18" r="15.915" fill="none"
-						stroke={seg.color} stroke-width="3.2"
+						cx="18"
+						cy="18"
+						r="15.915"
+						fill="none"
+						stroke={seg.color}
+						stroke-width="3.2"
 						stroke-dasharray="{Math.max(seg.pct - 0.8, 0)} {100 - Math.max(seg.pct - 0.8, 0)}"
-						stroke-dashoffset="{-(seg.offset + 0.4)}"
-						stroke-linecap="round" transform="rotate(-90 18 18)"
+						stroke-dashoffset={-(seg.offset + 0.4)}
+						stroke-linecap="round"
+						transform="rotate(-90 18 18)"
 						style="transition: stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease;"
 					/>
 				{/each}
@@ -532,12 +615,7 @@
 		</div>
 
 		<div class="dash-legend">
-			{#each [
-				{ key: 'pending', label: 'Pending', count: statusBreakdown.pending },
-				{ key: 'confirmed', label: 'Confirmed', count: statusBreakdown.confirmed },
-				{ key: 'completed', label: 'Completed', count: statusBreakdown.completed },
-				{ key: 'cancelled', label: 'Cancelled', count: statusBreakdown.cancelled }
-			] as item}
+			{#each [{ key: 'pending', label: 'Pending', count: statusBreakdown.pending }, { key: 'confirmed', label: 'Confirmed', count: statusBreakdown.confirmed }, { key: 'completed', label: 'Completed', count: statusBreakdown.completed }, { key: 'cancelled', label: 'Cancelled', count: statusBreakdown.cancelled }] as item}
 				<div class="dash-legend-item">
 					<span class="dash-legend-dot {item.key}"></span>
 					<span class="dash-legend-text">{item.label}</span>
@@ -552,7 +630,10 @@
 <div class="dash-animate dash-delay-5">
 	<div class="dash-section-header">
 		<div class="dash-section-title">
-			<div class="dash-title-icon" style="background: var(--admin-green-light); color: var(--admin-green);">
+			<div
+				class="dash-title-icon"
+				style="background: var(--admin-green-light); color: var(--admin-green);"
+			>
 				<Zap size={15} />
 			</div>
 			Recent Activity
@@ -581,7 +662,9 @@
 					</div>
 					<div class="dash-activity-meta">
 						{#if getBookingAmount(booking) > 0}
-							<div class="dash-activity-amount">₹{getBookingAmount(booking).toLocaleString('en-IN')}</div>
+							<div class="dash-activity-amount">
+								₹{getBookingAmount(booking).toLocaleString('en-IN')}
+							</div>
 						{:else}
 							<div class="dash-activity-time">{timeAgo(booking)}</div>
 						{/if}
@@ -599,7 +682,10 @@
 <div class="dash-animate dash-delay-6">
 	<div class="dash-section-header">
 		<div class="dash-section-title">
-			<div class="dash-title-icon" style="background: rgba(255,55,95,0.12); color: var(--admin-pink);">
+			<div
+				class="dash-title-icon"
+				style="background: rgba(255,55,95,0.12); color: var(--admin-pink);"
+			>
 				<Sparkles size={15} />
 			</div>
 			Quick Actions
@@ -621,7 +707,10 @@
 				style="touch-action: none;"
 				animate:flip={{ duration: 300 }}
 			>
-				<div class="dash-action-icon-wrap" style="background: {action.bg}; opacity: {isEditing ? 0.8 : 1};">
+				<div
+					class="dash-action-icon-wrap"
+					style="background: {action.bg}; opacity: {isEditing ? 0.8 : 1};"
+				>
 					<action.icon size={20} color="#fff" />
 				</div>
 				<span class="dash-action-label">{action.label}</span>

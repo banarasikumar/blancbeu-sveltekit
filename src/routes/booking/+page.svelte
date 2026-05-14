@@ -5,7 +5,16 @@
 	import { elasticOut, cubicOut, quintOut } from 'svelte/easing';
 	import { cart } from '$lib/stores/booking';
 	import { db, auth } from '$lib/firebase';
-	import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
+	import {
+		collection,
+		addDoc,
+		serverTimestamp,
+		doc,
+		getDoc,
+		query,
+		where,
+		onSnapshot
+	} from 'firebase/firestore';
 	import { requestUserNotificationPermission } from '$lib/stores/userNotifications';
 	import {
 		appSettings,
@@ -85,9 +94,24 @@
 	let showCouponsModal = false;
 
 	const availableCoupons = [
-		{ code: 'SAVE20', discountText: 'Flat ₹20 OFF', description: 'Save ₹20 on your booking', minBooking: 50 },
-		{ code: 'FLAT50', discountText: 'Flat ₹50 OFF', description: 'Save ₹50 on your booking', minBooking: 100 },
-		{ code: 'FIRST100', discountText: 'Flat ₹100 OFF', description: 'Exclusive discount', minBooking: 300 }
+		{
+			code: 'SAVE20',
+			discountText: 'Flat ₹20 OFF',
+			description: 'Save ₹20 on your booking',
+			minBooking: 50
+		},
+		{
+			code: 'FLAT50',
+			discountText: 'Flat ₹50 OFF',
+			description: 'Save ₹50 on your booking',
+			minBooking: 100
+		},
+		{
+			code: 'FIRST100',
+			discountText: 'Flat ₹100 OFF',
+			description: 'Exclusive discount',
+			minBooking: 300
+		}
 	];
 
 	// Beu Cash State
@@ -1212,7 +1236,9 @@
 									<input
 										type="checkbox"
 										bind:checked={useBeuCash}
-										on:change={() => { if(useBeuCash) removeCoupon(); }}
+										on:change={() => {
+											if (useBeuCash) removeCoupon();
+										}}
 										disabled={beuCashBalance === 0}
 									/>
 									<span class="slider round"></span>
@@ -1432,7 +1458,10 @@
 							Pay {fmt(finalTotal)} & Book
 						{/if}
 					</button>
-					<p class="text-center text-[10px] mt-2 opacity-50" style="color: var(--color-text-secondary);">
+					<p
+						class="text-center text-[10px] mt-2 opacity-50"
+						style="color: var(--color-text-secondary);"
+					>
 						Free Cancellations (T&C Apply)
 					</p>
 				</div>
@@ -1616,9 +1645,13 @@
 							{@const count = slotBookingsCount[t] || 0}
 							{@const isFull = count >= 3}
 							{@const isFilling = count === 2}
-							
+
 							<button
-								class="time-slot {selectedTime === t ? 'selected' : ''} {isFull ? 'full' : isFilling ? 'filling' : 'available'}"
+								class="time-slot {selectedTime === t ? 'selected' : ''} {isFull
+									? 'full'
+									: isFilling
+										? 'filling'
+										: 'available'}"
 								on:click={() => !isFull && handleTimeSelect(t)}
 								disabled={isFull}
 							>

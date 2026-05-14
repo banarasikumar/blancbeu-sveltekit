@@ -207,7 +207,7 @@
 		filtered.sort((a, b) => {
 			const sA = (a.status || 'pending').toLowerCase();
 			const sB = (b.status || 'pending').toLowerCase();
-			
+
 			const isUnfinishedA = ['pending', 'confirmed'].includes(sA);
 			const isUnfinishedB = ['pending', 'confirmed'].includes(sB);
 
@@ -228,8 +228,16 @@
 		return filtered;
 	});
 
-	let unfinishedBookings = $derived(filteredBookings.filter(b => ['pending', 'confirmed'].includes((b.status || 'pending').toLowerCase())));
-	let historyBookings = $derived(filteredBookings.filter(b => !['pending', 'confirmed'].includes((b.status || 'pending').toLowerCase())));
+	let unfinishedBookings = $derived(
+		filteredBookings.filter((b) =>
+			['pending', 'confirmed'].includes((b.status || 'pending').toLowerCase())
+		)
+	);
+	let historyBookings = $derived(
+		filteredBookings.filter(
+			(b) => !['pending', 'confirmed'].includes((b.status || 'pending').toLowerCase())
+		)
+	);
 
 	// Pagination
 	let totalPages = $derived(Math.ceil(historyBookings.length / itemsPerPage));
@@ -389,7 +397,6 @@
 	}
 </script>
 
-
 <!-- Manage Toolbar -->
 {#if isManageMode}
 	<div class="admin-manage-toolbar">
@@ -416,8 +423,6 @@
 		</button>
 	</div>
 {/if}
-
-
 
 <!-- Controls -->
 <div class="admin-search-bar">

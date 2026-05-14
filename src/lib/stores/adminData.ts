@@ -293,10 +293,7 @@ export async function updateBookingDetails(
 	});
 }
 
-export async function updateUserDetails(
-	userId: string,
-	details: Partial<AppUser>
-): Promise<void> {
+export async function updateUserDetails(userId: string, details: Partial<AppUser>): Promise<void> {
 	await updateDoc(doc(db, 'users', userId), {
 		...details,
 		updatedAt: new Date().toISOString()

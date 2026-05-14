@@ -1,13 +1,28 @@
-import { json } from "@sveltejs/kit";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { json } from '@sveltejs/kit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '$env/dynamic/private';
 
 // Keywords that identify a service as a "color" service
-const COLOR_KEYWORDS = ['color', 'colour', 'balayage', 'highlights', 'highlight', 'dye', 'blonde', 'brunette', 'red', 'ombre', 'sombre', 'tint', 'streak', 'global hair'];
+const COLOR_KEYWORDS = [
+	'color',
+	'colour',
+	'balayage',
+	'highlights',
+	'highlight',
+	'dye',
+	'blonde',
+	'brunette',
+	'red',
+	'ombre',
+	'sombre',
+	'tint',
+	'streak',
+	'global hair'
+];
 
 function isColorService(name: string): boolean {
 	const lower = name.toLowerCase();
-	return COLOR_KEYWORDS.some(kw => lower.includes(kw));
+	return COLOR_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 /**
@@ -21,9 +36,13 @@ function generatePrompt(services: { name: string; shade?: string }[]): string {
 	for (const svc of services) {
 		if (isColorService(svc.name)) {
 			const shadeText = svc.shade ? ` in a beautiful ${svc.shade} shade` : '';
-			edits.push(`apply a realistic ${svc.name}${shadeText} to the hair with natural-looking color distribution, subtle highlights, lowlights, and realistic hair texture and shine`);
+			edits.push(
+				`apply a realistic ${svc.name}${shadeText} to the hair with natural-looking color distribution, subtle highlights, lowlights, and realistic hair texture and shine`
+			);
 		} else {
-			edits.push(`transform the hairstyle into a high-quality ${svc.name} that blends perfectly and naturally with the face shape`);
+			edits.push(
+				`transform the hairstyle into a high-quality ${svc.name} that blends perfectly and naturally with the face shape`
+			);
 		}
 	}
 
@@ -55,7 +74,10 @@ export async function POST({ request }) {
 		}
 
 		if (!env.GOOGLE_AI_API_KEY) {
-			return json({ error: 'Google AI API key is missing from environment variables.' }, { status: 500 });
+			return json(
+				{ error: 'Google AI API key is missing from environment variables.' },
+				{ status: 500 }
+			);
 		}
 
 		const prompt = generatePrompt(services);
@@ -65,20 +87,20 @@ export async function POST({ request }) {
 		const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
 
 		const model = genAI.getGenerativeModel({
-			model: "gemini-3.1-flash-image-preview",
+			model: 'gemini-3.1-flash-image-preview',
 			generationConfig: {
 				// @ts-ignore
-				responseModalities: ["IMAGE"]
+				responseModalities: ['IMAGE']
 			}
 		});
 
 		// Clean the base64 string
-		const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+		const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
 		const imagePart = {
 			inlineData: {
 				data: base64Data,
-				mimeType: "image/jpeg"
+				mimeType: 'image/jpeg'
 			}
 		};
 
@@ -93,24 +115,28 @@ export async function POST({ request }) {
 			const mimeType = outputPart.inlineData.mimeType || 'image/jpeg';
 			outputUrl = `data:${mimeType};base64,${outputPart.inlineData.data}`;
 		} else if (outputPart?.text) {
-			console.error("[Try-On] Model returned text instead of an image:", outputPart.text);
-			throw new Error("Model failed to return an edited image. It returned text description instead.");
+			console.error('[Try-On] Model returned text instead of an image:', outputPart.text);
+			throw new Error(
+				'Model failed to return an edited image. It returned text description instead.'
+			);
 		}
 
 		if (!outputUrl) {
-			console.error("[Try-On] Could not parse output image from result:", JSON.stringify(response.candidates?.[0]));
-			throw new Error("API succeeded but returned no image data.");
+			console.error(
+				'[Try-On] Could not parse output image from result:',
+				JSON.stringify(response.candidates?.[0])
+			);
+			throw new Error('API succeeded but returned no image data.');
 		}
 
-		console.log("[Try-On] Successfully generated image from Google AI Studio!");
+		console.log('[Try-On] Successfully generated image from Google AI Studio!');
 
 		return json({
 			success: true,
 			resultImageBase64: outputUrl,
-			message: "Image generated successfully!",
+			message: 'Image generated successfully!',
 			promptUsed: prompt
 		});
-
 	} catch (error: any) {
 		console.error('[Try-On] Error:', error);
 		return json({ error: error.message || 'Internal server error' }, { status: 500 });

@@ -16,7 +16,7 @@
 			? "The page you're looking for doesn't exist or has been moved."
 			: is500
 				? "Our servers ran into a problem. We're working on it."
-				: error?.message || "An unexpected error occurred. Please try again."
+				: error?.message || 'An unexpected error occurred. Please try again.'
 	);
 
 	let displayIcon = $derived(is404 ? '🔍' : is500 ? '⚡' : '⚠️');
@@ -183,7 +183,9 @@
 		top: -60px;
 		right: -80px;
 		opacity: 0.08;
-		animation: orbFloat1 12s infinite alternate ease-in-out, orbFadeIn 1.5s ease forwards;
+		animation:
+			orbFloat1 12s infinite alternate ease-in-out,
+			orbFadeIn 1.5s ease forwards;
 	}
 
 	.orb-2 {
@@ -193,7 +195,9 @@
 		bottom: 10%;
 		left: -60px;
 		opacity: 0.06;
-		animation: orbFloat2 10s infinite alternate ease-in-out, orbFadeIn 1.5s 0.3s ease forwards;
+		animation:
+			orbFloat2 10s infinite alternate ease-in-out,
+			orbFadeIn 1.5s 0.3s ease forwards;
 	}
 
 	.orb-3 {
@@ -203,7 +207,9 @@
 		top: 40%;
 		left: 50%;
 		opacity: 0.04;
-		animation: orbFloat3 14s infinite alternate ease-in-out, orbFadeIn 1.5s 0.6s ease forwards;
+		animation:
+			orbFloat3 14s infinite alternate ease-in-out,
+			orbFadeIn 1.5s 0.6s ease forwards;
 	}
 
 	@keyframes orbFadeIn {

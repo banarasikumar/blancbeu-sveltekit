@@ -2567,12 +2567,24 @@
 	animation: dashFadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.dash-delay-1 { animation-delay: 0.05s; }
-.dash-delay-2 { animation-delay: 0.1s; }
-.dash-delay-3 { animation-delay: 0.15s; }
-.dash-delay-4 { animation-delay: 0.2s; }
-.dash-delay-5 { animation-delay: 0.25s; }
-.dash-delay-6 { animation-delay: 0.3s; }
+.dash-delay-1 {
+	animation-delay: 0.05s;
+}
+.dash-delay-2 {
+	animation-delay: 0.1s;
+}
+.dash-delay-3 {
+	animation-delay: 0.15s;
+}
+.dash-delay-4 {
+	animation-delay: 0.2s;
+}
+.dash-delay-5 {
+	animation-delay: 0.25s;
+}
+.dash-delay-6 {
+	animation-delay: 0.3s;
+}
 
 /* --- Dashboard Section Title --- */
 .dash-section-header {
@@ -2642,7 +2654,9 @@
 	position: relative;
 	overflow: hidden;
 	cursor: pointer;
-	transition: transform 0.2s, box-shadow 0.2s;
+	transition:
+		transform 0.2s,
+		box-shadow 0.2s;
 	box-shadow: var(--admin-shadow-sm);
 }
 
@@ -2876,10 +2890,22 @@
 	flex-shrink: 0;
 }
 
-.dash-activity-dot.pending { background: var(--admin-orange); box-shadow: 0 0 8px rgba(255, 159, 10, 0.4); }
-.dash-activity-dot.confirmed { background: var(--admin-green); box-shadow: 0 0 8px rgba(48, 209, 88, 0.4); }
-.dash-activity-dot.completed { background: var(--admin-accent); box-shadow: 0 0 8px var(--admin-accent-light); }
-.dash-activity-dot.cancelled { background: var(--admin-red); box-shadow: 0 0 8px rgba(255, 69, 58, 0.4); }
+.dash-activity-dot.pending {
+	background: var(--admin-orange);
+	box-shadow: 0 0 8px rgba(255, 159, 10, 0.4);
+}
+.dash-activity-dot.confirmed {
+	background: var(--admin-green);
+	box-shadow: 0 0 8px rgba(48, 209, 88, 0.4);
+}
+.dash-activity-dot.completed {
+	background: var(--admin-accent);
+	box-shadow: 0 0 8px var(--admin-accent-light);
+}
+.dash-activity-dot.cancelled {
+	background: var(--admin-red);
+	box-shadow: 0 0 8px rgba(255, 69, 58, 0.4);
+}
 
 .dash-activity-info {
 	flex: 1;
@@ -2924,10 +2950,18 @@
 	margin-top: 2px;
 }
 
-.dash-activity-status.pending { color: var(--admin-orange); }
-.dash-activity-status.confirmed { color: var(--admin-green); }
-.dash-activity-status.completed { color: var(--admin-accent); }
-.dash-activity-status.cancelled { color: var(--admin-red); }
+.dash-activity-status.pending {
+	color: var(--admin-orange);
+}
+.dash-activity-status.confirmed {
+	color: var(--admin-green);
+}
+.dash-activity-status.completed {
+	color: var(--admin-accent);
+}
+.dash-activity-status.cancelled {
+	color: var(--admin-red);
+}
 
 /* --- Status Donut Section --- */
 .dash-status-card {
@@ -2995,10 +3029,18 @@
 	flex-shrink: 0;
 }
 
-.dash-legend-dot.pending { background: var(--admin-orange); }
-.dash-legend-dot.confirmed { background: var(--admin-green); }
-.dash-legend-dot.completed { background: var(--admin-accent); }
-.dash-legend-dot.cancelled { background: var(--admin-red); }
+.dash-legend-dot.pending {
+	background: var(--admin-orange);
+}
+.dash-legend-dot.confirmed {
+	background: var(--admin-green);
+}
+.dash-legend-dot.completed {
+	background: var(--admin-accent);
+}
+.dash-legend-dot.cancelled {
+	background: var(--admin-red);
+}
 
 .dash-legend-text {
 	font-size: 13px;
@@ -3183,8 +3225,17 @@
 }
 
 @keyframes livePulse {
-	0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 159, 10, 0.5); }
-	50% { opacity: 0.7; transform: scale(1.3); box-shadow: 0 0 8px 2px rgba(255, 159, 10, 0.3); }
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(255, 159, 10, 0.5);
+	}
+	50% {
+		opacity: 0.7;
+		transform: scale(1.3);
+		box-shadow: 0 0 8px 2px rgba(255, 159, 10, 0.3);
+	}
 }
 
 /* --- KPI Unit (smaller % symbol etc.) --- */
@@ -3225,7 +3276,9 @@
 	transition: opacity 0.15s;
 }
 
-.dash-upcoming-item:active { opacity: 0.7; }
+.dash-upcoming-item:active {
+	opacity: 0.7;
+}
 
 .dash-upcoming-time-col {
 	width: 58px;

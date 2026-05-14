@@ -32,7 +32,12 @@
 
 <header class="admin-header">
 	<div style="display: flex; align-items: center; gap: 12px;">
-		<button class="admin-header-btn" style="padding-left: 0; padding-right: 4px;" onclick={() => goto('/admin/settings')} aria-label="Settings">
+		<button
+			class="admin-header-btn"
+			style="padding-left: 0; padding-right: 4px;"
+			onclick={() => goto('/admin/settings')}
+			aria-label="Settings"
+		>
 			<Menu size={24} />
 		</button>
 		<div class="admin-header-title">{title}</div>

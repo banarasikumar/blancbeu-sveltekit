@@ -207,5 +207,4 @@
 	.virtual-tryon-btn:hover .arrow {
 		transform: translateX(4px);
 	}
-	
 </style>

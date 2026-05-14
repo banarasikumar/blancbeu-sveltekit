@@ -12,7 +12,11 @@
 <div class="admin-view-header">
 	<div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
 		<h2 class="admin-view-title">Uploads & Downloads</h2>
-		<button class="admin-btn-secondary" style="height: 36px; padding: 0 12px; font-size: 13px; width: auto;" onclick={clearCompleted}>
+		<button
+			class="admin-btn-secondary"
+			style="height: 36px; padding: 0 12px; font-size: 13px; width: auto;"
+			onclick={clearCompleted}
+		>
 			<Trash2 size={16} style="margin-right: 6px;" /> Clear Completed
 		</button>
 	</div>
@@ -47,7 +51,9 @@
 							{:else if upload.status === 'completed'}
 								<span class="upload-status success">Completed</span>
 							{:else if upload.status === 'uploading'}
-								<span class="upload-status uploading">Uploading... {Math.round(upload.progress)}%</span>
+								<span class="upload-status uploading"
+									>Uploading... {Math.round(upload.progress)}%</span
+								>
 							{:else}
 								<span class="upload-status">Pending</span>
 							{/if}
@@ -134,11 +140,11 @@
 	}
 
 	.upload-status.error {
-		color: #FF3B30;
+		color: #ff3b30;
 	}
 
 	.upload-status.success {
-		color: #34C759;
+		color: #34c759;
 	}
 
 	.upload-status.uploading {

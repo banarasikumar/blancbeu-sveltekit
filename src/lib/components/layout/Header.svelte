@@ -1,12 +1,13 @@
 <script lang="ts">
 	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
-	import { Bell } from 'lucide-svelte';
+	import { Bell, Sparkles, X } from 'lucide-svelte';
 	import { unreadCount } from '$lib/stores/notifications';
 	import { isOnline } from '$lib/stores/networkStatus';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
 	$: isTryOnPage = $page.url.pathname.startsWith('/try-on');
+	$: isAssistantPage = $page.url.pathname.startsWith('/assistant');
 
 	function handleNotificationClick(e: MouseEvent) {
 		e.preventDefault();
@@ -25,23 +26,37 @@
 
 <header class="app-header">
 	<div class="header-left">
-		<!-- Optional: Menu Icon or Empty -->
+		{#if isAssistantPage}
+			<button class="close-btn-premium" onclick={() => window.history.back()} aria-label="Go Back">
+				<X size={20} strokeWidth={2.5} />
+			</button>
+		{/if}
 	</div>
 
-	<div class="logo-text">{isTryOnPage ? 'VIRTUAL TRY ON' : 'BLANCBEU'}</div>
+	<div class="logo-text">
+		{#if isAssistantPage}
+			<span style="font-size: 1.1rem; letter-spacing: 0.1em;">BLANCBEU ASSISTANT</span>
+		{:else if isTryOnPage}
+			VIRTUAL TRY ON
+		{:else}
+			BLANCBEU
+		{/if}
+	</div>
 
 	<div class="header-right">
-		<a
-			href="/notifications"
-			class="icon-btn relative"
-			aria-label="Notifications"
-			onclick={handleNotificationClick}
-		>
-			<Bell size={20} strokeWidth={1.5} />
-			{#if $unreadCount > 0}
-				<span class="badge">{$unreadCount}</span>
-			{/if}
-		</a>
+		{#if !isAssistantPage}
+			<a
+				href="/notifications"
+				class="icon-btn relative"
+				aria-label="Notifications"
+				onclick={handleNotificationClick}
+			>
+				<Bell size={20} strokeWidth={1.5} />
+				{#if $unreadCount > 0}
+					<span class="badge">{$unreadCount}</span>
+				{/if}
+			</a>
+		{/if}
 		<ThemeToggle />
 	</div>
 </header>
@@ -125,6 +140,26 @@
 
 	.icon-btn:hover {
 		color: var(--color-accent-gold);
+	}
+
+	.close-btn-premium {
+		width: 36px;
+		height: 36px;
+		background: transparent;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-text-secondary, #666);
+		transition: all 0.2s ease;
+		border: none;
+		cursor: pointer;
+		margin-left: -8px; /* Slightly offset to align perfectly with the edge */
+	}
+
+	.close-btn-premium:hover {
+		background: var(--color-bg-tertiary, rgba(0, 0, 0, 0.08));
+		color: var(--color-text-primary, #333);
 	}
 
 	.relative {

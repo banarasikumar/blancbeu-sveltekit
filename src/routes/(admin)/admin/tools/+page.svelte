@@ -36,7 +36,7 @@
 	let showWalkins = $state(false);
 	let showMerged = $state(false);
 	let showPhoneOnly = $state(false);
-	
+
 	let isMarkingMode = $state(false);
 	let markedUsers = $state<Record<string, boolean>>({});
 
@@ -65,19 +65,21 @@
 
 	onMount(() => {
 		window.addEventListener('scroll', handleScroll, { passive: true });
-		
+
 		// Hide bottom nav for tools page
 		isBottomNavVisible.set(false);
 
 		// Register Header Action: Close button to go back to users
-		headerActions.set([{
-			label: 'Exit Tools',
-			icon: X,
-			direct: true,
-			handler: () => {
-				goto('/admin/users');
+		headerActions.set([
+			{
+				label: 'Exit Tools',
+				icon: X,
+				direct: true,
+				handler: () => {
+					goto('/admin/users');
+				}
 			}
-		}]);
+		]);
 
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
@@ -88,10 +90,10 @@
 
 	function downloadJson() {
 		let usersToExport: AppUser[] = [];
-		
+
 		if (isMarkingMode) {
 			// Export only manually marked users
-			usersToExport = $allUsers.filter(u => markedUsers[u.id]);
+			usersToExport = $allUsers.filter((u) => markedUsers[u.id]);
 			if (usersToExport.length === 0) {
 				showToast('No users marked for export', 'error');
 				return;
@@ -101,11 +103,11 @@
 			usersToExport = filteredUsers;
 		}
 
-		const exportData = usersToExport.map(u => {
+		const exportData = usersToExport.map((u) => {
 			const nameParts = (u.displayName || u.fullName || u.name || '').split(' ');
 			const firstName = nameParts[0] || '';
 			const lastName = nameParts.slice(1).join(' ') || '';
-			const userBookings = $allBookings.filter(b => b.uid === u.id || b.userId === u.id).length;
+			const userBookings = $allBookings.filter((b) => b.uid === u.id || b.userId === u.id).length;
 			const phone = getUserPhone(u) || '';
 
 			return {
@@ -129,23 +131,22 @@
 			document.body.removeChild(a);
 			URL.revokeObjectURL(url);
 		}, 100);
-		
+
 		showToast(`Exported ${exportData.length} users`, 'success');
 	}
-
 
 	// Filtered & Sorted users
 	let filteredUsers = $derived.by(() => {
 		let users = $allUsers;
-		
+
 		// 1. Phone Filter
 		if (showPhoneOnly) {
-			users = users.filter(u => !!getUserPhone(u));
+			users = users.filter((u) => !!getUserPhone(u));
 		}
 
 		// 2. Type Filters
 		if (!showAll) {
-			users = users.filter(u => {
+			users = users.filter((u) => {
 				const isShadow = u.accountStatus === 'shadow';
 				if (showWalkins && isShadow) return true;
 				if (showMerged && !isShadow) return true;
@@ -173,8 +174,20 @@
 	});
 
 	// Avatar colors
-	const colors = ['#FF9F0A', '#30D158', '#0A84FF', '#BF5AF2', '#FF375F', '#AC8E68', '#5E5CE6', '#32ADE6', '#E04F5C'];
-	function getColor(name: string): string { return colors[(name || '?').charCodeAt(0) % colors.length]; }
+	const colors = [
+		'#FF9F0A',
+		'#30D158',
+		'#0A84FF',
+		'#BF5AF2',
+		'#FF375F',
+		'#AC8E68',
+		'#5E5CE6',
+		'#32ADE6',
+		'#E04F5C'
+	];
+	function getColor(name: string): string {
+		return colors[(name || '?').charCodeAt(0) % colors.length];
+	}
 
 	// Action sheet
 	function openUserOptions(user: AppUser) {
@@ -188,23 +201,32 @@
 	function toggleMarkUser(uid: string) {
 		markedUsers[uid] = !markedUsers[uid];
 	}
-	function closeSheet() { selectedUser = null; }
-	function viewBookingHistory(uid: string) { closeSheet(); goto('/admin/bookings'); }
+	function closeSheet() {
+		selectedUser = null;
+	}
+	function viewBookingHistory(uid: string) {
+		closeSheet();
+		goto('/admin/bookings');
+	}
 	async function copyUserId(uid: string) {
-		try { await navigator.clipboard.writeText(uid); showToast('User ID Copied!', 'success'); } 
-		catch { showToast('Failed to copy', 'error'); }
+		try {
+			await navigator.clipboard.writeText(uid);
+			showToast('User ID Copied!', 'success');
+		} catch {
+			showToast('Failed to copy', 'error');
+		}
 		closeSheet();
 	}
 </script>
 
-	<div class="tools-page">
+<div class="tools-page">
 	<!-- Users List View with Generator Filters -->
 	<div style="margin-top: 12px;">
 		<div style="margin-bottom: 20px;">
 			<span class="gen-label">Select User Type to Export:</span>
 			<div class="gen-type-chips">
-				<button 
-					class="gen-chip" 
+				<button
+					class="gen-chip"
 					class:active={showAll}
 					onclick={() => {
 						showAll = true;
@@ -215,8 +237,8 @@
 					All
 				</button>
 
-				<button 
-					class="gen-chip" 
+				<button
+					class="gen-chip"
 					class:active={showWalkins}
 					onclick={() => {
 						showWalkins = !showWalkins;
@@ -227,8 +249,8 @@
 					Walk-ins
 				</button>
 
-				<button 
-					class="gen-chip" 
+				<button
+					class="gen-chip"
 					class:active={showMerged}
 					onclick={() => {
 						showMerged = !showMerged;
@@ -239,20 +261,22 @@
 					Merged
 				</button>
 
-				<button 
-					class="gen-chip" 
+				<button
+					class="gen-chip"
 					class:active={showPhoneOnly}
-					onclick={() => showPhoneOnly = !showPhoneOnly}
+					onclick={() => (showPhoneOnly = !showPhoneOnly)}
 				>
 					Phone
 				</button>
-				
-				<div style="width: 1px; height: 24px; background: var(--admin-border); margin: 0 4px; flex-shrink: 0;"></div>
 
-				<button 
-					class="gen-chip marked-mode-btn" 
+				<div
+					style="width: 1px; height: 24px; background: var(--admin-border); margin: 0 4px; flex-shrink: 0;"
+				></div>
+
+				<button
+					class="gen-chip marked-mode-btn"
 					class:active={isMarkingMode}
-					onclick={() => isMarkingMode = !isMarkingMode}
+					onclick={() => (isMarkingMode = !isMarkingMode)}
 				>
 					{#if isMarkingMode}
 						<CheckCircle2 size={12} style="margin-right: 4px;" />
@@ -260,7 +284,9 @@
 					Marked ({markedCount})
 				</button>
 			</div>
-			<div style="font-size: 11px; color: var(--admin-text-secondary); margin-top: 8px; font-weight: 500;">
+			<div
+				style="font-size: 11px; color: var(--admin-text-secondary); margin-top: 8px; font-weight: 500;"
+			>
 				{#if isMarkingMode}
 					Marking Mode Active: Click cards to select users for export.
 				{:else}
@@ -272,7 +298,12 @@
 		<div class="admin-search-bar" style="display: flex; gap: 8px;">
 			<div style="position: relative; flex: 1;">
 				<Search size={16} class="admin-search-icon" />
-				<input type="text" placeholder="Search users..." bind:value={searchQuery} style="width: 100%;" />
+				<input
+					type="text"
+					placeholder="Search users..."
+					bind:value={searchQuery}
+					style="width: 100%;"
+				/>
 			</div>
 			<select class="admin-sort-select" bind:value={sortBy}>
 				<option value="name">Name</option>
@@ -295,8 +326,8 @@
 
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div 
-						class="admin-user-card" 
+					<div
+						class="admin-user-card"
 						class:is-marked={isMarked && isMarkingMode}
 						onclick={() => isMarkingMode && toggleMarkUser(user.id)}
 					>
@@ -311,7 +342,9 @@
 						{#if photo}
 							<img src={photo} alt={name} class="admin-avatar-img" />
 						{:else}
-							<div class="admin-avatar-fallback" style="background: {getColor(name)};">{name.charAt(0).toUpperCase()}</div>
+							<div class="admin-avatar-fallback" style="background: {getColor(name)};">
+								{name.charAt(0).toUpperCase()}
+							</div>
 						{/if}
 						<div class="admin-user-info">
 							<div class="admin-user-name">
@@ -319,18 +352,20 @@
 								{#if user.accountType === 'walkin'}
 									<span class="admin-role-badge walkin">WALK-IN</span>
 								{:else}
-									<span class="admin-role-badge" class:admin={user.role === 'admin'}>{user.role === 'admin' ? 'ADMIN' : 'USER'}</span>
+									<span class="admin-role-badge" class:admin={user.role === 'admin'}
+										>{user.role === 'admin' ? 'ADMIN' : 'USER'}</span
+									>
 								{/if}
 							</div>
 							<div class="admin-user-email">{user.email || 'No email'}</div>
 							{#if phone}<div class="admin-user-phone"><Phone size={10} /> {phone}</div>{/if}
 						</div>
-						<button 
-							class="admin-options-btn" 
+						<button
+							class="admin-options-btn"
 							onclick={(e) => {
 								e.stopPropagation();
 								openUserOptions(user);
-							}} 
+							}}
 							aria-label="Options"
 						>
 							<MoreVertical size={18} />
@@ -362,20 +397,31 @@
 			<div class="admin-action-sheet-header">
 				<div>
 					<h3>{name}</h3>
-					<span style="font-size: 12px; color: var(--admin-text-secondary);">{selectedUser.id}</span>
+					<span style="font-size: 12px; color: var(--admin-text-secondary);">{selectedUser.id}</span
+					>
 				</div>
-				<button class="admin-header-btn" onclick={closeSheet} aria-label="Close"><X size={20} /></button>
+				<button class="admin-header-btn" onclick={closeSheet} aria-label="Close"
+					><X size={20} /></button
+				>
 			</div>
-			<button class="admin-action-sheet-item" onclick={() => viewBookingHistory(selectedUser!.id)}><History size={18} color="var(--admin-accent)" /> View History</button>
-			{#if phone}<a href="tel:{phone}" class="admin-action-sheet-item" onclick={closeSheet}><Phone size={18} color="var(--admin-green)" /> Call User</a>{/if}
-			<button class="admin-action-sheet-item" onclick={() => copyUserId(selectedUser!.id)}><Copy size={18} color="var(--admin-text-secondary)" /> Copy ID</button>
+			<button class="admin-action-sheet-item" onclick={() => viewBookingHistory(selectedUser!.id)}
+				><History size={18} color="var(--admin-accent)" /> View History</button
+			>
+			{#if phone}<a href="tel:{phone}" class="admin-action-sheet-item" onclick={closeSheet}
+					><Phone size={18} color="var(--admin-green)" /> Call User</a
+				>{/if}
+			<button class="admin-action-sheet-item" onclick={() => copyUserId(selectedUser!.id)}
+				><Copy size={18} color="var(--admin-text-secondary)" /> Copy ID</button
+			>
 			<button class="admin-action-sheet-cancel" onclick={closeSheet}>Cancel</button>
 		</div>
 	</div>
 {/if}
 
 {#if showScrollTop}
-	<button class="scroll-to-top-btn" onclick={scrollToTop} aria-label="Scroll to top"><ArrowUp size={20} strokeWidth={2.5} /></button>
+	<button class="scroll-to-top-btn" onclick={scrollToTop} aria-label="Scroll to top"
+		><ArrowUp size={20} strokeWidth={2.5} /></button
+	>
 {/if}
 
 <style>
@@ -468,7 +514,9 @@
 		box-shadow: 0 8px 24px rgba(var(--admin-accent-rgb, 212, 175, 55), 0.3);
 	}
 
-	.gen-download-btn-sticky:active { transform: scale(0.96); }
+	.gen-download-btn-sticky:active {
+		transform: scale(0.96);
+	}
 
 	.gen-footer-sticky {
 		position: fixed;
@@ -484,9 +532,9 @@
 	}
 
 	.admin-role-badge.walkin {
-		background: rgba(234,179,8,0.15);
+		background: rgba(234, 179, 8, 0.15);
 		color: #ca8a04;
-		border-color: rgba(234,179,8,0.3);
+		border-color: rgba(234, 179, 8, 0.3);
 	}
 
 	.marked-mode-btn {
