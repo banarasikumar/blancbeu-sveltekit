@@ -154,42 +154,64 @@ function tokenizeAndNormalize(text: string): string[] {
 interface Intent {
 	id: string;
 	keywords: string[];
-	response: (tokens: string[], originalMessage: string) => string;
+	response: (tokens: string[], originalMessage: string) => { 
+		text: string; 
+		action?: { label: string; path: string };
+		mapEmbed?: string;
+	};
 }
 
 const intents: Intent[] = [
 	{
 		id: 'hours',
 		keywords: ['hours', 'open', 'close', 'time', 'baje'],
-		response: () => 'We are open every day, Monday to Sunday, from 10:00 AM to 8:00 PM.'
+		response: () => ({ text: 'We are open every day, Monday to Sunday, from 10:00 AM to 8:00 PM.' })
 	},
 	{
 		id: 'location',
 		keywords: ['location', 'address', 'where', 'shop', 'kaha', 'kahan', 'kidhar'],
-		response: () => 'We are located at Upper Bazar, Ranchi, Jharkhand 834001, India. Come visit us!'
+		response: () => ({
+			text: 'Our salon is located at:\nBlancbeu Salon, Upper Bazar, Ranchi, Jharkhand 834001, India.\n\nWe look forward to seeing you!',
+			action: { label: 'Get Directions', path: 'https://maps.app.goo.gl/v45B3sD3BuPLpftr6' },
+			mapEmbed: 'https://maps.google.com/maps?q=Blancbeu%20Salon%2C%20Upper%20Bazar%2C%20Ranchi%2C%20Jharkhand%20834001&t=&z=17&ie=UTF8&iwloc=B&output=embed'
+		})
 	},
 	{
 		id: 'contact',
 		keywords: ['contact', 'call', 'phone', 'number'],
-		response: () => 'You can reach us directly at +91 92299 15277 or email us anytime.'
+		response: () => ({
+			text: 'You can reach us directly at +91 92299 15277 or email us at hello@blancbeu.in. We are here to help!',
+			action: { label: 'Call Now', path: 'tel:+919229915277' }
+		})
 	},
 	{
 		id: 'booking',
 		keywords: ['book', 'appointment', 'schedule', 'reservation'],
-		response: () =>
-			"I can help with that! You can easily book an appointment by tapping the 'Book' tab at the bottom of your screen. What service were you thinking of?"
+		response: () => ({
+			text: "I can help with that! You can easily book an appointment by tapping the 'Book' tab at the bottom of your screen. What service were you thinking of?"
+		})
+	},
+	{
+		id: 'try_on',
+		keywords: ['try', 'on', 'tryon', 'virtual', 'look', 'style', 'camera'],
+		response: () => ({
+			text: 'Experience our Virtual Try-On! You can see how different styles and colors look on you instantly using your camera.',
+			action: { label: 'Open Virtual Try-On', path: '/try-on' }
+		})
 	},
 	{
 		id: 'bridal',
 		keywords: ['bridal', 'wedding', 'marriage', 'shadi', 'shaadi', 'dulhan'],
-		response: () =>
-			'Yes, we specialize in luxury bridal makeup and styling! We recommend booking a consultation at least 3 months in advance.'
+		response: () => ({
+			text: 'Yes, we specialize in luxury bridal makeup and styling! We recommend booking a consultation at least 3 months in advance.'
+		})
 	},
 	{
 		id: 'cancellation',
 		keywords: ['cancel', 'cancellation', 'policy'],
-		response: () =>
-			'We require a 24-hour notice for all cancellations. Cancellations made within 24 hours will incur a 50% fee.'
+		response: () => ({
+			text: 'We require a 24-hour notice for all cancellations. Cancellations made within 24 hours will incur a 50% fee.'
+		})
 	},
 	{
 		id: 'service_pricing',
@@ -219,26 +241,35 @@ const intents: Intent[] = [
 			}
 
 			if (bestService && highestScore >= 1) {
-				return `Our ${bestService.name} service costs ₹${bestService.price}. The session typically takes about ${bestService.duration}.`;
+				return {
+					text: `Our ${bestService.name} service costs ₹${bestService.price}. The session typically takes about ${bestService.duration}.`
+				};
 			}
 
-			return 'Our services start from ₹99 up to ₹9999. Could you specify which service you are looking for?';
+			return {
+				text: 'Our services start from ₹99 up to ₹9999. Could you specify which service you are looking for?'
+			};
 		}
 	},
 	{
 		id: 'general_services',
 		keywords: ['services', 'hair', 'cut', 'facial', 'massage', 'makeup', 'baal', 'katwana'],
-		response: () =>
-			"We offer a wide range of premium services, including precision haircuts, relaxing facials, keratin treatments, and bridal styling. Tap 'Services' in the navigation menu to see our full list!"
+		response: () => ({
+			text: "We offer a wide range of premium services, including precision haircuts, relaxing facials, keratin treatments, and bridal styling. Tap 'Services' in the navigation menu to see our full list!"
+		})
 	}
 ];
 
 // 5. Main Intent Matcher
-export function processQuery(message: string): string {
+export function processQuery(message: string): {
+	text: string;
+	action?: { label: string; path: string };
+	mapEmbed?: string;
+} {
 	const tokens = tokenizeAndNormalize(message);
 
 	if (tokens.length === 0) {
-		return "I'm here to help! What would you like to know about Blancbeu?";
+		return { text: "I'm here to help! What would you like to know about Blancbeu?" };
 	}
 
 	let bestIntent: Intent | null = null;
@@ -253,7 +284,6 @@ export function processQuery(message: string): string {
 		}
 
 		// Calculate confidence: score / number of tokens in message
-		// But also factor in absolute score to reward more keyword matches
 		const confidence = score / tokens.length + score * 0.2;
 
 		if (confidence > highestScore) {
@@ -267,5 +297,7 @@ export function processQuery(message: string): string {
 		return bestIntent.response(tokens, message);
 	}
 
-	return "I'm not quite sure I understand. I can help you with bookings, prices, our location, or opening hours! What do you need help with?";
+	return {
+		text: "I'm not quite sure I understand. I can help you with bookings, prices, our location, or opening hours! What do you need help with?"
+	};
 }

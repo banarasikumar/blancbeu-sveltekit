@@ -4,15 +4,20 @@
 	import { goto } from '$app/navigation';
 	import { Mic, Send, ChevronUp, ChevronDown, Bot } from 'lucide-svelte';
 
-	let messages: { role: 'user' | 'assistant'; text: string }[] = [
+	let messages: { 
+		role: 'user' | 'assistant'; 
+		text: string; 
+		action?: { label: string; path: string };
+		mapEmbed?: string;
+	}[] = $state([
 		{
 			role: 'assistant',
 			text: 'Hello! I am your Blancbeu virtual assistant. How can I help you elevate your style today?'
 		}
-	];
-	let inputText = '';
-	let isListening = false;
-	let tagsExpanded = true;
+	]);
+	let inputText = $state('');
+	let isListening = $state(false);
+	let tagsExpanded = $state(true);
 	let chatContainer: HTMLDivElement;
 	let recognition: any = null;
 
@@ -102,7 +107,12 @@
 			if (response.ok) {
 				const data = await response.json();
 				// Replace thinking message with real response
-				messages[messages.length - 1] = { role: 'assistant', text: data.reply };
+				messages[messages.length - 1] = { 
+					role: 'assistant', 
+					text: data.reply,
+					action: data.action,
+					mapEmbed: data.mapEmbed
+				};
 			} else {
 				messages[messages.length - 1] = {
 					role: 'assistant',
@@ -112,8 +122,6 @@
 		} catch (e) {
 			messages[messages.length - 1] = { role: 'assistant', text: "I'm offline at the moment." };
 		}
-
-		messages = [...messages]; // trigger reactivity
 		scrollToBottom();
 	}
 
@@ -156,13 +164,46 @@
 						<img src="/ai_assistant.png" alt="AI" />
 					</div>
 				{/if}
-				<div class="message-bubble {msg.role}">
+				<div class="message-bubble {msg.role}" class:has-map={msg.mapEmbed}>
 					{#if msg.text === '...'}
 						<div class="typing-indicator">
 							<span></span><span></span><span></span>
 						</div>
 					{:else}
-						{msg.text}
+						<div class="message-content">
+							<div class="text-content">{msg.text}</div>
+							
+							{#if msg.mapEmbed}
+								<div class="map-preview" transition:slide>
+									<iframe
+										title="Salon Location"
+										src={msg.mapEmbed}
+										width="100%"
+										height="260"
+										style="border:0; border-radius: 0;"
+										allowfullscreen
+										loading="lazy"
+									></iframe>
+								</div>
+							{/if}
+
+							{#if msg.action}
+								<div class="message-action" transition:slide>
+									<button 
+										class="action-btn" 
+										onclick={() => {
+											if (msg.action.path.startsWith('tel:') || msg.action.path.startsWith('mailto:') || msg.action.path.startsWith('http')) {
+												window.location.href = msg.action.path;
+											} else {
+												goto(msg.action.path);
+											}
+										}}
+									>
+										{msg.action.label}
+									</button>
+								</div>
+							{/if}
+						</div>
 					{/if}
 				</div>
 			</div>
@@ -324,6 +365,64 @@
 		color: var(--color-text-primary, #000);
 		border: 1px solid rgba(212, 175, 55, 0.2);
 		border-bottom-left-radius: 4px;
+		overflow: hidden; /* Ensure map stays within bubble */
+	}
+
+	.message-bubble.has-map {
+		max-width: 95%;
+		width: 100%;
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	.message-bubble.has-map .text-content,
+	.message-bubble.has-map .message-action {
+		padding: 0 16px;
+	}
+
+	.message-content {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.text-content {
+		white-space: pre-wrap;
+	}
+
+	.map-preview {
+		width: 100%;
+		overflow: hidden;
+		margin: 4px 0;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+		border-top: 1px solid rgba(212, 175, 55, 0.2);
+		border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+	}
+
+	.message-action {
+		margin-top: 4px;
+	}
+
+	.action-btn {
+		background: var(--gradient-gold, linear-gradient(135deg, #d4af37, #aa842c));
+		color: white;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 12px;
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
+	}
+
+	.action-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 15px rgba(212, 175, 55, 0.3);
+	}
+
+	.action-btn:active {
+		transform: translateY(0);
 	}
 
 	.typing-indicator {
