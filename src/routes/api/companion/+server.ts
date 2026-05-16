@@ -93,7 +93,6 @@ export async function POST({ request }) {
 							fullReply += buffer;
 						}
 					} else {
-						buffer += textChunk;
 						fullReply += textChunk;
 					}
 

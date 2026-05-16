@@ -2,7 +2,7 @@
 	import { fade, fly, slide } from 'svelte/transition';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { Mic, Send, ChevronUp, ChevronDown, Bot } from 'lucide-svelte';
+	import { Mic, Send, Bot, Sparkles, AudioLines } from 'lucide-svelte';
 
 	let messages: { 
 		role: 'user' | 'assistant'; 
@@ -127,6 +127,7 @@
 
 	function handleTagClick(tag: string) {
 		sendMessage(tag);
+		tagsExpanded = false;
 	}
 
 	function toggleListen() {
@@ -212,19 +213,6 @@
 
 	<!-- Bottom Area -->
 	<div class="bottom-area">
-		<div class="expander-wrapper">
-			<button
-				class="expand-btn"
-				onclick={() => (tagsExpanded = !tagsExpanded)}
-				aria-label="Toggle Tags"
-			>
-				{#if tagsExpanded}
-					<ChevronDown size={20} />
-				{:else}
-					<ChevronUp size={20} />
-				{/if}
-			</button>
-		</div>
 		<!-- Predefined Tags -->
 		{#if tagsExpanded}
 			<div class="tags-container" transition:slide={{ duration: 200 }}>
@@ -255,37 +243,43 @@
 		<!-- Input Area -->
 		<div class="input-container">
 			<div class="input-box">
+				<button 
+					class="plus-btn" 
+					class:expanded={tagsExpanded}
+					onclick={() => tagsExpanded = !tagsExpanded}
+					aria-label="Toggle Tags"
+				>
+					<Sparkles strokeWidth={1.5} size={22} />
+				</button>
+
 				<input
 					type="text"
-					placeholder="Ask me anything..."
+					placeholder="Ask Blancbeu..."
 					bind:value={inputText}
 					onkeydown={handleKeydown}
 				/>
-				{#if inputText.trim().length > 0}
-					<button class="send-btn" onclick={() => sendMessage()}>
-						<Send size={20} />
-					</button>
-				{/if}
-			</div>
-
-			<!-- Action Buttons Container -->
-			<div class="action-buttons-col">
-				<!-- Companion Assistant Button -->
-				<button class="companion-btn" aria-label="Companion Assistant" onclick={() => goto('/assistant/companion')}>
-					<Bot size={20} />
-				</button>
-
-				<!-- Prominent Mic Orb -->
-				<button
-					class="mic-orb"
+				
+				<button 
+					class="mic-btn" 
 					class:listening={isListening}
 					onclick={toggleListen}
-					aria-label="Use Microphone"
+					aria-label="Voice Typing"
 				>
-					<Mic size={24} color={isListening ? '#fff' : 'var(--color-bg-primary)'} />
 					{#if isListening}
-						<div class="mic-ripple"></div>
-						<div class="mic-ripple r2"></div>
+						<div class="mic-ripple-small"></div>
+					{/if}
+					<Mic strokeWidth={1.5} size={22} />
+				</button>
+
+				<button 
+					class="action-circle-btn" 
+					onclick={() => inputText.trim().length > 0 ? sendMessage() : goto('/assistant/companion')}
+					aria-label={inputText.trim().length > 0 ? "Send Message" : "Live Assistant"}
+				>
+					{#if inputText.trim().length > 0}
+						<Send size={18} strokeWidth={2} />
+					{:else}
+						<AudioLines size={20} strokeWidth={2} />
 					{/if}
 				</button>
 			</div>
@@ -338,12 +332,14 @@
 		overflow: hidden;
 		flex-shrink: 0;
 		border: 1px solid var(--color-accent-gold, #d4af37);
+		background: var(--gradient-gold, linear-gradient(135deg, #d4af37, #aa842c)) !important;
 	}
 
 	.avatar-small img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		background: var(--gradient-gold, transparent);
 	}
 
 	.message-bubble {
@@ -361,9 +357,9 @@
 	}
 
 	.message-bubble.assistant {
-		background: rgba(212, 175, 55, 0.1);
+		background: rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.1);
 		color: var(--color-text-primary, #000);
-		border: 1px solid rgba(212, 175, 55, 0.2);
+		border: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.2);
 		border-bottom-left-radius: 4px;
 		overflow: hidden; /* Ensure map stays within bubble */
 	}
@@ -395,8 +391,8 @@
 		overflow: hidden;
 		margin: 4px 0;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-		border-top: 1px solid rgba(212, 175, 55, 0.2);
-		border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+		border-top: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.2);
+		border-bottom: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.2);
 	}
 
 	.message-action {
@@ -413,12 +409,12 @@
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s ease;
-		box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
+		box-shadow: 0 4px 10px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.2);
 	}
 
 	.action-btn:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 6px 15px rgba(212, 175, 55, 0.3);
+		box-shadow: 0 6px 15px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3);
 	}
 
 	.action-btn:active {
@@ -467,49 +463,32 @@
 		z-index: 10;
 	}
 
-	.expander-wrapper {
-		display: flex;
-		justify-content: center;
-		padding-bottom: 12px;
-		margin-top: -4px;
-	}
-
-	.expand-btn {
-		background: transparent;
-		border: none;
-		color: var(--color-text-tertiary, rgba(0, 0, 0, 0.3));
-		width: 48px;
-		height: 20px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: color 0.2s ease;
-	}
-
-	.expand-btn:hover {
-		color: var(--color-accent-gold, #d4af37);
-	}
-
 	.tags-container {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding-bottom: 16px;
+		gap: 6px;
+		padding-bottom: 12px;
 		overflow-x: auto;
 		-webkit-overflow-scrolling: touch;
 		scrollbar-width: none; /* Firefox */
 	}
 
+	.tags-container::-webkit-scrollbar {
+		display: none; /* Safari and Chrome */
+	}
+
 	.tags-row {
 		display: flex;
 		flex-direction: row;
-		gap: 8px;
+		gap: 6px;
 		width: max-content;
 	}
 
-	.tags-container::-webkit-scrollbar {
-		display: none; /* Safari and Chrome */
+	.input-container {
+		display: flex;
+		justify-content: center;
+		width: 100%;
+		padding-top: 4px;
 	}
 
 	.tag-chip {
@@ -517,37 +496,48 @@
 		background: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
 		border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
 		color: var(--color-text-primary, #333);
-		padding: 6px 12px;
+		padding: 7px 14px;
 		border-radius: 16px;
-		font-size: 0.75rem;
-		white-space: normal;
+		font-size: 0.8rem;
+		white-space: nowrap;
 		text-align: left;
 		cursor: pointer;
 		transition: all 0.2s ease;
 	}
 
-	.tag-chip:hover {
-		background: rgba(212, 175, 55, 0.1);
-		border-color: rgba(212, 175, 55, 0.5);
-		color: var(--color-accent-gold, #d4af37);
-	}
-
-	.input-container {
-		display: flex;
-		gap: 12px;
-		align-items: flex-end;
-	}
-
 	.input-box {
 		flex: 1;
-		background: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+		max-width: 800px;
+		background: var(--color-bg-secondary, #f0f0f0);
 		border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
-		border-radius: 24px;
-		padding: 4px 16px;
+		border-radius: 30px;
+		padding: 6px 6px 6px 16px;
 		display: flex;
 		align-items: center;
-		height: 48px;
-		margin-bottom: 3px;
+		gap: 12px;
+		height: 56px;
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+	}
+
+	.plus-btn {
+		background: transparent;
+		border: none;
+		color: var(--color-text-tertiary, #888);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		padding: 4px;
+		transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.plus-btn:hover {
+		color: var(--color-text-primary, #000);
+	}
+
+	.plus-btn.expanded {
+		transform: rotate(225deg) scale(1.15); /* Spins and turns the stars into 'X' shapes */
+		color: var(--color-accent-gold, #d4af37);
 	}
 
 	.input-box input {
@@ -555,95 +545,71 @@
 		background: transparent;
 		border: none;
 		color: var(--color-text-primary, #000);
-		font-size: 0.95rem;
+		font-size: 1rem;
 		outline: none;
+		min-width: 0;
 	}
 
 	.input-box input::placeholder {
 		color: var(--color-text-tertiary, rgba(0, 0, 0, 0.4));
 	}
 
-	.send-btn {
+	.mic-btn {
 		background: transparent;
 		border: none;
-		color: var(--color-accent-gold, #d4af37);
+		color: var(--color-text-tertiary, #888);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
 		padding: 4px;
+		transition: color 0.2s;
+		position: relative;
 	}
 
-	.action-buttons-col {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 8px;
+	.mic-btn:hover {
+		color: var(--color-text-primary, #000);
 	}
 
-	.companion-btn {
-		width: 40px;
-		height: 40px;
+	.mic-btn.listening {
+		color: #dc2626;
+	}
+
+	.action-circle-btn {
+		width: 44px;
+		height: 44px;
 		border-radius: 50%;
-		background: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
-		border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
-		color: var(--color-accent-gold, #d4af37);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.companion-btn:hover {
-		background: rgba(212, 175, 55, 0.1);
-		border-color: rgba(212, 175, 55, 0.5);
-	}
-
-	.mic-orb {
-		width: 54px;
-		height: 54px;
-		border-radius: 50%;
-		background: var(--gradient-gold, linear-gradient(135deg, #d4af37, #aa842c));
+		background: var(--color-text-primary, #111);
+		color: var(--color-bg-primary, #fff);
 		border: none;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
-		position: relative;
-		transition: transform 0.2s;
+		flex-shrink: 0;
+		transition: transform 0.2s, opacity 0.2s;
 	}
 
-	.mic-orb:active {
+	.action-circle-btn:active {
 		transform: scale(0.95);
 	}
 
-	.mic-orb.listening {
-		background: #dc2626; /* Red for recording */
-		box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
-	}
-
-	.mic-ripple {
+	.mic-ripple-small {
 		position: absolute;
-		inset: 0;
+		inset: -8px;
 		border-radius: 50%;
-		border: 2px solid #dc2626;
-		animation: ripple 1.5s infinite ease-out;
+		border: 1px solid #dc2626;
+		animation: ripple-small 1.5s infinite ease-out;
 		pointer-events: none;
 	}
 
-	.mic-ripple.r2 {
-		animation-delay: 0.75s;
-	}
-
-	@keyframes ripple {
+	@keyframes ripple-small {
 		0% {
-			transform: scale(1);
+			transform: scale(0.8);
 			opacity: 1;
 		}
 		100% {
-			transform: scale(1.6);
+			transform: scale(1.5);
 			opacity: 0;
 		}
 	}

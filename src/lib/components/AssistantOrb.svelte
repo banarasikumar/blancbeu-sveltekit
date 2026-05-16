@@ -55,7 +55,7 @@
 		background: rgba(30, 30, 30, 0.6);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
-		border: 1px solid rgba(212, 175, 55, 0.3);
+		border: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3);
 		border-right: none;
 		border-radius: 32px 0 0 32px;
 		display: flex;
@@ -84,7 +84,7 @@
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;
-		background: radial-gradient(circle, rgba(212, 175, 55, 0.4) 0%, transparent 70%);
+		background: radial-gradient(circle, rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.4) 0%, transparent 70%);
 		pointer-events: none;
 	}
 
@@ -115,7 +115,7 @@
 		border-radius: 50%;
 		overflow: hidden;
 		border: 2px solid var(--color-accent-gold, #d4af37);
-		box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+		box-shadow: 0 0 10px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.5);
 		z-index: 2;
 	}
 
@@ -123,7 +123,7 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		background: #000;
+		background: var(--gradient-gold, #000);
 	}
 
 	.sparkle-icon {
@@ -131,7 +131,7 @@
 		top: -4px;
 		left: -4px;
 		color: var(--color-accent-gold, #d4af37);
-		filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.8));
+		filter: drop-shadow(0 0 4px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.8));
 		z-index: 3;
 		animation: floatSparkle 2s infinite alternate ease-in-out;
 	}

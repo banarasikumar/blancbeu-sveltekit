@@ -130,14 +130,14 @@
 		display: inline-block;
 		width: 100%;
 		max-width: 400px;
-		background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-		border: 1px solid rgba(212, 175, 55, 0.3); /* Gold border */
+		background: var(--color-bg-secondary);
+		border: 1px solid var(--color-accent-gold);
 		border-radius: var(--radius-lg);
 		padding: 16px 20px;
 		text-decoration: none;
-		color: white;
+		color: var(--color-text-primary);
 		transition: all 0.3s ease;
-		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 		position: relative;
 		overflow: hidden;
 	}
@@ -149,14 +149,14 @@
 		left: -100%;
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+		background: linear-gradient(90deg, transparent, var(--color-accent-gold), transparent);
+		opacity: 0.15;
 		transition: left 0.5s ease;
 	}
 
 	.virtual-tryon-btn:hover {
 		transform: translateY(-2px);
-		border-color: rgba(212, 175, 55, 0.6);
-		box-shadow: 0 6px 20px rgba(212, 175, 55, 0.15);
+		box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 	}
 
 	.virtual-tryon-btn:hover::before {

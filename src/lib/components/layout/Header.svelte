@@ -5,9 +5,12 @@
 	import { isOnline } from '$lib/stores/networkStatus';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { tryOnPicker, tryOnPickerCount } from '$lib/stores/tryOnPicker';
 
 	$: isTryOnPage = $page.url.pathname.startsWith('/try-on');
 	$: isAssistantPage = $page.url.pathname.startsWith('/assistant');
+	$: isPickerMode = $tryOnPicker.active;
+	$: pickerCount = $tryOnPickerCount;
 
 	function handleNotificationClick(e: MouseEvent) {
 		e.preventDefault();
@@ -26,15 +29,17 @@
 
 <header class="app-header">
 	<div class="header-left">
-		{#if isAssistantPage}
-			<button class="close-btn-premium" onclick={() => window.history.back()} aria-label="Go Back">
+		{#if isAssistantPage || isPickerMode}
+			<button class="close-btn-premium" onclick={() => isPickerMode ? (tryOnPicker.deactivate(), goto('/try-on')) : window.history.back()} aria-label="Go Back">
 				<X size={20} strokeWidth={2.5} />
 			</button>
 		{/if}
 	</div>
 
 	<div class="logo-text">
-		{#if isAssistantPage}
+		{#if isPickerMode}
+			CHOOSE STYLES
+		{:else if isAssistantPage}
 			<span style="font-size: 1.1rem; letter-spacing: 0.1em;">BLANCBEU ASSISTANT</span>
 		{:else if isTryOnPage}
 			VIRTUAL TRY ON
@@ -44,20 +49,22 @@
 	</div>
 
 	<div class="header-right">
-		{#if !isAssistantPage}
-			<a
-				href="/notifications"
-				class="icon-btn relative"
-				aria-label="Notifications"
-				onclick={handleNotificationClick}
-			>
-				<Bell size={20} strokeWidth={1.5} />
-				{#if $unreadCount > 0}
-					<span class="badge">{$unreadCount}</span>
-				{/if}
-			</a>
+		{#if !isPickerMode}
+			{#if !isAssistantPage}
+				<a
+					href="/notifications"
+					class="icon-btn relative"
+					aria-label="Notifications"
+					onclick={handleNotificationClick}
+				>
+					<Bell size={20} strokeWidth={1.5} />
+					{#if $unreadCount > 0}
+						<span class="badge">{$unreadCount}</span>
+					{/if}
+				</a>
+			{/if}
+			<ThemeToggle />
 		{/if}
-		<ThemeToggle />
 	</div>
 </header>
 
@@ -160,6 +167,17 @@
 	.close-btn-premium:hover {
 		background: var(--color-bg-tertiary, rgba(0, 0, 0, 0.08));
 		color: var(--color-text-primary, #333);
+	}
+
+	.picker-counter-header {
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--color-accent-gold);
+		background: rgba(212, 175, 55, 0.1);
+		border: 1px solid rgba(212, 175, 55, 0.3);
+		padding: 6px 12px;
+		border-radius: 999px;
+		letter-spacing: 0.05em;
 	}
 
 	.relative {

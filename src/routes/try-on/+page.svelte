@@ -7,6 +7,7 @@
 	import { Camera, Image, Download, Sparkles, X, ShoppingBag, Plus } from 'lucide-svelte';
 	import { DotLottieSvelte } from '@lottiefiles/dotlottie-svelte';
 	import { writable } from 'svelte/store';
+	import { tryOnPicker } from '$lib/stores/tryOnPicker';
 
 	// Background processing notification store
 	export const tryOnResult = writable<{ ready: boolean; image: string | null }>({
@@ -62,6 +63,13 @@
 	let errorMsg = $state('');
 	let showUploadModal = $state(false);
 	let showResultBanner = $state(false);
+	let demoVideo: HTMLVideoElement | undefined = $state();
+
+	$effect(() => {
+		if (demoVideo) {
+			demoVideo.playbackRate = 0.5;
+		}
+	});
 
 	// Slider (copied from TransformationGallery pattern)
 	let sliderPosition = $state(50);
@@ -75,6 +83,17 @@
 	let innerStyle = $derived(containerWidth ? `width: ${containerWidth}px` : 'width: 100%');
 
 	onMount(() => {
+		// Check if returning from picker mode
+		if ($tryOnPicker.active && $tryOnPicker.selectedServices.length > 0) {
+			selectedServices = [...$tryOnPicker.selectedServices];
+			tryOnPicker.deactivate();
+			return;
+		}
+		// Deactivate picker if active but empty (user pressed back)
+		if ($tryOnPicker.active) {
+			tryOnPicker.deactivate();
+		}
+
 		const urlService = $page.url.searchParams.get('serviceName');
 		if (urlService) {
 			const f = hairServices.find((s) => s.name === urlService);
@@ -89,6 +108,11 @@
 	function removeService(id: string) {
 		selectedServices = selectedServices.filter((s) => s.id !== id);
 		if (!selectedServices.some((s) => isColorService(s.name))) selectedShadeIdx = null;
+	}
+
+	function openStylePicker() {
+		tryOnPicker.activate(selectedServices);
+		goto('/services');
 	}
 	function selectShade(idx: number) {
 		selectedShadeIdx = idx;
@@ -261,15 +285,55 @@
 
 	{#if !originalImageBase64}
 		<!-- UPLOAD STATE -->
-		<div class="upload-section">
-			<div class="upload-icon-ring"><Sparkles size={32} color="var(--color-accent-gold)" /></div>
-			<h2>See it before you get it</h2>
-			<p>
-				Upload a clear, front-facing photo and preview stunning salon transformations on yourself.
-			</p>
-			<button class="gold-btn" onclick={() => (showUploadModal = true)}
-				><Camera size={20} /> Upload Photo</button
-			>
+		<div class="demo-card-section">
+			<div class="preview-wrap demo-wrap" onclick={() => (showUploadModal = true)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showUploadModal = true)}>
+				<video 
+					src="/assets/tryOnDemo.webm" 
+					autoplay 
+					loop 
+					muted 
+					playsinline 
+					class="preview-img demo-video"
+					bind:this={demoVideo}
+				></video>
+				<div class="demo-overlay-gradient"></div>
+				<div class="demo-content">
+					<div class="demo-badge">
+						<Sparkles size={14} color="var(--color-accent-gold)" /> Live Demo
+					</div>
+					<div class="demo-text-box">
+						<h2>See it before you get it</h2>
+						<p>Upload a front-facing photo and preview stunning salon transformations instantly.</p>
+					</div>
+				</div>
+			</div>
+			<div class="demo-action-area">
+				{#if selectedServices.length > 0}
+					<div class="selection-area">
+						<h3 class="label-text">Styles to Preview <span class="dim">(max 3)</span></h3>
+						{#if selectedServices.length > 0}
+							<div class="chips">
+								{#each selectedServices as svc}
+									<span class="chip">
+										{svc.name}
+										<button aria-label="Remove style" onclick={(e) => { e.stopPropagation(); removeService(svc.id); }}><X size={13} /></button>
+									</span>
+								{/each}
+							</div>
+						{/if}
+						
+						{#if selectedServices.length < 3 && availableServices.length > 0}
+							<button class="add-style-btn" onclick={openStylePicker}>
+								<Plus size={16} />
+								{selectedServices.length > 0 ? 'Add another style' : 'Add a style'}
+							</button>
+						{/if}
+					</div>
+				{/if}
+				<button class="gold-btn full demo-btn" onclick={() => (showUploadModal = true)}>
+					<Camera size={20} /> Upload Your Photo
+				</button>
+			</div>
 		</div>
 	{:else if isProcessing}
 		<!-- PROCESSING STATE with Lottie -->
@@ -290,8 +354,8 @@
 				<span class="preview-badge">Your Photo</span>
 			</div>
 
-			<div class="config-area">
-				<h3 class="label-text">Select Services <span class="dim">(max 3)</span></h3>
+			<div class="config-area selection-area">
+				<h3 class="label-text">Styles to Preview <span class="dim">(max 3)</span></h3>
 				{#if selectedServices.length > 0}
 					<div class="chips">
 						{#each selectedServices as svc}<span class="chip"
@@ -301,18 +365,10 @@
 					</div>
 				{/if}
 				{#if selectedServices.length < 3 && availableServices.length > 0}
-					<select
-						class="svc-select"
-						onchange={(e) => {
-							const t = e.target as HTMLSelectElement;
-							const s = hairServices.find((h) => h.id === t.value);
-							if (s) addService(s);
-							t.value = '';
-						}}
-					>
-						<option value="">+ Add a service...</option>
-						{#each availableServices as s}<option value={s.id}>{s.name}</option>{/each}
-					</select>
+					<button class="add-style-btn" onclick={openStylePicker}>
+						<Plus size={16} />
+						{selectedServices.length > 0 ? 'Add another style' : 'Add a style'}
+					</button>
 				{/if}
 
 				{#if hasColorService}
@@ -333,12 +389,14 @@
 				{/if}
 
 				{#if errorMsg}<div class="err">{errorMsg}</div>{/if}
-				<button
-					class="gold-btn full"
-					onclick={processTryOn}
-					disabled={selectedServices.length === 0}><Sparkles size={18} /> See My New Look</button
-				>
-				<button class="link-btn" onclick={resetAll}>Choose Different Photo</button>
+				<div class="config-actions">
+					<button
+						class="gold-btn full modern-action-btn"
+						onclick={processTryOn}
+						disabled={selectedServices.length === 0}><Sparkles size={16} /> See My New Look</button
+					>
+					<button class="link-btn small-link" onclick={resetAll}>Choose Different Photo</button>
+				</div>
 			</div>
 		</div>
 	{:else}
@@ -422,6 +480,7 @@
 		</div>
 	</div>
 {/if}
+
 <input
 	type="file"
 	accept="image/*"
@@ -468,34 +527,88 @@
 		opacity: 0.8;
 	}
 
-	/* Upload */
-	.upload-section {
-		text-align: center;
-		padding: 60px 20px;
+	/* Demo Card / Upload */
+	.demo-card-section {
+		padding: 0;
+		animation: fadeIn 0.4s ease-out;
 	}
-	.upload-icon-ring {
-		width: 80px;
-		height: 80px;
-		border-radius: 50%;
-		background: rgba(212, 175, 55, 0.08);
-		border: 1px solid rgba(212, 175, 55, 0.2);
+	@keyframes fadeIn {
+		from { opacity: 0; transform: translateY(10px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+	.demo-wrap {
+		position: relative;
+		cursor: pointer;
+		box-shadow: 0 12px 36px rgba(0,0,0,0.15);
+		transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+		margin-bottom: 20px;
+	}
+	.demo-wrap:active {
+		transform: scale(0.97);
+	}
+	.demo-video {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.demo-overlay-gradient {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.85) 100%);
+		pointer-events: none;
+	}
+	.demo-content {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		padding: 24px;
+		color: white;
+	}
+	.demo-badge {
+		align-self: flex-start;
+		background: rgba(0,0,0,0.6);
+		backdrop-filter: blur(10px);
+		padding: 8px 16px;
+		border-radius: 999px;
+		font-size: 0.85rem;
+		font-weight: 700;
 		display: flex;
 		align-items: center;
-		justify-content: center;
-		margin: 0 auto 20px;
+		gap: 8px;
+		border: 1px solid rgba(255,255,255,0.15);
+		box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 	}
-	.upload-section h2 {
-		font-size: 1.5rem;
+	.demo-text-box {
+		text-align: center;
+		margin-bottom: 10px;
+	}
+	.demo-text-box h2 {
+		font-size: 1.8rem;
+		font-weight: 800;
 		margin-bottom: 12px;
+		text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+		letter-spacing: 0.02em;
 	}
-	.upload-section p {
-		color: var(--color-text-secondary);
-		font-size: 0.95rem;
+	.demo-text-box p {
+		font-size: 1rem;
 		line-height: 1.5;
-		margin-bottom: 28px;
-		max-width: 320px;
-		margin-left: auto;
-		margin-right: auto;
+		margin-bottom: 0;
+		color: rgba(255,255,255,0.95);
+		text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+		padding: 0 10px;
+	}
+	.demo-action-area {
+		padding: 0;
+	}
+	.selection-area {
+		margin-bottom: 24px;
+	}
+	.demo-btn {
+		box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+		font-size: 1.05rem;
+		padding: 18px;
 	}
 
 	/* Buttons */
@@ -660,19 +773,120 @@
 		display: flex;
 		padding: 0;
 	}
-	.svc-select {
+	/* Add Style Button */
+	.add-style-btn {
 		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 14px 16px;
+		border-radius: 14px;
+		border: 1.5px dashed rgba(212, 175, 55, 0.4);
+		background: rgba(212, 175, 55, 0.04);
+		color: var(--color-accent-gold);
+		font-size: 0.9rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.25s ease;
+		margin-bottom: 8px;
+	}
+	.add-style-btn:active {
+		transform: scale(0.97);
+		background: rgba(212, 175, 55, 0.1);
+	}
+
+	/* Style Picker Bottom Sheet */
+	.style-sheet {
 		background: var(--color-bg-secondary);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		color: var(--color-text-primary);
-		padding: 12px 14px;
-		border-radius: 12px;
-		font-size: 0.95rem;
-		outline: none;
+		border-radius: 24px 24px 0 0;
+		padding: 20px;
+		width: 100%;
+		max-width: 480px;
+		max-height: 70vh;
+		display: flex;
+		flex-direction: column;
+		animation: sheetSlideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+	@keyframes sheetSlideUp {
+		from { transform: translateY(100%); }
+		to { transform: translateY(0); }
+	}
+	.style-sheet-title {
+		text-align: center;
+		font-size: 1.15rem;
+		font-weight: 700;
 		margin-bottom: 4px;
 	}
-	.svc-select:focus {
-		border-color: var(--color-accent-gold);
+	.style-sheet-sub {
+		text-align: center;
+		font-size: 0.8rem;
+		color: var(--color-text-secondary);
+		margin-bottom: 18px;
+		opacity: 0.7;
+	}
+	.style-list {
+		overflow-y: auto;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding-bottom: 8px;
+		scrollbar-width: none;
+	}
+	.style-list::-webkit-scrollbar {
+		display: none;
+	}
+	.style-card {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 16px;
+		background: var(--color-bg-primary);
+		border: 1px solid rgba(255, 255, 255, 0.06);
+		border-radius: 16px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+	.style-card:active {
+		transform: scale(0.98);
+		background: rgba(212, 175, 55, 0.08);
+		border-color: rgba(212, 175, 55, 0.3);
+	}
+	.style-card-info {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 3px;
+	}
+	.style-card-name {
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: var(--color-text-primary);
+	}
+	.style-card-price {
+		font-size: 0.8rem;
+		color: var(--color-accent-gold);
+		font-weight: 500;
+	}
+	.style-card-add {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		background: rgba(212, 175, 55, 0.12);
+		color: var(--color-accent-gold);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+	.no-styles-msg {
+		text-align: center;
+		color: var(--color-text-secondary);
+		font-size: 0.9rem;
+		padding: 24px;
+		opacity: 0.6;
 	}
 	.err {
 		color: #ff6b6b;
@@ -682,6 +896,31 @@
 		padding: 10px;
 		border-radius: 8px;
 		margin: 10px 0;
+	}
+
+	.config-actions {
+		margin-top: 24px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+	}
+	.modern-action-btn {
+		padding: 14px 24px !important;
+		font-size: 0.95rem !important;
+		border-radius: 999px !important;
+		box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25) !important;
+		letter-spacing: 0.02em;
+	}
+	.small-link {
+		font-size: 0.8rem !important;
+		color: var(--color-text-secondary) !important;
+		padding: 4px !important;
+		opacity: 0.8;
+		transition: opacity 0.2s;
+	}
+	.small-link:hover {
+		opacity: 1;
 	}
 
 	/* Shade picker */

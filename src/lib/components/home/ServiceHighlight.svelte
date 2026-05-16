@@ -3,10 +3,14 @@
 	import { cart } from '$lib/stores/booking';
 	import { goto } from '$app/navigation';
 	import type { Service } from '$lib/stores/appData';
-	import { Clock, Wand2 } from 'lucide-svelte';
+	import { Clock, Wand2, Check, Plus } from 'lucide-svelte';
 	import { user } from '$lib/stores/auth';
+	import { tryOnPicker, tryOnPickerFull } from '$lib/stores/tryOnPicker';
 
-	export let service: Service;
+	let { service, tryOnMode = false } = $props();
+
+	let isSelected = $derived($tryOnPicker.selectedIds.includes(service.id));
+	let isFull = $derived($tryOnPickerFull);
 
 	function handleBook() {
 		cart.add(service);
@@ -14,6 +18,14 @@
 			goto('/booking');
 		} else {
 			goto('/login');
+		}
+	}
+
+	function handleTryOnToggle() {
+		if (isSelected) {
+			tryOnPicker.removeService(service.id);
+		} else if (!isFull) {
+			tryOnPicker.addService({ name: service.name, id: service.id, price: service.price });
 		}
 	}
 
@@ -28,7 +40,7 @@
 	}
 </script>
 
-<div class="service-card">
+<div class="service-card" class:selected-for-tryon={tryOnMode && isSelected}>
 	<div class="image-container">
 		<LazyImage
 			src={service.image}
@@ -38,16 +50,21 @@
 			className="card-img"
 		/>
 		<div class="category-badge">{service.category}</div>
-		{#if service.category === 'Hair'}
+		{#if !tryOnMode && service.category === 'Hair'}
 			<button
 				class="tryon-pill"
-				on:click|stopPropagation={() =>
-					goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`)}
+				onclick={(e) => {
+					e.stopPropagation();
+					goto(`/try-on?serviceId=${service.id}&serviceName=${encodeURIComponent(service.name)}`);
+				}}
 				title="Virtual Try-On"
 			>
 				<span>Try On</span>
 				<div class="icon-circle"><Wand2 size={10} strokeWidth={3} /></div>
 			</button>
+		{/if}
+		{#if tryOnMode && isSelected}
+			<div class="selected-check"><Check size={16} strokeWidth={3} /></div>
 		{/if}
 	</div>
 
@@ -70,7 +87,22 @@
 				{/if}
 			</div>
 			<div class="actions">
-				<button class="book-btn" on:click={handleBook}>Book</button>
+				{#if tryOnMode}
+					<button
+						class="tryon-add-btn"
+						class:is-selected={isSelected}
+						onclick={handleTryOnToggle}
+						disabled={!isSelected && isFull}
+					>
+						{#if isSelected}
+							<Check size={14} strokeWidth={3} /> Added
+						{:else}
+							<Plus size={14} strokeWidth={2.5} /> Add
+						{/if}
+					</button>
+				{:else}
+					<button class="book-btn" onclick={handleBook}>Book</button>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -265,5 +297,57 @@
 
 	.book-btn:hover {
 		opacity: 0.9;
+	}
+
+	/* Try-On Picker Mode */
+	.selected-for-tryon {
+		border-color: rgba(212, 175, 55, 0.5);
+		box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.3), 0 4px 16px rgba(212, 175, 55, 0.1);
+	}
+
+	.selected-check {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: var(--color-accent-gold);
+		color: #1a1a1a;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+		z-index: 2;
+	}
+
+	.tryon-add-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 8px 16px;
+		font-size: 0.78rem;
+		font-weight: 700;
+		border-radius: var(--radius-full);
+		border: 1.5px solid rgba(212, 175, 55, 0.4);
+		background: rgba(212, 175, 55, 0.08);
+		color: var(--color-accent-gold);
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.tryon-add-btn:active {
+		transform: scale(0.95);
+	}
+
+	.tryon-add-btn.is-selected {
+		background: var(--color-accent-gold);
+		color: #1a1a1a;
+		border-color: var(--color-accent-gold);
+	}
+
+	.tryon-add-btn:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
 	}
 </style>

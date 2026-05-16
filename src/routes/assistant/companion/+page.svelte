@@ -14,6 +14,7 @@
 	let isMuted = $state(false);
 	let isListening = $state(false);
 	let isProcessing = $state(false); // Hard lock: true from send until Ani fully finishes speaking
+	let streamComplete = $state(true); // True when API response stream has fully ended
 	let mouthVolume = $state(0);
 	let showMenu = $state(false);
 	let showSubtitle = $state('');
@@ -42,9 +43,12 @@
 			isSpeaking = true;
 		} else if (!currentlyPlaying && isSpeaking) {
 			isSpeaking = false;
-			isProcessing = false; // Ani fully finished speaking — unlock mic
 			// Clear UI state shortly after speaking ends
 			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 3000);
+		}
+
+		if (streamComplete && !currentlyPlaying && isProcessing) {
+			isProcessing = false; // Ani fully finished speaking — unlock mic
 			
 			// Auto-resume listening if voice mode is enabled (safe now — Ani is silent)
 			if (voiceModeEnabled && recognition && !isListening && !isMuted) {
@@ -93,14 +97,15 @@
 			}
 		}
 
+		// Start listening immediately if voice mode is enabled
+		if (voiceModeEnabled && recognition) {
+			try { recognition.start(); isListening = true; } catch {}
+		}
+
+		// Trigger initial greeting voice message
 		setTimeout(() => {
-			showSubtitle = "Mm... welcome back, darling~";
-			activeEmotion = 'Romantic';
-			activeAction = 'Wave';
-			activeEffect = 'Hearts';
-			heartsKey++;
-			setTimeout(() => { showSubtitle = ''; activeAction = 'None'; activeEffect = 'None'; activeEmotion = 'Neutral'; }, 6000);
-		}, 2500);
+			sendMessage("Please introduce yourself and welcome me to Blancbeu Beauty Saloon, ask how you can help or impress me.", true);
+		}, 1000);
 	});
 
 	onDestroy(() => {
@@ -109,7 +114,7 @@
 		if (recognition) { try { recognition.stop(); } catch {} }
 	});
 
-	async function sendMessage(text?: string) {
+	async function sendMessage(text?: string, isHidden: boolean = false) {
 		const msg = text || inputText.trim();
 		if (!msg || isThinking) return;
 
@@ -119,8 +124,11 @@
 		}
 
 		isProcessing = true; // Lock mic until Ani fully finishes speaking
+		streamComplete = false; // Reset stream status
 		inputText = '';
-		messages = [...messages, { role: 'user', text: msg }];
+		if (!isHidden) {
+			messages = [...messages, { role: 'user', text: msg }];
+		}
 		isThinking = true;
 		activeEffect = 'None';
 		showSubtitle = '';
@@ -189,6 +197,8 @@
 				}
 			}
 
+			streamComplete = true;
+
 			if (isMuted) {
 				isThinking = false;
 				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 5000);
@@ -199,6 +209,7 @@
 			messages = [...messages, { role: 'assistant', text: errorMsg }];
 			showSubtitle = errorMsg;
 			isThinking = false;
+			streamComplete = true; // Force unlock
 			isProcessing = false; // Unlock on error
 			setTimeout(() => { showSubtitle = ''; }, 5000);
 		}
@@ -222,7 +233,7 @@
 		if (isMuted) { audioAnalyser.stop(); isSpeaking = false; mouthVolume = 0; }
 	}
 
-	let voiceModeEnabled = $state(false);
+	let voiceModeEnabled = $state(true);
 
 	function toggleListen() {
 		if (!recognition) {
@@ -239,13 +250,13 @@
 		}
 	}
 
-	function stopSpeaking() {
+	function stopAndExit() {
 		audioAnalyser.stop();
 		isSpeaking = false;
-		mouthVolume = 0;
-		showSubtitle = '';
-		activeAction = 'None';
-		activeEmotion = 'Neutral';
+		streamComplete = true;
+		isProcessing = false;
+		if (recognition) { try { recognition.stop(); isListening = false; } catch {} }
+		goBack();
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -412,10 +423,10 @@
 			<div class="input-field">
 				<input type="text" placeholder="Ask Ani Anything..." bind:value={inputText} onkeydown={handleKeydown} disabled={isThinking} />
 			</div>
-			{#if isSpeaking || isThinking}
-				<button class="stop-btn" onclick={stopSpeaking} aria-label="Stop"><Square size={14} fill="white" /><span>Stop</span></button>
-			{:else if inputText.trim()}
+			{#if inputText.trim() && !isSpeaking && !isThinking}
 				<button class="stop-btn send-active" onclick={() => sendMessage()} aria-label="Send"><Send size={14} /><span>Send</span></button>
+			{:else}
+				<button class="stop-btn exit-btn" onclick={stopAndExit} aria-label="Stop"><Square size={14} fill="white" /><span>Stop</span></button>
 			{/if}
 		</div>
 	</div>
@@ -519,6 +530,7 @@
 	.stop-btn { display: flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 25px; background: rgba(70,40,60,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; font-family: inherit; }
 	.stop-btn:active { transform: scale(0.95); }
 	.stop-btn.send-active { background: rgba(200,50,90,0.6); border-color: rgba(220,50,100,0.5); }
+	.stop-btn.exit-btn { background: rgba(220,50,50,0.3); border-color: rgba(220,50,50,0.5); }
 
 
 </style>

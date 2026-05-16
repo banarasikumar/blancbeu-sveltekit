@@ -19,6 +19,7 @@
 
 	import { theme, THEME_COLORS } from '$lib/stores/theme';
 	import { initAppServiceListener } from '$lib/stores/appData';
+	import { tryOnPicker } from '$lib/stores/tryOnPicker';
 
 	// Dynamic Import for Simulator
 	let { children } = $props();
@@ -222,7 +223,7 @@
 		<main class="app-content" class:immersive={isHomePage}>
 			{@render children()}
 		</main>
-		{#if !page.url.pathname.startsWith('/assistant')}
+		{#if !page.url.pathname.startsWith('/assistant') && !$tryOnPicker.active}
 			<MobileNav />
 		{/if}
 		<InstallPrompt />
@@ -231,7 +232,7 @@
 		{#if showWelcomeModal && welcomeUser}
 			<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
 		{/if}
-		{#if !page.url.pathname.startsWith('/assistant')}
+		{#if !page.url.pathname.startsWith('/assistant') && !$tryOnPicker.active}
 			<AssistantOrb />
 		{/if}
 	</div>
@@ -243,7 +244,7 @@
 				<main class="app-content" class:immersive={isHomePage}>
 					{@render children()}
 				</main>
-				{#if !page.url.pathname.startsWith('/assistant')}
+				{#if !page.url.pathname.startsWith('/assistant') && !$tryOnPicker.active}
 					<MobileNav />
 				{/if}
 				<InstallPrompt onClosed={() => notificationPromptRef?.show()} />
@@ -252,7 +253,7 @@
 				{#if showWelcomeModal && welcomeUser}
 					<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
 				{/if}
-				{#if !page.url.pathname.startsWith('/assistant')}
+				{#if !page.url.pathname.startsWith('/assistant') && !$tryOnPicker.active}
 					<AssistantOrb />
 				{/if}
 			</div>
@@ -264,7 +265,7 @@
 		<main class="app-content" class:immersive={isHomePage}>
 			{@render children()}
 		</main>
-		{#if !page.url.pathname.startsWith('/assistant')}
+		{#if !page.url.pathname.startsWith('/assistant') && !$tryOnPicker.active}
 			<MobileNav />
 		{/if}
 		<InstallPrompt />
@@ -273,7 +274,7 @@
 		{#if showWelcomeModal && welcomeUser}
 			<WelcomeModal user={welcomeUser} onClose={() => (showWelcomeModal = false)} />
 		{/if}
-		{#if !page.url.pathname.startsWith('/assistant')}
+		{#if !page.url.pathname.startsWith('/assistant') && !$tryOnPicker.active}
 			<AssistantOrb />
 		{/if}
 	</div>
