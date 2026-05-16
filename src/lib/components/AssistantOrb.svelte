@@ -27,8 +27,8 @@
 		<!-- Sparkle accent -->
 		<svg
 			class="sparkle-icon"
-			width="16"
-			height="16"
+			width="12"
+			height="12"
 			viewBox="0 0 24 24"
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
@@ -50,51 +50,63 @@
 		top: 65%;
 		right: 0;
 		transform: translateY(-50%);
-		width: 54px;
-		height: 64px;
-		background: rgba(30, 30, 30, 0.6);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3);
+		width: 48px;
+		height: 56px;
+		background: rgba(10, 10, 10, 0.25);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.15);
 		border-right: none;
-		border-radius: 32px 0 0 32px;
+		border-radius: 28px 0 0 28px;
 		display: flex;
 		align-items: center;
 		justify-content: flex-start;
-		padding-left: 6px;
+		padding-left: 5px;
 		cursor: pointer;
 		z-index: 990; /* Just below modals */
 		box-shadow:
-			-4px 4px 16px rgba(0, 0, 0, 0.4),
-			inset 2px 0 8px rgba(255, 255, 255, 0.1);
+			-4px 6px 20px rgba(0, 0, 0, 0.3),
+			inset 1px 1px 0px rgba(255, 255, 255, 0.05);
 		transition:
-			transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-			width 0.3s ease;
+			transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+			background 0.3s ease,
+			border-color 0.3s ease,
+			opacity 0.3s ease;
 		-webkit-tap-highlight-color: transparent;
 		text-decoration: none;
+		opacity: 0.85;
 	}
 
 	.assistant-orb:active {
-		transform: translateY(-50%) scale(0.95);
+		transform: translateY(-50%) scale(0.92);
+		opacity: 1;
+	}
+
+	@media (hover: hover) {
+		.assistant-orb:hover {
+			opacity: 1;
+			background: rgba(15, 15, 15, 0.4);
+			border-color: rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3);
+		}
 	}
 
 	.glow-layer {
 		position: absolute;
-		left: 6px;
-		width: 48px;
-		height: 48px;
+		left: 5px;
+		width: 40px;
+		height: 40px;
 		border-radius: 50%;
-		background: radial-gradient(circle, rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.4) 0%, transparent 70%);
+		background: radial-gradient(circle, rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3) 0%, transparent 70%);
 		pointer-events: none;
 	}
 
 	.pulse-1 {
-		animation: pulseOrb 3s infinite alternate ease-in-out;
+		animation: pulseOrb 4s infinite alternate ease-in-out;
 	}
 
 	.pulse-2 {
-		animation: pulseOrb 4s infinite alternate-reverse ease-in-out;
-		opacity: 0.5;
+		animation: pulseOrb 6s infinite alternate-reverse ease-in-out;
+		opacity: 0.4;
 	}
 
 	@keyframes pulseOrb {
@@ -110,12 +122,12 @@
 
 	.avatar-container {
 		position: relative;
-		width: 44px;
-		height: 44px;
+		width: 38px;
+		height: 38px;
 		border-radius: 50%;
 		overflow: hidden;
-		border: 2px solid var(--color-accent-gold, #d4af37);
-		box-shadow: 0 0 10px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.5);
+		border: 1.5px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.5);
+		box-shadow: 0 0 10px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3);
 		z-index: 2;
 	}
 
