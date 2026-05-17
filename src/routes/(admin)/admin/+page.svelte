@@ -31,7 +31,9 @@
 		Clock,
 		ChevronRight,
 		Sparkles,
-		Wrench
+		Wrench,
+		Download,
+		Upload
 	} from 'lucide-svelte';
 	import { flip } from 'svelte/animate';
 	import { onMount, onDestroy } from 'svelte';
@@ -263,7 +265,9 @@
 			label: 'Tools',
 			icon: Wrench,
 			bg: 'var(--admin-indigo)',
-			handler: () => goto('/admin/tools')
+			handler: () => {
+				showToolsMenu = !showToolsMenu;
+			}
 		},
 		{
 			label: 'Reports',
@@ -272,6 +276,24 @@
 			handler: () => goto('/admin/reports')
 		}
 	]);
+
+	/* --- Tools dropdown menu --- */
+	let showToolsMenu = $state(false);
+
+	function handleToolsMenuClick(path: string) {
+		showToolsMenu = false;
+		goto(path);
+	}
+
+	// Close tools menu when clicking outside
+	function handleWindowClick(e: MouseEvent) {
+		if (showToolsMenu) {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.dash-tools-menu') && !target.closest('.dash-action-btn[data-tools]')) {
+				showToolsMenu = false;
+			}
+		}
+	}
 
 	/* --- Drag & Drop Reordering --- */
 	let isEditing = $state(false);
@@ -697,24 +719,51 @@
 
 	<div class="dash-actions-grid">
 		{#each actions as action, i (action.label)}
-			<button
-				class="dash-action-btn"
-				class:editing={isEditing}
-				class:dragging={draggingIndex === i}
-				data-index={i}
-				onclick={!isEditing ? action.handler : undefined}
-				onpointerdown={(e) => handlePointerDown(e, i)}
-				style="touch-action: none;"
-				animate:flip={{ duration: 300 }}
-			>
-				<div
-					class="dash-action-icon-wrap"
-					style="background: {action.bg}; opacity: {isEditing ? 0.8 : 1};"
+			<div style="position: relative;" animate:flip={{ duration: 300 }}>
+				<button
+					class="dash-action-btn"
+					class:editing={isEditing}
+					class:dragging={draggingIndex === i}
+					data-index={i}
+					data-tools={action.label === 'Tools' ? '' : undefined}
+					onclick={!isEditing ? action.handler : undefined}
+					onpointerdown={(e) => handlePointerDown(e, i)}
+					style="touch-action: none;"
 				>
-					<action.icon size={20} color="#fff" />
-				</div>
-				<span class="dash-action-label">{action.label}</span>
-			</button>
+					<div
+						class="dash-action-icon-wrap"
+						style="background: {action.bg}; opacity: {isEditing ? 0.8 : 1};"
+					>
+						<action.icon size={20} color="#fff" />
+					</div>
+					<span class="dash-action-label">{action.label}</span>
+				</button>
+
+				{#if action.label === 'Tools' && showToolsMenu}
+					<div class="dash-tools-menu">
+						<button class="dash-tools-menu-item" onclick={() => handleToolsMenuClick('/admin/tools')}>
+							<div class="dash-tools-menu-icon" style="background: var(--admin-green-light); color: var(--admin-green);">
+								<Download size={16} />
+							</div>
+							<div class="dash-tools-menu-text">
+								<span class="dash-tools-menu-label">Users Exporter</span>
+								<span class="dash-tools-menu-desc">Export user data</span>
+							</div>
+						</button>
+						<button class="dash-tools-menu-item" onclick={() => handleToolsMenuClick('/admin/import-walkins')}>
+							<div class="dash-tools-menu-icon" style="background: var(--admin-accent-light); color: var(--admin-accent);">
+								<Upload size={16} />
+							</div>
+							<div class="dash-tools-menu-text">
+								<span class="dash-tools-menu-label">Walk-in Importer</span>
+								<span class="dash-tools-menu-desc">Import VCF contacts</span>
+							</div>
+						</button>
+					</div>
+				{/if}
+			</div>
 		{/each}
 	</div>
 </div>
+
+<svelte:window onclick={handleWindowClick} />

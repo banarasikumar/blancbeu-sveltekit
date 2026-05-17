@@ -19,14 +19,23 @@ export class AvatarManager {
 	private clock: THREE.Clock;
 	private animFrameId: number = 0;
 	private lookAtTarget: THREE.Object3D;
+	private resizeObserver: ResizeObserver;
 	
 	// Gesture state
 	private isSpeaking: boolean = false;
 	private gestureCooldown: number = 0;
+	private lastAction: string = 'None';
+	private actionStartTime: number = 0;
 	
+	// Procedural posture
+	private proceduralLeanWeight: number = 0;
+	private lastAppliedSpine: number = 0;
+	private lastAppliedChest: number = 0;
+	private lastAppliedUpperChest: number = 0;
+	private lastAppliedNeck: number = 0;
 
-	// Dynamic Camera — positioned low, looking at the chest to keep head near top of screen
-	private targetCameraPos = new THREE.Vector3(0, 0.75, 1.9);
+	// Dynamic Camera — tighter portrait framing like Grok Ani
+	private targetCameraPos = new THREE.Vector3(0, 0.8, 2.1);
 	private targetCameraLookAt = new THREE.Vector3(0, 0.9, 0);
 	private currentCameraLookAt = new THREE.Vector3(0, 0.9, 0);
 
@@ -55,7 +64,10 @@ export class AvatarManager {
 		this.setupLighting();
 		this.updateSize();
 
-		window.addEventListener('resize', this.updateSize.bind(this));
+		this.resizeObserver = new ResizeObserver(() => this.updateSize());
+		if (canvas.parentElement) {
+			this.resizeObserver.observe(canvas.parentElement);
+		}
 	}
 
 	private setupLighting() {
@@ -117,6 +129,8 @@ export class AvatarManager {
 		// Start idle
 		this.animationManager.playState('Idle');
 
+		// Ensure layout is perfectly settled for initial framing
+		this.updateSize();
 		this.animate();
 	}
 
@@ -154,13 +168,13 @@ export class AvatarManager {
 			this.targetCameraPos.set(0, 0.5, 3.0);
 			this.targetCameraLookAt.set(0, 0.8, 0);
 		} else {
-			this.targetCameraPos.set(0, 0.75, 1.9);
+			this.targetCameraPos.set(0, 0.8, 2.1);
 			this.targetCameraLookAt.set(0, 0.9, 0);
 		}
 
 		// --- Animation state machine ---
 		const IDLE_STATES = ['Idle', 'BreathingIdle', 'Idle1', 'StandingIdle', 'SittingIdle'];
-		const ONE_SHOT_ACTIONS = ['Wave', 'Greeting', 'TurnAround', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Happy', 'LeanForward', 'RomanticPose'];
+		const ONE_SHOT_ACTIONS = ['Wave', 'Greeting', 'TurnAround', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Happy', 'LeanForward', 'RomanticPose', 'Dance'];
 		const TALKING_STATE = 'Talking';
 
 		if (this.animationManager) {
@@ -168,8 +182,12 @@ export class AvatarManager {
 
 			if (action !== 'None') {
 				// Explicit action requested by AI
-				this.animationManager.playState(action);
+				if (this.lastAction !== action) {
+					this.lastAction = action;
+					this.animationManager.playState(action);
+				}
 			} else if (this.isSpeaking) {
+				this.lastAction = 'None';
 				// Speaking — play talking animation with body gestures
 				if (curState !== TALKING_STATE) {
 					// Transition to talking from ANY state (idle, finished one-shot, etc.)
@@ -184,10 +202,11 @@ export class AvatarManager {
 					}
 				}
 			} else {
+				this.lastAction = 'None';
 				// Not speaking, no action — idle
-				if (!IDLE_STATES.includes(curState)) {
+				if (!IDLE_STATES.includes(curState) && !ONE_SHOT_ACTIONS.includes(curState)) {
 					this.animationManager.playState('Idle', 0.6);
-				} else if (Math.random() < 0.003) {
+				} else if (Math.random() < 0.003 && IDLE_STATES.includes(curState)) {
 					// Occasional organic idle shift
 					this.animationManager.playState('Idle', 1.0, true);
 				}
@@ -203,12 +222,18 @@ export class AvatarManager {
 		// --- LookAt: ALWAYS gaze directly into camera (direct eye contact) ---
 		this.lookAtTarget.position.copy(this.camera.position);
 
+		// Clean slate for the mixer: remove our procedural offsets from the previous frame
+		this.removeProceduralPosture();
+
 		// Update sub-managers
 		if (this.animationManager) this.animationManager.update(delta);
 		if (this.expressionManager) this.expressionManager.update(delta);
 
 		// Re-apply relaxed hand pose AFTER mixer update so animations can't flatten fingers
 		this.applyRelaxedHandPose();
+		
+		// Apply procedural forward lean for eye contact intimacy
+		this.applyProceduralPosture(delta, action, emotion);
 
 		// VRM & Render
 		this.vrm.update(delta);
@@ -266,9 +291,73 @@ export class AvatarManager {
 		}
 	}
 
+	/**
+	 * Remove the procedural offsets from the previous frame so the AnimationMixer 
+	 * doesn't infinitely stack rotations on non-keyframed bones.
+	 */
+	private removeProceduralPosture() {
+		if (!this.vrm?.humanoid) return;
+		
+		const spineNode = this.vrm.humanoid.getNormalizedBoneNode('spine' as any);
+		const chestNode = this.vrm.humanoid.getNormalizedBoneNode('chest' as any);
+		const upperChestNode = this.vrm.humanoid.getNormalizedBoneNode('upperChest' as any);
+		const neckNode = this.vrm.humanoid.getNormalizedBoneNode('neck' as any);
+
+		// Temporary override: disabled procedural leaning due to non-standard bone axes causing sideways rolling
+		// if (spineNode) spineNode.rotation.x -= this.lastAppliedSpine;
+		// if (chestNode) chestNode.rotation.x -= this.lastAppliedChest;
+		// if (upperChestNode) upperChestNode.rotation.x -= this.lastAppliedUpperChest;
+		// if (neckNode) neckNode.rotation.x -= this.lastAppliedNeck;
+	}
+
+	/**
+	 * Procedurally pitch the upper body forward to create an intimate, 
+	 * focused gaze into the low-placed camera.
+	 */
+	private applyProceduralPosture(delta: number, action: string, emotion: string) {
+		if (!this.vrm?.humanoid) return;
+
+		// We don't want to break full-body actions
+		const NO_LEAN_ACTIONS = ['Dance', 'TurnAround', 'Bow', 'Sit'];
+		let targetLean = 0;
+
+		if (!NO_LEAN_ACTIONS.includes(action)) {
+			// Normal lean vs intimate deep lean
+			targetLean = emotion === 'Whisper' ? 0.15 : 0.08;
+		}
+
+		// Smoothly interpolate to target lean to avoid snapping
+		this.proceduralLeanWeight += (targetLean - this.proceduralLeanWeight) * delta * 3.0;
+
+		const spineLean = this.proceduralLeanWeight * 1.5;
+		const chestLean = -this.proceduralLeanWeight * 0.8;
+		const upperChestLean = -this.proceduralLeanWeight * 0.5;
+		const neckLean = this.proceduralLeanWeight * 0.8;
+
+		// Apply the S-Curve posture (Grok Ani style)
+		// Spine bends forward, chest/upperChest arch back, neck tilts forward to lock eyes
+		const spineNode = this.vrm.humanoid.getNormalizedBoneNode('spine' as any);
+		const chestNode = this.vrm.humanoid.getNormalizedBoneNode('chest' as any);
+		const upperChestNode = this.vrm.humanoid.getNormalizedBoneNode('upperChest' as any);
+		const neckNode = this.vrm.humanoid.getNormalizedBoneNode('neck' as any);
+
+		// Apply the S-Curve posture (Grok Ani style)
+		// Disabled temporarily as local X axis is roll on this model, not pitch.
+		// if (spineNode) spineNode.rotation.x += spineLean;
+		// if (chestNode) chestNode.rotation.x += chestLean;
+		// if (upperChestNode) upperChestNode.rotation.x += upperChestLean;
+		// if (neckNode) neckNode.rotation.x += neckLean;
+
+		// Save the offsets we just applied so we can remove them next frame
+		this.lastAppliedSpine = spineLean;
+		this.lastAppliedChest = chestLean;
+		this.lastAppliedUpperChest = upperChestLean;
+		this.lastAppliedNeck = neckLean;
+	}
+
 	public dispose() {
 		if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
-		window.removeEventListener('resize', this.updateSize.bind(this));
+		this.resizeObserver.disconnect();
 		if (this.animationManager) this.animationManager.dispose();
 		if (this.renderer) {
 			this.renderer.dispose();

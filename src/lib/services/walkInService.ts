@@ -65,6 +65,25 @@ export async function findWalkInByPhone(
 	return null;
 }
 
+// Find an existing shadow walk-in account by email address
+export async function findWalkInByEmail(
+	email: string
+): Promise<{ id: string; [key: string]: any } | null> {
+	const q = query(
+		collection(db, 'users'),
+		where('accountType', '==', 'walkin'),
+		where('accountStatus', '==', 'shadow'),
+		where('email', '==', email.toLowerCase().trim()),
+		limit(1)
+	);
+	const snap = await getDocs(q);
+	if (!snap.empty) {
+		const d = snap.docs[0];
+		return { id: d.id, ...d.data() };
+	}
+	return null;
+}
+
 // Find or create a walk-in account (by phone); returns the walk-in document ID
 export async function findOrCreateWalkIn(data: WalkInAccountData): Promise<string> {
 	if (data.phone) {

@@ -21,7 +21,7 @@
 
 		<!-- The Avatar -->
 		<div class="avatar-container">
-			<img src="/ai_assistant.png" alt="AI Assistant" class="avatar-img" />
+			<img src="/Assistant.webp" alt="AI Assistant" class="avatar-img" />
 		</div>
 
 		<!-- Sparkle accent -->
@@ -50,18 +50,19 @@
 		top: 65%;
 		right: 0;
 		transform: translateY(-50%);
-		width: 48px;
-		height: 56px;
+		width: 44px;
+		height: 52px;
+		box-sizing: border-box;
 		background: rgba(10, 10, 10, 0.25);
 		backdrop-filter: blur(16px);
 		-webkit-backdrop-filter: blur(16px);
 		border: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.15);
 		border-right: none;
-		border-radius: 28px 0 0 28px;
+		border-radius: 26px 0 0 26px;
 		display: flex;
 		align-items: center;
 		justify-content: flex-start;
-		padding-left: 5px;
+		padding-left: 3px;
 		cursor: pointer;
 		z-index: 990; /* Just below modals */
 		box-shadow:
@@ -92,9 +93,10 @@
 
 	.glow-layer {
 		position: absolute;
-		left: 5px;
-		width: 40px;
-		height: 40px;
+		left: 3px;
+		top: 7px;
+		width: 38px;
+		height: 38px;
 		border-radius: 50%;
 		background: radial-gradient(circle, rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3) 0%, transparent 70%);
 		pointer-events: none;
@@ -126,7 +128,7 @@
 		height: 38px;
 		border-radius: 50%;
 		overflow: hidden;
-		border: 1.5px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.5);
+		border: 1px solid rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.5);
 		box-shadow: 0 0 10px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.3);
 		z-index: 2;
 	}

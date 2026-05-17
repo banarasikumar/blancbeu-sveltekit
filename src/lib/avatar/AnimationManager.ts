@@ -2,14 +2,11 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import type { VRM } from '@pixiv/three-vrm';
 import { AnimationRetargeter } from './AnimationRetargeter';
-
 const ANIMATION_MAP: Record<string, string[]> = {
 	'Idle': [
-		'/animations/Happy Idle.fbx',
-		'/animations/Happy Idle (1).fbx',
+		'/animations/Standing Idle.fbx',
 		'/animations/Idle (1).fbx',
-		'/animations/Idle.fbx',
-		'/animations/Breathing Idle.fbx'
+		'/animations/Idle.fbx'
 	],
 	'BreathingIdle': ['/animations/Breathing Idle.fbx'],
 	'Idle1': ['/animations/Idle (1).fbx'],
@@ -76,6 +73,13 @@ export class AnimationManager {
 		this.vrm = vrm;
 		this.mixer = new THREE.AnimationMixer(vrm.scene);
 		this.loader = new FBXLoader();
+
+		// Automatically return to Idle when a one-shot animation finishes
+		this.mixer.addEventListener('finished', (e) => {
+			if (this.currentAction === e.action) {
+				this.playState('Idle', 0.5);
+			}
+		});
 	}
 
 	async preload() {
@@ -122,7 +126,13 @@ export class AnimationManager {
 		}
 
 		// Pick a random variant
-		const randomPath = paths[Math.floor(Math.random() * paths.length)];
+		let randomPath = paths[Math.floor(Math.random() * paths.length)];
+
+		// If cycling gestures (forceRestart), guarantee we pick a different animation to ensure a smooth crossfade instead of a harsh snap
+		if (forceRestart && paths.length > 1 && this.currentPath === randomPath) {
+			const otherPaths = paths.filter(p => p !== this.currentPath);
+			randomPath = otherPaths[Math.floor(Math.random() * otherPaths.length)];
+		}
 
 		if (!forceRestart && this.currentPath === randomPath) return;
 		// Update path immediately as well
@@ -149,7 +159,7 @@ export class AnimationManager {
 		action.reset();
 		
 		// Adjust looping based on state
-		if (['Wave', 'Greeting', 'TurnAround', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Happy', 'LeanForward', 'RomanticPose'].includes(stateName)) {
+		if (['Wave', 'Greeting', 'TurnAround', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Happy', 'LeanForward', 'RomanticPose', 'Dance'].includes(stateName)) {
 			action.setLoop(THREE.LoopOnce, 1);
 			action.clampWhenFinished = true;
 		} else {

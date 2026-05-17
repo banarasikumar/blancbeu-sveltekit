@@ -4,10 +4,12 @@
 	import { onMount } from 'svelte';
 	import { appServices } from '$lib/stores/appData';
 	import { cart } from '$lib/stores/booking';
-	import { Camera, Image, Download, Sparkles, X, ShoppingBag, Plus } from 'lucide-svelte';
+	import { Camera, Image, Download, Sparkles, X, ShoppingBag, Plus, RefreshCw, RotateCcw } from 'lucide-svelte';
 	import { DotLottieSvelte } from '@lottiefiles/dotlottie-svelte';
 	import { writable } from 'svelte/store';
-	import { tryOnPicker } from '$lib/stores/tryOnPicker';
+	import { auth } from '$lib/firebase';
+	import { onAuthStateChanged } from 'firebase/auth';
+	import { tryOnPicker, tryOnOriginalImage, tryOnResultImage, tryOnSelectedShadeIdx } from '$lib/stores/tryOnPicker';
 
 	// Background processing notification store
 	export const tryOnResult = writable<{ ready: boolean; image: string | null }>({
@@ -49,7 +51,6 @@
 
 	let hairServices = $derived($appServices.filter((s) => s.category === 'Hair'));
 	let selectedServices: { name: string; id: string; price: number; shade?: string }[] = $state([]);
-	let selectedShadeIdx = $state<number | null>(null);
 	let hasColorService = $derived(selectedServices.some((s) => isColorService(s.name)));
 	let availableServices = $derived(
 		hairServices.filter((s) => !selectedServices.find((sel) => sel.id === s.id))
@@ -57,8 +58,6 @@
 
 	let fileInput: HTMLInputElement;
 	let cameraInput: HTMLInputElement;
-	let originalImageBase64 = $state<string | null>(null);
-	let resultImageBase64 = $state<string | null>(null);
 	let isProcessing = $state(false);
 	let errorMsg = $state('');
 	let showUploadModal = $state(false);
@@ -81,6 +80,15 @@
 	let isHorizontalSwipe = false;
 	let isVerticalSwipe = false;
 	let innerStyle = $derived(containerWidth ? `width: ${containerWidth}px` : 'width: 100%');
+
+	$effect(() => {
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (!user) {
+				goto('/login', { replaceState: true });
+			}
+		});
+		return unsubscribe;
+	});
 
 	onMount(() => {
 		// Check if returning from picker mode
@@ -107,7 +115,7 @@
 	}
 	function removeService(id: string) {
 		selectedServices = selectedServices.filter((s) => s.id !== id);
-		if (!selectedServices.some((s) => isColorService(s.name))) selectedShadeIdx = null;
+		if (!selectedServices.some((s) => isColorService(s.name))) $tryOnSelectedShadeIdx = null;
 	}
 
 	function openStylePicker() {
@@ -115,7 +123,7 @@
 		goto('/services');
 	}
 	function selectShade(idx: number) {
-		selectedShadeIdx = idx;
+		$tryOnSelectedShadeIdx = idx;
 		selectedServices = selectedServices.map((s) =>
 			isColorService(s.name) ? { ...s, shade: hairColorShades[idx].name } : s
 		);
@@ -163,8 +171,8 @@
 
 	async function handleFile(file: File) {
 		showUploadModal = false;
-		originalImageBase64 = await cropTo2x3(file);
-		resultImageBase64 = null;
+		$tryOnOriginalImage = await cropTo2x3(file);
+		$tryOnResultImage = null;
 		errorMsg = '';
 	}
 	function onGalleryChange(e: Event) {
@@ -177,18 +185,19 @@
 	}
 
 	async function processTryOn() {
-		if (!originalImageBase64 || selectedServices.length === 0) return;
+		if (!$tryOnOriginalImage || selectedServices.length === 0) return;
 		isProcessing = true;
 		errorMsg = '';
+		window.scrollTo({ top: 0, behavior: 'smooth' });
 		try {
 			const response = await fetch('/api/try-on', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ imageBase64: originalImageBase64, services: selectedServices })
+				body: JSON.stringify({ imageBase64: $tryOnOriginalImage, services: selectedServices })
 			});
 			const data = await response.json();
 			if (!response.ok) throw new Error(data.error || 'Failed to process');
-			resultImageBase64 = data.resultImageBase64;
+			$tryOnResultImage = data.resultImageBase64;
 			sliderPosition = 50;
 			if (document.hidden) {
 				showResultBanner = true;
@@ -201,19 +210,19 @@
 	}
 
 	function handleDownload() {
-		if (!resultImageBase64) return;
+		if (!$tryOnResultImage) return;
 		const a = document.createElement('a');
-		a.href = resultImageBase64;
+		a.href = $tryOnResultImage;
 		a.download = `blancbeu-tryon-${Date.now()}.jpg`;
 		document.body.appendChild(a);
 		a.click();
 		document.body.removeChild(a);
 	}
 	function resetAll() {
-		originalImageBase64 = null;
-		resultImageBase64 = null;
+		$tryOnOriginalImage = null;
+		$tryOnResultImage = null;
 		selectedServices = [];
-		selectedShadeIdx = null;
+		$tryOnSelectedShadeIdx = null;
 		showResultBanner = false;
 	}
 	function bookServices() {
@@ -283,7 +292,7 @@
 		<p>Preview your new look instantly</p>
 	</div>
 
-	{#if !originalImageBase64}
+	{#if !$tryOnOriginalImage}
 		<!-- UPLOAD STATE -->
 		<div class="demo-card-section">
 			<div class="preview-wrap demo-wrap" onclick={() => (showUploadModal = true)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && (showUploadModal = true)}>
@@ -335,23 +344,25 @@
 				</button>
 			</div>
 		</div>
-	{:else if isProcessing}
-		<!-- PROCESSING STATE with Lottie -->
-		<div class="processing-section">
-			<div class="lottie-wrap">
-				<DotLottieSvelte src="/Ai_loading_model.lottie" autoplay loop />
-			</div>
-			<h3 class="processing-title">Transforming your new look...</h3>
-			<p class="processing-sub">
-				Feel free to browse the app — we'll notify you when your transformation is ready!
-			</p>
-		</div>
-	{:else if !resultImageBase64}
-		<!-- CONFIGURE STATE -->
+	{:else if !$tryOnResultImage}
+		<!-- CONFIGURE STATE & PROCESSING OVERLAY -->
 		<div class="config-section">
 			<div class="preview-wrap">
-				<img src={originalImageBase64} alt="Your photo" class="preview-img" />
-				<span class="preview-badge">Your Photo</span>
+				<img src={$tryOnOriginalImage} alt="Your photo" class="preview-img" class:dimmed={isProcessing} />
+				
+				{#if isProcessing}
+					<div class="processing-overlay">
+						<div class="lottie-wrap">
+							<DotLottieSvelte src="/AI_logo_Foriday.lottie" autoplay loop />
+						</div>
+						<div class="processing-text">
+							<h3 class="processing-title">Transforming your look...</h3>
+							<p class="processing-sub">Applying selected styles</p>
+						</div>
+					</div>
+				{:else}
+					<span class="preview-badge">Your Photo</span>
+				{/if}
 			</div>
 
 			<div class="config-area selection-area">
@@ -376,15 +387,15 @@
 					<div class="shade-row">
 						{#each hairColorShades as shade, i}<button
 								class="shade-dot"
-								class:active={selectedShadeIdx === i}
+								class:active={$tryOnSelectedShadeIdx === i}
 								style="background:{shade.hex}"
 								onclick={() => selectShade(i)}
 								title={shade.name}
-								>{#if selectedShadeIdx === i}<span class="shade-tick">✓</span>{/if}</button
+								>{#if $tryOnSelectedShadeIdx === i}<span class="shade-tick">✓</span>{/if}</button
 							>{/each}
 					</div>
-					{#if selectedShadeIdx !== null}<p class="shade-label">
-							{hairColorShades[selectedShadeIdx].name}
+					{#if $tryOnSelectedShadeIdx !== null}<p class="shade-label">
+							{hairColorShades[$tryOnSelectedShadeIdx].name}
 						</p>{/if}
 				{/if}
 
@@ -392,10 +403,16 @@
 				<div class="config-actions">
 					<button
 						class="gold-btn full modern-action-btn"
+						class:processing={isProcessing}
 						onclick={processTryOn}
-						disabled={selectedServices.length === 0}><Sparkles size={16} /> See My New Look</button
-					>
-					<button class="link-btn small-link" onclick={resetAll}>Choose Different Photo</button>
+						disabled={selectedServices.length === 0 || isProcessing}>
+						{#if isProcessing}
+							<div class="spinner"></div> Processing...
+						{:else}
+							<Sparkles size={16} /> See My New Look
+						{/if}
+					</button>
+					<button class="link-btn small-link" onclick={resetAll} disabled={isProcessing}>Choose Different Photo</button>
 				</div>
 			</div>
 		</div>
@@ -417,7 +434,7 @@
 				>
 					<!-- After (background) -->
 					<div class="after-container">
-						<img src={resultImageBase64} alt="After" class="slider-img" />
+						<img src={$tryOnResultImage} alt="After" class="slider-img" />
 						<div class="label-container after">
 							<span class="img-label label-after">AFTER</span>
 						</div>
@@ -425,7 +442,7 @@
 					<!-- Before (clipped foreground) -->
 					<div class="before-container" style="width:{sliderPosition}%">
 						<div class="inner-fixed-wrapper" style={innerStyle}>
-							<img src={originalImageBase64} alt="Before" class="slider-img" />
+							<img src={$tryOnOriginalImage} alt="Before" class="slider-img" />
 							<div class="label-container before">
 								<span class="img-label label-before">BEFORE</span>
 							</div>
@@ -452,12 +469,18 @@
 				>
 				<div class="row-btns">
 					<button
-						class="link-btn"
+						class="try-another-btn"
 						onclick={() => {
-							resultImageBase64 = null;
-						}}>Try Another Style</button
+							$tryOnResultImage = null;
+						}}
 					>
-					<button class="link-btn" onclick={resetAll}>Start Over</button>
+						<RefreshCw size={12} />
+						Try Another Style
+					</button>
+					<button class="start-over-btn" onclick={resetAll}>
+						<RotateCcw size={12} />
+						Start Over
+					</button>
 				</div>
 			</div>
 		</div>
@@ -498,7 +521,7 @@
 />
 
 <!-- Result Ready Banner -->
-{#if showResultBanner && resultImageBase64}
+{#if showResultBanner && $tryOnResultImage}
 	<div
 		class="result-banner"
 		onclick={() => {
@@ -634,6 +657,20 @@
 		opacity: 0.5;
 		cursor: not-allowed;
 	}
+	.gold-btn.processing {
+		opacity: 0.8;
+	}
+	.spinner {
+		width: 18px;
+		height: 18px;
+		border: 2px solid rgba(26, 26, 26, 0.3);
+		border-top-color: #1a1a1a;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
 	.gold-btn.full {
 		width: 100%;
 		justify-content: center;
@@ -674,34 +711,87 @@
 	.row-btns {
 		display: flex;
 		justify-content: center;
-		gap: 16px;
-		margin-top: 12px;
+		gap: 12px;
+		margin-top: 20px;
+	}
+	.try-another-btn, .start-over-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 10px 20px;
+		border-radius: 999px;
+		font-size: 0.82rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: rgba(255, 255, 255, 0.03);
+		color: var(--color-text-secondary);
+	}
+	.try-another-btn {
+		border-color: rgba(212, 175, 55, 0.25);
+		background: rgba(212, 175, 55, 0.04);
+		color: var(--color-accent-gold);
+	}
+	.try-another-btn:hover, .try-another-btn:active {
+		background: rgba(212, 175, 55, 0.12);
+		border-color: rgba(212, 175, 55, 0.5);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(212, 175, 55, 0.15);
+	}
+	.start-over-btn:hover, .start-over-btn:active {
+		background: rgba(255, 255, 255, 0.08);
+		border-color: rgba(255, 255, 255, 0.15);
+		color: var(--color-text-primary);
+		transform: translateY(-1px);
+	}
+	.try-another-btn:active, .start-over-btn:active {
+		transform: scale(0.97) translateY(0);
 	}
 
-	/* Processing */
-	.processing-section {
+	/* Processing Overlay */
+	.processing-overlay {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.25);
+		backdrop-filter: blur(4px);
+		z-index: 10;
+		animation: fadeIn 0.3s ease-out;
+		padding: 20px;
 		text-align: center;
-		padding: 60px 20px;
 	}
 	.lottie-wrap {
-		width: 160px;
-		height: 160px;
-		margin: 0 auto 20px;
+		width: 240px;
+		height: 240px;
+		margin-bottom: 20px;
+	}
+	.processing-text {
+		width: 100%;
+		max-width: 320px;
+		background: rgba(20, 20, 20, 0.85);
+		padding: 16px 24px;
+		border-radius: 20px;
+		border: 1px solid rgba(212, 175, 55, 0.2);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(12px);
 	}
 	.processing-title {
-		font-size: 1.3rem;
+		font-size: 1.15rem;
 		font-weight: 700;
-		margin-bottom: 8px;
+		margin-bottom: 4px;
 		background: var(--gradient-gold);
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 	}
 	.processing-sub {
-		color: var(--color-text-secondary);
-		font-size: 0.9rem;
-		line-height: 1.5;
-		max-width: 300px;
-		margin: 0 auto;
+		color: rgba(255, 255, 255, 0.8);
+		font-size: 0.85rem;
+		margin: 0;
 	}
 
 	/* Configure */
@@ -719,6 +809,11 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		transition: filter 0.3s ease, transform 0.3s ease;
+	}
+	.preview-img.dimmed {
+		filter: brightness(0.6) blur(2px);
+		transform: scale(1.02);
 	}
 	.preview-badge {
 		position: absolute;

@@ -6,12 +6,14 @@
 		mouthVolume = 0,
 		isSpeaking = false,
 		emotion = 'Neutral',
-		action = 'None'
+		action = 'None',
+		onLoaded
 	}: {
 		mouthVolume?: number;
 		isSpeaking?: boolean;
 		emotion?: string;
 		action?: string;
+		onLoaded?: () => void;
 	} = $props();
 
 	let canvas: HTMLCanvasElement;
@@ -24,6 +26,7 @@
 			avatarManager = new AvatarManager(canvas);
 			await avatarManager.loadModel('/Ani.vrm');
 			isLoading = false;
+			onLoaded?.();
 		} catch (e) {
 			console.error('Failed to load Ani', e);
 			loadError = 'Could not load companion';

@@ -3,6 +3,11 @@
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { Mic, Send, Bot, Sparkles, AudioLines } from 'lucide-svelte';
+	import { db, auth } from '$lib/firebase';
+	import { onAuthStateChanged } from 'firebase/auth';
+	import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+	import { appServices, initAppServiceListener } from '$lib/stores/appData';
+	import { cart } from '$lib/stores/booking';
 
 	let messages: { 
 		role: 'user' | 'assistant'; 
@@ -18,8 +23,28 @@
 	let inputText = $state('');
 	let isListening = $state(false);
 	let tagsExpanded = $state(true);
+	let smartReplies: string[] = $state([]);
 	let chatContainer: HTMLDivElement;
 	let recognition: any = null;
+
+	$effect(() => {
+		if (inputText.trim().length > 0) {
+			tagsExpanded = false;
+		}
+	});
+
+	$effect(() => {
+		if (isListening) {
+			tagsExpanded = false;
+		}
+	});
+
+	$effect(() => {
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			// Just tracking auth state to ensure firebase is initialized correctly.
+		});
+		return unsubscribe;
+	});
 
 	const predefinedTags = [
 		'📍 Location & Directions',
@@ -50,6 +75,7 @@
 	];
 
 	onMount(() => {
+		initAppServiceListener();
 		// Initialize Web Speech API if supported
 		if (typeof window !== 'undefined') {
 			const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -113,6 +139,10 @@
 					action: data.action,
 					mapEmbed: data.mapEmbed
 				};
+				smartReplies = data.suggestions || [];
+				if (data.booking) {
+					handleBookingEvent(data.booking);
+				}
 			} else {
 				messages[messages.length - 1] = {
 					role: 'assistant',
@@ -128,6 +158,69 @@
 	function handleTagClick(tag: string) {
 		sendMessage(tag);
 		tagsExpanded = false;
+	}
+
+	async function handleBookingEvent(data: any) {
+		const { service, price, date, time, payment } = data;
+
+		const user = auth.currentUser;
+		if (!user) {
+			messages = [...messages, { 
+				role: 'assistant', 
+				text: `I'd love to help you book the ${service}, but you need to log in first.`,
+				action: { label: 'Log In', path: '/login' }
+			}];
+			scrollToBottom();
+			return;
+		}
+
+		if (payment === 'pay_at_salon') {
+			try {
+
+				const bookingData = {
+					services: [{ name: service, price: price, id: '' }],
+					servicesList: [{ name: service, price: price, id: '' }],
+					totalAmount: price,
+					date: date,
+					time: time,
+					userName: user.displayName || 'Guest',
+					userEmail: user.email || '',
+					userPhone: user.phoneNumber || '',
+					notes: `Booked via Assistant`,
+					customer: {
+						name: user.displayName || 'Guest',
+						phone: user.phoneNumber || '',
+						email: user.email || '',
+						notes: 'Booked via Assistant'
+					},
+					payment: {
+						type: 'free',
+						method: 'pay_at_salon',
+						amount: 0,
+						status: 'unpaid',
+						beuCashApplied: 0
+					},
+					userId: user.uid,
+					createdAt: serverTimestamp(),
+					status: 'pending',
+					source: 'assistant'
+				};
+
+				await addDoc(collection(db, 'bookings'), bookingData);
+				console.log('[Assistant Booking] Successfully created booking');
+			} catch (err) {
+				console.error('[Assistant Booking] Failed to create booking:', err);
+			}
+		} else if (payment === 'pay_now') {
+			const matchedService = $appServices.find(s => s.name.toLowerCase() === service.toLowerCase());
+			if (matchedService) {
+				cart.clear();
+				cart.add(matchedService);
+			}
+			setTimeout(() => {
+				goto('/booking');
+			}, 2000);
+		}
 	}
 
 	function toggleListen() {
@@ -213,8 +306,21 @@
 
 	<!-- Bottom Area -->
 	<div class="bottom-area">
+		<!-- Smart Replies -->
+		{#if smartReplies.length > 0}
+			<div class="smart-replies" transition:slide={{ duration: 200 }}>
+				{#each smartReplies as reply, i}
+					<button 
+						class="smart-pill"
+						style="animation-delay: {i * 80}ms"
+						onclick={() => { inputText = reply; sendMessage(); smartReplies = []; }}
+					>{reply}</button>
+				{/each}
+			</div>
+		{/if}
+
 		<!-- Predefined Tags -->
-		{#if tagsExpanded}
+		{#if tagsExpanded && smartReplies.length === 0}
 			<div class="tags-container" transition:slide={{ duration: 200 }}>
 				<div class="tags-row">
 					{#each predefinedTags.filter((_, i) => i % 3 === 0) as tag}
@@ -273,7 +379,16 @@
 
 				<button 
 					class="action-circle-btn" 
-					onclick={() => inputText.trim().length > 0 ? sendMessage() : goto('/assistant/companion')}
+					onclick={() => {
+						if (inputText.trim().length > 0) {
+							sendMessage();
+						} else {
+							if (typeof sessionStorage !== 'undefined') {
+								sessionStorage.setItem('fromAssistant', 'true');
+							}
+							goto('/assistant/companion');
+						}
+					}}
 					aria-label={inputText.trim().length > 0 ? "Send Message" : "Live Assistant"}
 				>
 					{#if inputText.trim().length > 0}
@@ -612,5 +727,49 @@
 			transform: scale(1.5);
 			opacity: 0;
 		}
+	}
+
+	.smart-replies {
+		display: flex;
+		gap: 8px;
+		padding-bottom: 12px;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+	}
+
+	.smart-replies::-webkit-scrollbar {
+		display: none;
+	}
+
+	.smart-pill {
+		padding: 8px 18px;
+		border-radius: 22px;
+		background: var(--color-bg-secondary, rgba(0,0,0,0.03));
+		border: 1px solid var(--color-accent-gold, #d4af37);
+		color: var(--color-text-primary, #333);
+		font-size: 0.85rem;
+		font-weight: 500;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+		box-shadow: 0 2px 8px rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.15);
+		opacity: 0;
+		animation: pill-appear 0.3s ease forwards;
+	}
+
+	.smart-pill:hover {
+		background: rgba(var(--color-accent-gold-rgb, 212, 175, 55), 0.1);
+		transform: translateY(-2px);
+	}
+
+	.smart-pill:active {
+		transform: scale(0.95);
+	}
+
+	@keyframes pill-appear {
+		0% { opacity: 0; transform: translateY(8px); }
+		100% { opacity: 1; transform: translateY(0); }
 	}
 </style>

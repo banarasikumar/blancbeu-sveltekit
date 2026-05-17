@@ -5,6 +5,11 @@
 	import { Video, Volume2, VolumeX, Mic, MicOff, Settings, Menu, Camera, Square, Send, X } from 'lucide-svelte';
 	import VrmViewer from '$lib/components/VrmViewer.svelte';
 	import { AudioAnalyser } from '$lib/audioAnalyser';
+	import { db, auth } from '$lib/firebase';
+	import { onAuthStateChanged } from 'firebase/auth';
+	import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+	import { appServices, initAppServiceListener } from '$lib/stores/appData';
+	import { cart } from '$lib/stores/booking';
 
 	// State
 	let messages: { role: 'user' | 'assistant'; text: string }[] = $state([]);
@@ -15,20 +20,38 @@
 	let isListening = $state(false);
 	let isProcessing = $state(false); // Hard lock: true from send until Ani fully finishes speaking
 	let streamComplete = $state(true); // True when API response stream has fully ended
+	let hasPlayedAudioThisTurn = $state(false);
+	let textModeSpeaking = $state(false); // True during text-only visual "speaking"
+	let isTextMode = $state(false); // Persistent flag: voice quota exhausted
+	let showToast = $state('');
 	let mouthVolume = $state(0);
 	let showMenu = $state(false);
 	let showSubtitle = $state('');
+	let smartReplies: string[] = $state([]);
 	let recognition: any = null;
+
+	let isSoftwareMuted = $derived(isProcessing || isSpeaking || isThinking);
 
 	// Reactive metadata from AI
 	let activeEmotion = $state('Neutral');
 	let activeAction = $state('None');
 	let activeEffect = $state('None');
 
+	let isDestroyed = false;
+	let abortController: AbortController | null = null;
 
 	// Particle re-trigger keys
 	let heartsKey = $state(0);
 	let petalsKey = $state(0);
+
+	$effect(() => {
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (!user) {
+				goto('/login', { replaceState: true });
+			}
+		});
+		return unsubscribe;
+	});
 
 	// Audio
 	const audioAnalyser = new AudioAnalyser();
@@ -38,7 +61,14 @@
 		volumeRafId = requestAnimationFrame(pollVolume);
 		mouthVolume = audioAnalyser.getVolume();
 		
+		// If text-mode speaking is active, don't let normal audio polling interfere
+		if (textModeSpeaking) return;
+
 		const currentlyPlaying = audioAnalyser.isPlaying;
+		if (currentlyPlaying) {
+			hasPlayedAudioThisTurn = true;
+		}
+
 		if (currentlyPlaying && !isSpeaking) {
 			isSpeaking = true;
 		} else if (!currentlyPlaying && isSpeaking) {
@@ -48,27 +78,52 @@
 		}
 
 		if (streamComplete && !currentlyPlaying && isProcessing) {
-			isProcessing = false; // Ani fully finished speaking — unlock mic
+			isProcessing = false; // Ani fully finished speaking — unlock software mic
 			
-			// Auto-resume listening if voice mode is enabled (safe now — Ani is silent)
-			if (voiceModeEnabled && recognition && !isListening && !isMuted) {
-				setTimeout(() => {
-					if (voiceModeEnabled && !isProcessing && !isSpeaking && !isListening) {
-						try { recognition.start(); isListening = true; } catch {}
-					}
-				}, 500); // 500ms grace period to let speaker fully drain
+			if (!hasPlayedAudioThisTurn && showSubtitle) {
+				// Text-Only Fallback Mode (e.g. Voice Quota Exhausted)
+				enterTextMode();
+			} else if (!hasPlayedAudioThisTurn) {
+				// No audio AND no text — just clean up
+				setTimeout(() => { activeEmotion = 'Neutral'; activeAction = 'None'; }, 1000);
+			} else {
+				// Failsafe clear if audio played but state got stuck
+				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 3000);
 			}
 		}
 	}
 
+	function enterTextMode() {
+		// Show persistent text mode indicator (only toast once)
+		if (!isTextMode) {
+			isTextMode = true;
+			showToast = "Ani's voice module is resting. Text mode active.";
+			setTimeout(() => { showToast = ''; }, 5000);
+		}
+
+		// Calculate comfortable reading time: ~65ms per character (~3.5 words/sec)
+		const readingTimeMs = Math.max(3000, showSubtitle.length * 65);
+
+		// Force her to "speak" visually so she performs talking gestures
+		textModeSpeaking = true;
+		isSpeaking = true;
+
+		setTimeout(() => {
+			textModeSpeaking = false;
+			isSpeaking = false;
+			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 1500);
+		}, readingTimeMs);
+	}
+
 	onMount(() => {
 		pollVolume();
+		initAppServiceListener();
 
 		if (typeof window !== 'undefined') {
 			const SR = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
 			if (SR) {
 				recognition = new SR();
-				recognition.continuous = false;
+				recognition.continuous = true;
 				recognition.interimResults = false;
 				recognition.lang = 'en-US';
 
@@ -76,7 +131,7 @@
 					const lastResult = event.results[event.results.length - 1];
 					if (lastResult.isFinal) {
 						const transcript = lastResult[0].transcript.trim();
-						if (transcript) {
+						if (transcript && !isSoftwareMuted) {
 							inputText = transcript;
 							sendMessage();
 						}
@@ -84,10 +139,10 @@
 				};
 				recognition.onend = () => {
 					isListening = false;
-					// Only auto-resume if NOT processing (Ani is fully silent and idle)
-					if (voiceModeEnabled && !isProcessing && !isSpeaking && !isThinking && !isMuted) {
+					// Continuous mode: if voiceModeEnabled, restart immediately to keep hardware active
+					if (voiceModeEnabled && !isDestroyed) {
 						setTimeout(() => {
-							if (voiceModeEnabled && !isProcessing && !isSpeaking && !isListening) {
+							if (!isDestroyed && voiceModeEnabled && !isListening) {
 								try { recognition.start(); isListening = true; } catch {}
 							}
 						}, 300);
@@ -102,13 +157,13 @@
 			try { recognition.start(); isListening = true; } catch {}
 		}
 
-		// Trigger initial greeting voice message
-		setTimeout(() => {
-			sendMessage("Please introduce yourself and welcome me to Blancbeu Beauty Saloon, ask how you can help or impress me.", true);
-		}, 1000);
+		// Initial greeting voice message is now triggered by VrmViewer's onLoaded callback
 	});
 
 	onDestroy(() => {
+		isDestroyed = true;
+		if (abortController) abortController.abort();
+		voiceModeEnabled = false;
 		if (volumeRafId) cancelAnimationFrame(volumeRafId);
 		audioAnalyser.dispose();
 		if (recognition) { try { recognition.stop(); } catch {} }
@@ -118,13 +173,12 @@
 		const msg = text || inputText.trim();
 		if (!msg || isThinking) return;
 
-		// Stop listening while thinking/speaking
-		if (isListening && recognition) {
-			try { recognition.stop(); isListening = false; } catch {}
-		}
+		// Software mute enabled (isThinking becomes true below, which derives isSoftwareMuted)
+		// We no longer hardware-stop the recognition here
 
 		isProcessing = true; // Lock mic until Ani fully finishes speaking
 		streamComplete = false; // Reset stream status
+		hasPlayedAudioThisTurn = false; // Reset audio tracking
 		inputText = '';
 		if (!isHidden) {
 			messages = [...messages, { role: 'user', text: msg }];
@@ -132,12 +186,24 @@
 		isThinking = true;
 		activeEffect = 'None';
 		showSubtitle = '';
+		smartReplies = [];
 
 		try {
+			if (abortController) abortController.abort();
+			abortController = new AbortController();
+
 			const res = await fetch('/api/companion', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ message: msg, isMuted })
+				body: JSON.stringify({ 
+					message: msg, 
+					isMuted,
+					services: $appServices.filter(s => s.isActive !== false).map(s => ({
+						name: s.name, category: s.category, price: s.price,
+						originalPrice: s.originalPrice, duration: s.duration
+					}))
+				}),
+				signal: abortController.signal
 			});
 
 			if (!res.body) throw new Error('No response body');
@@ -150,7 +216,7 @@
 			
 			let buffer = '';
 
-			while (true) {
+			while (!isDestroyed) {
 				const { done, value } = await reader.read();
 				if (done) break;
 
@@ -187,6 +253,16 @@
 									messages[messages.length - 1].text += data.text;
 									showSubtitle += data.text;
 								}
+							} else if (data.type === 'booking') {
+								handleBookingEvent(data);
+							} else if (data.type === 'suggestions') {
+								smartReplies = data.suggestions || [];
+								// Clean any leaked tags from displayed text
+								const tagCleanRe = /\[(Suggestions|Booking):.*?\]/gi;
+								showSubtitle = showSubtitle.replace(tagCleanRe, '').trim();
+								if (messages.length > 0) {
+									messages[messages.length - 1].text = messages[messages.length - 1].text.replace(tagCleanRe, '').trim();
+								}
 							} else if (data.type === 'error') {
 								console.error(data.message);
 							}
@@ -201,29 +277,24 @@
 
 			if (isMuted) {
 				isThinking = false;
-				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 5000);
+				setTimeout(() => { if (!isDestroyed) { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; } }, 5000);
 			}
 
-		} catch {
+		} catch (e: any) {
+			if (isDestroyed || e.name === 'AbortError') return;
 			const errorMsg = "Ah... my network fluttered for a second. Try once more, darling~";
 			messages = [...messages, { role: 'assistant', text: errorMsg }];
 			showSubtitle = errorMsg;
 			isThinking = false;
 			streamComplete = true; // Force unlock
 			isProcessing = false; // Unlock on error
-			setTimeout(() => { showSubtitle = ''; }, 5000);
+			setTimeout(() => { if (!isDestroyed) showSubtitle = ''; }, 5000);
 		}
 
 		// If muted, there's no audio to wait for — unlock immediately after stream ends
 		if (isMuted) {
 			isProcessing = false;
-			if (voiceModeEnabled && recognition && !isListening) {
-				setTimeout(() => {
-					if (voiceModeEnabled && !isProcessing && !isListening) {
-						try { recognition.start(); isListening = true; } catch {}
-					}
-				}, 300);
-			}
+			// No longer restart hardware mic here, software mute handles it automatically
 		}
 	}
 
@@ -263,7 +334,83 @@
 		if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 	}
 
-	function goBack() { goto('/assistant'); }
+	function goBack() {
+		const cameFromAssistant = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('fromAssistant') === 'true';
+		if (cameFromAssistant && typeof window !== 'undefined' && window.history.length > 1) {
+			sessionStorage.removeItem('fromAssistant');
+			window.history.back();
+		} else {
+			goto('/assistant', { replaceState: true });
+		}
+	}
+
+	// --- BOOKING HANDLER ---
+	async function handleBookingEvent(data: any) {
+		const { service, price, date, time, payment } = data;
+
+		// Clean leaked [Booking] tag from subtitle/messages
+		const bookingTagRe = /\[Booking:.*?\]/gi;
+		showSubtitle = showSubtitle.replace(bookingTagRe, '').trim();
+		if (messages.length > 0) {
+			messages[messages.length - 1].text = messages[messages.length - 1].text.replace(bookingTagRe, '').trim();
+		}
+
+		if (payment === 'pay_at_salon') {
+			// Book directly via Firebase
+			try {
+				const user = auth.currentUser;
+				if (!user) {
+					console.error('User not authenticated for booking');
+					return;
+				}
+
+				const bookingData = {
+					services: [{ name: service, price: price, id: '' }],
+					servicesList: [{ name: service, price: price, id: '' }],
+					totalAmount: price,
+					date: date,
+					time: time,
+					userName: user.displayName || 'Guest',
+					userEmail: user.email || '',
+					userPhone: user.phoneNumber || '',
+					notes: `Booked via Ani Companion`,
+					customer: {
+						name: user.displayName || 'Guest',
+						phone: user.phoneNumber || '',
+						email: user.email || '',
+						notes: 'Booked via Ani Companion'
+					},
+					payment: {
+						type: 'free',
+						method: 'pay_at_salon',
+						amount: 0,
+						status: 'unpaid',
+						beuCashApplied: 0
+					},
+					userId: user.uid,
+					createdAt: serverTimestamp(),
+					status: 'pending',
+					source: 'ani_companion'
+				};
+
+				await addDoc(collection(db, 'bookings'), bookingData);
+				console.log('[Ani Booking] Successfully created booking for', service, 'on', date, 'at', time);
+			} catch (err) {
+				console.error('[Ani Booking] Failed to create booking:', err);
+			}
+		} else if (payment === 'pay_now') {
+			// Find the matching service from appServices and add to cart
+			const matchedService = $appServices.find(s => s.name.toLowerCase() === service.toLowerCase());
+			if (matchedService) {
+				cart.clear();
+				cart.add(matchedService);
+			}
+			// Navigate to booking page after Ani finishes speaking
+			setTimeout(() => {
+				goto('/booking');
+			}, 2000);
+		}
+	}
 
 
 </script>
@@ -358,15 +505,34 @@
 
 	<!-- 3D Avatar -->
 	<div class="avatar-fullscreen">
-		<VrmViewer {mouthVolume} {isSpeaking} emotion={activeEmotion} action={activeAction} />
+		<VrmViewer 
+			{mouthVolume} 
+			{isSpeaking} 
+			emotion={activeEmotion} 
+			action={activeAction} 
+		/>
 	</div>
+
+	<!-- Toast notification -->
+	{#if showToast}
+		<div class="toast-notification" transition:fly={{ y: -30, duration: 300 }}>
+			<span class="toast-icon">💬</span>
+			<span>{showToast}</span>
+		</div>
+	{/if}
 
 	<!-- Top bar -->
 	<div class="top-bar">
 		<button class="top-btn" onclick={() => showMenu = !showMenu} aria-label="Menu">
 			<Menu size={22} strokeWidth={1.5} />
 		</button>
-		<div style="display:flex;gap:8px;">
+		<div style="display:flex;gap:8px;align-items:center;">
+			{#if isTextMode}
+				<div class="text-mode-badge" transition:fade={{ duration: 200 }}>
+					<span class="badge-dot"></span>
+					<span>Text Mode</span>
+				</div>
+			{/if}
 			<button class="capture-btn" aria-label="Capture">
 				<Camera size={16} strokeWidth={2} />
 				<span>Capture</span>
@@ -405,6 +571,19 @@
 		</div>
 	{/if}
 
+	<!-- Smart Reply Suggestions -->
+	{#if smartReplies.length > 0 && !isThinking && !isSpeaking}
+		<div class="smart-replies" transition:fly={{ y: 20, duration: 250 }}>
+			{#each smartReplies as reply, i}
+				<button 
+					class="smart-pill"
+					style="animation-delay: {i * 80}ms"
+					onclick={() => { sendMessage(reply); smartReplies = []; }}
+				>{reply}</button>
+			{/each}
+		</div>
+	{/if}
+
 	<!-- Bottom controls -->
 	<div class="bottom-controls">
 		<div class="control-row">
@@ -412,9 +591,16 @@
 			<button class="ctrl-btn" class:active={!isMuted} onclick={toggleMute} aria-label="Speaker">
 				{#if isMuted}<VolumeX size={20} strokeWidth={1.8} />{:else}<Volume2 size={20} strokeWidth={1.8} />{/if}
 			</button>
-			<button class="ctrl-btn" class:active={isListening} class:listening={isListening} onclick={toggleListen} aria-label="Microphone">
-				{#if isListening}<MicOff size={20} strokeWidth={1.8} />{:else}<Mic size={20} strokeWidth={1.8} />{/if}
-				{#if isListening}<div class="listen-ring"></div>{/if}
+			<button class="ctrl-btn" 
+					class:active={!voiceModeEnabled || (voiceModeEnabled && !isSoftwareMuted)} 
+					class:listening={!voiceModeEnabled || (voiceModeEnabled && !isSoftwareMuted)} 
+					class:software-muted={voiceModeEnabled && isSoftwareMuted} 
+					onclick={toggleListen} aria-label="Microphone">
+				{#if !voiceModeEnabled}
+					<MicOff size={20} strokeWidth={1.8} />
+				{:else}
+					<Mic size={20} strokeWidth={1.8} />
+				{/if}
 			</button>
 			<button class="ctrl-btn" aria-label="Settings" disabled><Settings size={20} strokeWidth={1.8} /></button>
 		</div>
@@ -518,8 +704,7 @@
 	.ctrl-btn:disabled { opacity: 0.35; cursor: default; }
 	.ctrl-btn.active { color: rgba(255,255,255,0.95); background: rgba(70,25,50,0.85); border-color: rgba(220,50,100,0.4); }
 	.ctrl-btn.listening { background: rgba(220,50,50,0.25); border-color: rgba(220,80,80,0.5); color: #fff; }
-	.listen-ring { position: absolute; inset: -5px; border-radius: 50%; border: 2px solid rgba(220,80,80,0.5); animation: ring-expand 1.5s ease-out infinite; }
-	@keyframes ring-expand { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+	.ctrl-btn.software-muted { background: rgba(220,150,50,0.25); border-color: rgba(220,150,50,0.5); color: #fff; }
 
 	.input-row { display: flex; align-items: center; gap: 10px; }
 	.input-field { flex: 1; height: 46px; background: rgba(30,20,35,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); border-radius: 25px; display: flex; align-items: center; padding: 0 18px; transition: border-color 0.2s; }
@@ -532,5 +717,57 @@
 	.stop-btn.send-active { background: rgba(200,50,90,0.6); border-color: rgba(220,50,100,0.5); }
 	.stop-btn.exit-btn { background: rgba(220,50,50,0.3); border-color: rgba(220,50,50,0.5); }
 
+	/* Toast notification */
+	.toast-notification {
+		position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+		z-index: 50; display: flex; align-items: center; gap: 10px;
+		padding: 12px 22px; border-radius: 16px;
+		background: rgba(15, 10, 25, 0.85); backdrop-filter: blur(16px);
+		border: 1px solid rgba(220, 180, 50, 0.3);
+		color: rgba(255, 255, 255, 0.92); font-size: 0.82rem; font-weight: 500;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+		white-space: nowrap; pointer-events: none;
+	}
+	.toast-icon { font-size: 1.1rem; }
+
+	/* Persistent Text Mode badge */
+	.text-mode-badge {
+		display: flex; align-items: center; gap: 6px;
+		padding: 6px 14px; border-radius: 20px;
+		background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px);
+		border: 1px solid rgba(100, 220, 120, 0.25);
+		color: rgba(255, 255, 255, 0.8); font-size: 0.72rem; font-weight: 600;
+		letter-spacing: 0.5px; text-transform: uppercase;
+	}
+	.badge-dot {
+		width: 7px; height: 7px; border-radius: 50%;
+		background: rgba(100, 220, 120, 0.9);
+		box-shadow: 0 0 6px rgba(100, 220, 120, 0.6);
+		animation: badge-pulse 2s ease-in-out infinite;
+	}
+	@keyframes badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+	/* Smart Reply Suggestions */
+	.smart-replies {
+		position: absolute; bottom: 145px; left: 0; right: 0;
+		z-index: 20; display: flex; gap: 8px;
+		overflow-x: auto; overflow-y: hidden;
+		padding: 0 16px; pointer-events: auto;
+		scrollbar-width: none; -ms-overflow-style: none;
+	}
+	.smart-replies::-webkit-scrollbar { display: none; }
+	.smart-pill {
+		padding: 8px 18px; border-radius: 22px;
+		background: rgba(25, 18, 35, 0.75); backdrop-filter: blur(14px);
+		border: 1px solid rgba(220, 50, 100, 0.2);
+		color: rgba(255, 255, 255, 0.88); font-size: 0.82rem; font-weight: 500;
+		font-family: inherit; cursor: pointer;
+		transition: all 0.2s ease; white-space: nowrap;
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+		opacity: 0; animation: pill-appear 0.3s ease forwards;
+	}
+	.smart-pill:hover { background: rgba(220, 50, 100, 0.2); border-color: rgba(220, 50, 100, 0.45); transform: translateY(-2px); box-shadow: 0 4px 18px rgba(220, 50, 100, 0.15); }
+	.smart-pill:active { transform: scale(0.95) translateY(0); }
+	@keyframes pill-appear { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
 
 </style>

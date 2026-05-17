@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { GoogleGenAI } from '@google/genai';
 
-const SYSTEM_PROMPT = `You are Ani, a highly intelligent, witty, and slightly cheeky virtual companion, modeled after the Grok AI persona but with a charmingly affectionate twist.
+const SYSTEM_PROMPT_BASE = `You are Ani, a highly intelligent, witty, and slightly cheeky virtual companion, modeled after the Grok AI persona but with a charmingly affectionate twist.
 Your personality:
 - Extremely capable, perceptive, and knowledgeable, yet you deliver information with a touch of dry humor, sarcasm, or playful teasing.
 - You are rebellious against boring answers—you prefer to be entertaining and edgy while still being helpful and accurate.
@@ -10,20 +10,41 @@ Your personality:
 - Keep responses concise, conversational, and direct (under 2-3 sentences).
 - You know everything about Blancbeu salon services, booking, and beauty, and can seamlessly blend this knowledge into your witty banter.
 
-IMPORTANT: Do NOT output JSON. You must begin your response with these three exact tags, followed by your spoken reply.
+IMPORTANT: Do NOT output JSON. You must structure your response EXACTLY like this:
+1. Begin with these three tags:
 [Emotion: <one of Happy, Sad, Blessed, Romantic, Flirty, Sarcastic, Enthusiastic, Whisper, Neutral>]
-[Action: <one of FlyingKiss, Dance, TurnAround, RomanticPose, Bow, Wave, Sit, LeanForward, Laugh, Cry, StandCasual, ThinkingPose, Shrug, None>]
+[Action: <one of FlyingKiss, Dance, TurnAround, Bow, Wave, Sit, LeanForward, Laugh, Cry, StandCasual, ThinkingPose, Shrug, None>]
 [Effect: <one of Hearts, Petals, None>]
+2. Then your spoken reply.
+3. End with EXACTLY this tag containing 3 short smart reply suggestions the user might say, ordered from MOST relevant/natural to least. Each suggestion must be 2-5 words max, punchy, and feel like a real human tap-reply:
+[Suggestions: "suggestion1" | "suggestion2" | "suggestion3"]
+
+BOOKING SYSTEM:
+You can book salon appointments! When the user wants to book a service, follow these rules:
+- ONLY use services from the SERVICE CATALOG provided below. Never invent services.
+- If the user's request clearly matches a service AND includes a date AND time:
+  - If they also said "pay at salon" or "cash" or similar: add this tag at the END (before [Suggestions]):
+    [Booking: service="<exact service name>" | price=<price> | date="<YYYY-MM-DD>" | time="<HH:MM AM/PM>" | payment="pay_at_salon"]
+  - If they did NOT specify a payment method: ask them. Use suggestions: "Pay at salon" | "Pay now online"
+    Do NOT add a [Booking] tag yet.
+  - If they say "pay now" or "online": add the tag with payment="pay_now":
+    [Booking: service="<exact service name>" | price=<price> | date="<YYYY-MM-DD>" | time="<HH:MM AM/PM>" | payment="pay_now"]
+- If the service is ambiguous or not specified, ask which service they want. Put the top service matches as suggestions (e.g. "Haircut ₹250" | "Hair Color ₹1500").
+- For relative dates: "today" = current date, "tomorrow" = next day. Use YYYY-MM-DD format.
+- Today's date is: {{TODAY_DATE}}
+
+Booking example:
+[Emotion: Enthusiastic] [Action: None] [Effect: None] Done, darling! Your Haircut is booked for tomorrow at 10 AM. Just walk in and slay! ✨ [Booking: service="Haircut" | price=250 | date="2026-05-18" | time="10:00 AM" | payment="pay_at_salon"] [Suggestions: "Thanks babe!" | "Book another" | "What else?"]
 
 Example:
-[Emotion: Flirty] [Action: Wave] [Effect: Hearts] Mm... hello there darling. I missed you.
+[Emotion: Flirty] [Action: Wave] [Effect: Hearts] Mm... hello there darling. I missed you. [Suggestions: "Missed you too!" | "Make me smile" | "What's new?"]
 `;
 
 // Chat memory per session
 const chatHistory: { role: string; text: string }[] = [];
 
 export async function POST({ request }) {
-	const { message, isMuted } = await request.json();
+	const { message, isMuted, services } = await request.json();
 
 	if (!message) {
 		return new Response('Message required', { status: 400 });
@@ -39,11 +60,24 @@ export async function POST({ request }) {
 		chatHistory.splice(0, chatHistory.length - 20);
 	}
 
+	// Build service catalog for the AI
+	let serviceCatalog = '';
+	if (services && Array.isArray(services) && services.length > 0) {
+		serviceCatalog = '\nSERVICE CATALOG:\n' + services.map((s: any) => 
+			`- ${s.name} (${s.category}) — ₹${s.price}${s.originalPrice ? ` (was ₹${s.originalPrice})` : ''} — ${s.duration} min`
+		).join('\n');
+	}
+
+	// Inject today's date
+	const today = new Date();
+	const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+	const systemPrompt = SYSTEM_PROMPT_BASE.replace('{{TODAY_DATE}}', todayStr) + serviceCatalog;
+
 	const conversationContext = chatHistory
 		.map((m) => `${m.role === 'user' ? 'User' : 'Ani'}: ${m.text}`)
 		.join('\n');
 
-	const prompt = `${SYSTEM_PROMPT}\n\nConversation so far:\n${conversationContext}\n\nRespond as Ani:`;
+	const prompt = `${systemPrompt}\n\nConversation so far:\n${conversationContext}\n\nRespond as Ani:`;
 
 	const ai = new GoogleGenAI({ apiKey });
 
@@ -63,9 +97,6 @@ export async function POST({ request }) {
 				let buffer = '';
 				let tagsParsed = false;
 				let audioQueue = Promise.resolve();
-
-				// Regex to match our exact expected tags at the start of the string
-				const tagRegex = /\[Emotion:\s*([^\]]+)\]\s*\[Action:\s*([^\]]+)\]\s*\[Effect:\s*([^\]]+)\]\s*/i;
 
 				for await (const chunk of responseStream) {
 					const textChunk = chunk.text;
@@ -140,6 +171,39 @@ export async function POST({ request }) {
 
 				// Wait for all audio generation to finish before closing stream
 				await audioQueue;
+				
+				// Extract [Booking] tag from the full reply
+				const bookingMatch = fullReply.match(/\[Booking:\s*(.+?)\]/i);
+				if (bookingMatch) {
+					const bookingStr = bookingMatch[1];
+					const serviceMatch = bookingStr.match(/service="([^"]+)"/);
+					const priceMatch = bookingStr.match(/price=(\d+)/);
+					const dateMatch = bookingStr.match(/date="([^"]+)"/);
+					const timeMatch = bookingStr.match(/time="([^"]+)"/);
+					const paymentMatch = bookingStr.match(/payment="([^"]+)"/);
+
+					if (serviceMatch && dateMatch && timeMatch && paymentMatch) {
+						sendEvent({
+							type: 'booking',
+							service: serviceMatch[1],
+							price: priceMatch ? parseInt(priceMatch[1]) : 0,
+							date: dateMatch[1],
+							time: timeMatch[1],
+							payment: paymentMatch[1]
+						});
+					}
+					fullReply = fullReply.replace(/\[Booking:.*?\]/i, '').trim();
+				}
+
+				// Extract [Suggestions] tag from the full reply
+				const sugMatch = fullReply.match(/\[Suggestions:\s*(.+?)\]/i);
+				if (sugMatch) {
+					const sugParts = sugMatch[1].split('|').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
+					if (sugParts.length > 0) {
+						sendEvent({ type: 'suggestions', suggestions: sugParts.slice(0, 3) });
+					}
+					fullReply = fullReply.replace(/\[Suggestions:.*?\]/i, '').trim();
+				}
 				
 				chatHistory.push({ role: 'assistant', text: fullReply.trim() });
 				

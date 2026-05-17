@@ -59,3 +59,8 @@ export const tryOnPicker = createTryOnPicker();
 
 export const tryOnPickerCount = derived(tryOnPicker, ($p) => $p.selectedServices.length);
 export const tryOnPickerFull = derived(tryOnPicker, ($p) => $p.selectedServices.length >= $p.maxSlots);
+
+// Persistent stores for try-on page to preserve user uploads and shade choices across page navigation
+export const tryOnOriginalImage = writable<string | null>(null);
+export const tryOnResultImage = writable<string | null>(null);
+export const tryOnSelectedShadeIdx = writable<number | null>(null);
