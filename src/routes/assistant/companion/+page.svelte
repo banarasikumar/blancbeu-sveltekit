@@ -29,8 +29,9 @@
 	let showSubtitle = $state('');
 	let smartReplies: string[] = $state([]);
 	let recognition: any = null;
+	let persistentStream: MediaStream | null = null; // Holds hardware mic open for the entire session
 
-	let isSoftwareMuted = $derived(isProcessing || isSpeaking || isThinking);
+	let isSoftwareMuted = $derived(isProcessing || isSpeaking || isThinking || !voiceModeEnabled);
 
 	// Reactive metadata from AI
 	let activeEmotion = $state('Neutral');
@@ -115,9 +116,20 @@
 		}, readingTimeMs);
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		pollVolume();
 		initAppServiceListener();
+
+		// ── Persistent Hardware Mic Anchor ──
+		// Acquire a getUserMedia stream ONCE and hold it for the entire session.
+		// This keeps the hardware mic physically open so that when SpeechRecognition
+		// internally cycles (onend → start), the OS doesn't re-acquire the mic,
+		// preventing green-dot flicker and system gain sounds on smartphones.
+		try {
+			persistentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		} catch (e) {
+			console.warn('[Ani Mic] Could not acquire persistent mic stream:', e);
+		}
 
 		if (typeof window !== 'undefined') {
 			const SR = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -131,6 +143,7 @@
 					const lastResult = event.results[event.results.length - 1];
 					if (lastResult.isFinal) {
 						const transcript = lastResult[0].transcript.trim();
+						// Software-level gate: discard transcripts when muted (no hardware toggling)
 						if (transcript && !isSoftwareMuted) {
 							inputText = transcript;
 							sendMessage();
@@ -139,21 +152,32 @@
 				};
 				recognition.onend = () => {
 					isListening = false;
-					// Continuous mode: if voiceModeEnabled, restart immediately to keep hardware active
-					if (voiceModeEnabled && !isDestroyed) {
+					// Always restart recognition — persistent stream keeps hardware alive,
+					// so this restart is silent at the OS level (no green dot flicker)
+					if (!isDestroyed) {
 						setTimeout(() => {
-							if (!isDestroyed && voiceModeEnabled && !isListening) {
+							if (!isDestroyed && !isListening) {
 								try { recognition.start(); isListening = true; } catch {}
 							}
 						}, 300);
 					}
 				};
-				recognition.onerror = () => (isListening = false);
+				recognition.onerror = (e: any) => {
+					isListening = false;
+					// Auto-restart on recoverable errors — hardware mic stays alive via persistent stream
+					if (!isDestroyed && e.error !== 'not-allowed' && e.error !== 'service-not-allowed') {
+						setTimeout(() => {
+							if (!isDestroyed && !isListening) {
+								try { recognition.start(); isListening = true; } catch {}
+							}
+						}, 500);
+					}
+				};
 			}
 		}
 
-		// Start listening immediately if voice mode is enabled
-		if (voiceModeEnabled && recognition) {
+		// Start SpeechRecognition — hardware is already held open by persistentStream
+		if (recognition) {
 			try { recognition.start(); isListening = true; } catch {}
 		}
 
@@ -166,7 +190,13 @@
 		voiceModeEnabled = false;
 		if (volumeRafId) cancelAnimationFrame(volumeRafId);
 		audioAnalyser.dispose();
+		// Stop SpeechRecognition
 		if (recognition) { try { recognition.stop(); } catch {} }
+		// Release the persistent hardware mic stream — this is the ONLY place hardware is released
+		if (persistentStream) {
+			persistentStream.getTracks().forEach(t => t.stop());
+			persistentStream = null;
+		}
 	});
 
 	async function sendMessage(text?: string, isHidden: boolean = false) {
@@ -312,13 +342,18 @@
 			return;
 		}
 		
+		// Software-only toggle: flip the flag, never touch hardware
 		voiceModeEnabled = !voiceModeEnabled;
-		
-		if (voiceModeEnabled) {
-			try { recognition.start(); isListening = true; } catch {}
-		} else {
-			try { recognition.stop(); isListening = false; } catch {}
+
+		// Mute/unmute the persistent stream's audio tracks at the SOFTWARE level.
+		// track.enabled = false silences the mic input without releasing hardware —
+		// the OS still sees the mic as "in use" (green dot stays, no gain sounds).
+		if (persistentStream) {
+			persistentStream.getAudioTracks().forEach(track => {
+				track.enabled = voiceModeEnabled;
+			});
 		}
+		// recognition.start()/stop() is intentionally NOT called here
 	}
 
 	function stopAndExit() {
@@ -326,7 +361,14 @@
 		isSpeaking = false;
 		streamComplete = true;
 		isProcessing = false;
+		// Stop hardware mic only when actually leaving the page
+		isDestroyed = true; // Prevent auto-restart in onend handler
 		if (recognition) { try { recognition.stop(); isListening = false; } catch {} }
+		// Release persistent hardware mic stream
+		if (persistentStream) {
+			persistentStream.getTracks().forEach(t => t.stop());
+			persistentStream = null;
+		}
 		goBack();
 	}
 
