@@ -28,10 +28,22 @@
 	let showMenu = $state(false);
 	let showSubtitle = $state('');
 	let smartReplies: string[] = $state([]);
-	let recognition: any = null;
 	let persistentStream: MediaStream | null = null; // Holds hardware mic open for the entire session
+	let inputCtx: AudioContext | null = null;
+	let inputAnalyser: AnalyserNode | null = null;
+	let inputDataArray: Uint8Array | null = null;
+	let inputMediaStreamSource: MediaStreamAudioSourceNode | null = null;
 
-	let isSoftwareMuted = $derived(isProcessing || isSpeaking || isThinking || !voiceModeEnabled);
+	let mediaRecorder: MediaRecorder | null = null;
+	let recordedChunks: Blob[] = [];
+	let isRecordingInput = $state(false);
+	let lastSpeechTime = 0;
+	let VAD_THRESHOLD = 0.012; // Adjust if needed
+	let SILENCE_DURATION = 1500; // 1.5 seconds of silence before transcribing
+	let vadRafId: number;
+	let discardNextRecording = false;
+
+	let isSoftwareMuted = $derived(isProcessing || isSpeaking || isThinking);
 
 	// Reactive metadata from AI
 	let activeEmotion = $state('Neutral');
@@ -116,72 +128,149 @@
 		}, readingTimeMs);
 	}
 
+	function getMicVolume(): number {
+		if (!inputAnalyser || !inputDataArray) return 0;
+		inputAnalyser.getByteTimeDomainData(inputDataArray);
+		let sum = 0;
+		for (let i = 0; i < inputDataArray.length; i++) {
+			const v = (inputDataArray[i] - 128) / 128;
+			sum += v * v;
+		}
+		const rms = Math.sqrt(sum / inputDataArray.length);
+		return rms;
+	}
+
+	function pollVAD() {
+		if (isDestroyed) return;
+		vadRafId = requestAnimationFrame(pollVAD);
+
+		// If Voice Mode is disabled or Ani is speaking/thinking/processing,
+		// we software-mute by ignoring microphone audio completely.
+		// No hardware tracks are disabled, so the browser/OS thinks mic is always active!
+		if (!voiceModeEnabled || isSoftwareMuted) {
+			if (isRecordingInput) {
+				discardNextRecording = true;
+				try {
+					mediaRecorder?.stop();
+				} catch {}
+				isRecordingInput = false;
+			}
+			return;
+		}
+
+		const vol = getMicVolume();
+
+		if (vol > VAD_THRESHOLD) {
+			lastSpeechTime = Date.now();
+			if (!isRecordingInput) {
+				startRecordingInput();
+			}
+		} else if (isRecordingInput) {
+			// If silence is detected for more than SILENCE_DURATION, stop and process
+			if (Date.now() - lastSpeechTime > SILENCE_DURATION) {
+				stopRecordingInput();
+			}
+		}
+	}
+
+	function startRecordingInput() {
+		if (!persistentStream) return;
+		recordedChunks = [];
+		discardNextRecording = false;
+
+		try {
+			let mimeType = 'audio/webm';
+			if (MediaRecorder.isTypeSupported('audio/webm')) {
+				mimeType = 'audio/webm';
+			} else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+				mimeType = 'audio/ogg';
+			} else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+				mimeType = 'audio/mp4';
+			} else if (MediaRecorder.isTypeSupported('audio/wav')) {
+				mimeType = 'audio/wav';
+			}
+
+			mediaRecorder = new MediaRecorder(persistentStream, { mimeType });
+			mediaRecorder.ondataavailable = (e) => {
+				if (e.data && e.data.size > 0) {
+					recordedChunks.push(e.data);
+				}
+			};
+
+			mediaRecorder.onstop = async () => {
+				if (discardNextRecording || recordedChunks.length === 0) {
+					recordedChunks = [];
+					return;
+				}
+
+				const audioBlob = new Blob(recordedChunks, { type: mimeType });
+				recordedChunks = [];
+
+				if (audioBlob.size < 1000) return;
+
+				const reader = new FileReader();
+				reader.readAsDataURL(audioBlob);
+				reader.onloadend = async () => {
+					const base64Data = (reader.result as string).split(',')[1];
+					try {
+						isThinking = true;
+						const res = await fetch('/api/transcribe', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ audio: base64Data, mimeType })
+						});
+						
+						const data = await res.json();
+						isThinking = false;
+
+						if (data.text && data.text.trim()) {
+							inputText = data.text.trim();
+							sendMessage();
+						}
+					} catch (err) {
+						console.error('[Ani Mic] Transcription failed:', err);
+						isThinking = false;
+					}
+				};
+			};
+
+			mediaRecorder.start(250);
+			isRecordingInput = true;
+			lastSpeechTime = Date.now();
+		} catch (err) {
+			console.error('[Ani Mic] Failed to start MediaRecorder:', err);
+		}
+	}
+
+	function stopRecordingInput() {
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			try {
+				mediaRecorder.stop();
+			} catch (err) {
+				console.error('[Ani Mic] Error stopping MediaRecorder:', err);
+			}
+		}
+		isRecordingInput = false;
+	}
+
 	onMount(async () => {
 		pollVolume();
 		initAppServiceListener();
 
-		// ── Persistent Hardware Mic Anchor ──
-		// Acquire a getUserMedia stream ONCE and hold it for the entire session.
-		// This keeps the hardware mic physically open so that when SpeechRecognition
-		// internally cycles (onend → start), the OS doesn't re-acquire the mic,
-		// preventing green-dot flicker and system gain sounds on smartphones.
 		try {
 			persistentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			
+			inputCtx = new AudioContext();
+			inputMediaStreamSource = inputCtx.createMediaStreamSource(persistentStream);
+			inputAnalyser = inputCtx.createAnalyser();
+			inputAnalyser.fftSize = 256;
+			inputDataArray = new Uint8Array(inputAnalyser.frequencyBinCount);
+			inputMediaStreamSource.connect(inputAnalyser);
+
+			pollVAD();
 		} catch (e) {
 			console.warn('[Ani Mic] Could not acquire persistent mic stream:', e);
 		}
-
-		if (typeof window !== 'undefined') {
-			const SR = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-			if (SR) {
-				recognition = new SR();
-				recognition.continuous = true;
-				recognition.interimResults = false;
-				recognition.lang = 'en-US';
-
-				recognition.onresult = (event: any) => {
-					const lastResult = event.results[event.results.length - 1];
-					if (lastResult.isFinal) {
-						const transcript = lastResult[0].transcript.trim();
-						// Software-level gate: discard transcripts when muted (no hardware toggling)
-						if (transcript && !isSoftwareMuted) {
-							inputText = transcript;
-							sendMessage();
-						}
-					}
-				};
-				recognition.onend = () => {
-					isListening = false;
-					// Always restart recognition — persistent stream keeps hardware alive,
-					// so this restart is silent at the OS level (no green dot flicker)
-					if (!isDestroyed) {
-						setTimeout(() => {
-							if (!isDestroyed && !isListening) {
-								try { recognition.start(); isListening = true; } catch {}
-							}
-						}, 300);
-					}
-				};
-				recognition.onerror = (e: any) => {
-					isListening = false;
-					// Auto-restart on recoverable errors — hardware mic stays alive via persistent stream
-					if (!isDestroyed && e.error !== 'not-allowed' && e.error !== 'service-not-allowed') {
-						setTimeout(() => {
-							if (!isDestroyed && !isListening) {
-								try { recognition.start(); isListening = true; } catch {}
-							}
-						}, 500);
-					}
-				};
-			}
-		}
-
-		// Start SpeechRecognition — hardware is already held open by persistentStream
-		if (recognition) {
-			try { recognition.start(); isListening = true; } catch {}
-		}
-
-		// Initial greeting voice message is now triggered by VrmViewer's onLoaded callback
 	});
 
 	onDestroy(() => {
@@ -189,10 +278,13 @@
 		if (abortController) abortController.abort();
 		voiceModeEnabled = false;
 		if (volumeRafId) cancelAnimationFrame(volumeRafId);
+		if (vadRafId) cancelAnimationFrame(vadRafId);
 		audioAnalyser.dispose();
-		// Stop SpeechRecognition
-		if (recognition) { try { recognition.stop(); } catch {} }
-		// Release the persistent hardware mic stream — this is the ONLY place hardware is released
+
+		if (inputCtx && inputCtx.state !== 'closed') {
+			try { inputCtx.close(); } catch {}
+		}
+
 		if (persistentStream) {
 			persistentStream.getTracks().forEach(t => t.stop());
 			persistentStream = null;
@@ -337,23 +429,8 @@
 	let voiceModeEnabled = $state(true);
 
 	function toggleListen() {
-		if (!recognition) {
-			alert("Voice recognition is not supported in this browser.");
-			return;
-		}
-		
-		// Software-only toggle: flip the flag, never touch hardware
 		voiceModeEnabled = !voiceModeEnabled;
-
-		// Mute/unmute the persistent stream's audio tracks at the SOFTWARE level.
-		// track.enabled = false silences the mic input without releasing hardware —
-		// the OS still sees the mic as "in use" (green dot stays, no gain sounds).
-		if (persistentStream) {
-			persistentStream.getAudioTracks().forEach(track => {
-				track.enabled = voiceModeEnabled;
-			});
-		}
-		// recognition.start()/stop() is intentionally NOT called here
+		console.log('[Ani Mic] Voice mode toggled:', voiceModeEnabled);
 	}
 
 	function stopAndExit() {
@@ -361,14 +438,20 @@
 		isSpeaking = false;
 		streamComplete = true;
 		isProcessing = false;
-		// Stop hardware mic only when actually leaving the page
-		isDestroyed = true; // Prevent auto-restart in onend handler
-		if (recognition) { try { recognition.stop(); isListening = false; } catch {} }
-		// Release persistent hardware mic stream
+		isDestroyed = true;
+
+		if (volumeRafId) cancelAnimationFrame(volumeRafId);
+		if (vadRafId) cancelAnimationFrame(vadRafId);
+
+		if (inputCtx && inputCtx.state !== 'closed') {
+			try { inputCtx.close(); } catch {}
+		}
+
 		if (persistentStream) {
 			persistentStream.getTracks().forEach(t => t.stop());
 			persistentStream = null;
 		}
+
 		goBack();
 	}
 
@@ -634,9 +717,10 @@
 				{#if isMuted}<VolumeX size={20} strokeWidth={1.8} />{:else}<Volume2 size={20} strokeWidth={1.8} />{/if}
 			</button>
 			<button class="ctrl-btn" 
-					class:active={!voiceModeEnabled || (voiceModeEnabled && !isSoftwareMuted)} 
-					class:listening={!voiceModeEnabled || (voiceModeEnabled && !isSoftwareMuted)} 
+					class:active={voiceModeEnabled && !isSoftwareMuted} 
+					class:listening={voiceModeEnabled && !isSoftwareMuted && !isRecordingInput} 
 					class:software-muted={voiceModeEnabled && isSoftwareMuted} 
+					class:user-speaking={voiceModeEnabled && isRecordingInput} 
 					onclick={toggleListen} aria-label="Microphone">
 				{#if !voiceModeEnabled}
 					<MicOff size={20} strokeWidth={1.8} />
@@ -747,6 +831,17 @@
 	.ctrl-btn.active { color: rgba(255,255,255,0.95); background: rgba(70,25,50,0.85); border-color: rgba(220,50,100,0.4); }
 	.ctrl-btn.listening { background: rgba(220,50,50,0.25); border-color: rgba(220,80,80,0.5); color: #fff; }
 	.ctrl-btn.software-muted { background: rgba(220,150,50,0.25); border-color: rgba(220,150,50,0.5); color: #fff; }
+	.ctrl-btn.user-speaking { 
+		background: rgba(220,50,50,0.45); 
+		border-color: rgba(255,80,80,0.8); 
+		color: #fff; 
+		box-shadow: 0 0 15px rgba(255,50,50,0.4);
+		animation: mic-pulse 1.2s infinite ease-in-out;
+	}
+	@keyframes mic-pulse {
+		0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(255,50,50,0.4); }
+		50% { transform: scale(1.08); box-shadow: 0 0 25px rgba(255,50,50,0.7); }
+	}
 
 	.input-row { display: flex; align-items: center; gap: 10px; }
 	.input-field { flex: 1; height: 46px; background: rgba(30,20,35,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); border-radius: 25px; display: flex; align-items: center; padding: 0 18px; transition: border-color 0.2s; }
