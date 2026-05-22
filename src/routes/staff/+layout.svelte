@@ -53,7 +53,9 @@
 							? 'Settings'
 							: page.url.pathname.includes('profile')
 								? 'Profile'
-								: 'Blancbeu Stylist'
+								: page.url.pathname.includes('custom-services')
+									? 'Service Menu'
+									: 'Blancbeu Stylist'
 	);
 
 	let isNavVisible = $derived(

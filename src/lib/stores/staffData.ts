@@ -88,11 +88,15 @@ let bookingsUnsub: (() => void) | null = null;
 let servicesUnsub: (() => void) | null = null;
 let customServicesUnsub: (() => void) | null = null;
 
-export function initStaffDataListener() {
-	if (bookingsUnsub) return;
-	console.log('[StaffData] Starting listeners');
+let bookingsRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+let servicesRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+let customServicesRetryTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	const qBookings = query(collection(db, 'bookings'), orderBy('date', 'asc')); // Sort by appointment date
+function startBookingsListener() {
+	if (bookingsUnsub) return;
+	console.log('[StaffData] Connecting Bookings real-time listener...');
+
+	const qBookings = query(collection(db, 'bookings'), orderBy('date', 'asc'));
 
 	bookingsUnsub = onSnapshot(
 		qBookings,
@@ -141,10 +145,29 @@ export function initStaffDataListener() {
 		},
 		(error) => {
 			console.error('[StaffData] Booking listener error:', error);
+			if (bookingsUnsub) {
+				bookingsUnsub();
+				bookingsUnsub = null;
+			}
+			
+			// Retry after 2 seconds if still authorized
+			import('./staffAuth').then(({ staffAuthState }) => {
+				if (get(staffAuthState) === 'authorized') {
+					console.log('[StaffData] Booking listener failed. Retrying in 2 seconds...');
+					if (bookingsRetryTimeout) clearTimeout(bookingsRetryTimeout);
+					bookingsRetryTimeout = setTimeout(startBookingsListener, 2000);
+				}
+			});
 		}
 	);
+}
+
+function startServicesListener() {
+	if (servicesUnsub) return;
+	console.log('[StaffData] Connecting Services real-time listener...');
 
 	const qServices = query(collection(db, 'services'));
+
 	servicesUnsub = onSnapshot(
 		qServices,
 		(snapshot) => {
@@ -156,10 +179,29 @@ export function initStaffDataListener() {
 		},
 		(error) => {
 			console.error('[StaffData] Service listener error:', error);
+			if (servicesUnsub) {
+				servicesUnsub();
+				servicesUnsub = null;
+			}
+
+			// Retry after 2 seconds if still authorized
+			import('./staffAuth').then(({ staffAuthState }) => {
+				if (get(staffAuthState) === 'authorized') {
+					console.log('[StaffData] Service listener failed. Retrying in 2 seconds...');
+					if (servicesRetryTimeout) clearTimeout(servicesRetryTimeout);
+					servicesRetryTimeout = setTimeout(startServicesListener, 2000);
+				}
+			});
 		}
 	);
+}
+
+function startCustomServicesListener() {
+	if (customServicesUnsub) return;
+	console.log('[StaffData] Connecting Custom Services real-time listener...');
 
 	const qCustomServices = query(collection(db, 'custom_services'));
+
 	customServicesUnsub = onSnapshot(
 		qCustomServices,
 		(snapshot) => {
@@ -171,11 +213,45 @@ export function initStaffDataListener() {
 		},
 		(error) => {
 			console.error('[StaffData] Custom service listener error:', error);
+			if (customServicesUnsub) {
+				customServicesUnsub();
+				customServicesUnsub = null;
+			}
+
+			// Retry after 2 seconds if still authorized
+			import('./staffAuth').then(({ staffAuthState }) => {
+				if (get(staffAuthState) === 'authorized') {
+					console.log('[StaffData] Custom service listener failed. Retrying in 2 seconds...');
+					if (customServicesRetryTimeout) clearTimeout(customServicesRetryTimeout);
+					customServicesRetryTimeout = setTimeout(startCustomServicesListener, 2000);
+				}
+			});
 		}
 	);
 }
 
+export function initStaffDataListener() {
+	console.log('[StaffData] Initializing listeners...');
+	startBookingsListener();
+	startServicesListener();
+	startCustomServicesListener();
+}
+
 export function destroyStaffDataListeners() {
+	console.log('[StaffData] Destroying listeners...');
+	if (bookingsRetryTimeout) {
+		clearTimeout(bookingsRetryTimeout);
+		bookingsRetryTimeout = null;
+	}
+	if (servicesRetryTimeout) {
+		clearTimeout(servicesRetryTimeout);
+		servicesRetryTimeout = null;
+	}
+	if (customServicesRetryTimeout) {
+		clearTimeout(customServicesRetryTimeout);
+		customServicesRetryTimeout = null;
+	}
+
 	if (bookingsUnsub) {
 		bookingsUnsub();
 		bookingsUnsub = null;

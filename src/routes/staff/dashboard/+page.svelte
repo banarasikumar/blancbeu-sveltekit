@@ -237,9 +237,9 @@
 			<span class="qa-icon">📅</span>
 			<span class="qa-label">Schedule</span>
 		</button>
-		<button class="qa-btn qa-clients" onclick={() => goto('/staff/clients')}>
-			<span class="qa-icon">👥</span>
-			<span class="qa-label">Clients</span>
+		<button class="qa-btn qa-services" onclick={() => goto('/staff/custom-services')}>
+			<span class="qa-icon">✨</span>
+			<span class="qa-label">Services</span>
 		</button>
 		<button class="stat-card accent" onclick={handleRevenueClick}>
 			<span class="stat-value" style="min-width: 60px; transition: all 0.3s ease;">
@@ -765,7 +765,7 @@
 		transition: opacity 0.2s ease;
 	}
 
-	.qa-clients::after {
+	.qa-services::after {
 		background: var(--s-grad-violet);
 	}
 	.qa-booking::after {

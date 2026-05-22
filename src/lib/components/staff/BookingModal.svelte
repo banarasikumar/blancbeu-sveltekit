@@ -88,6 +88,24 @@
 	// Custom Service Modal States
 	let showCustomServiceModal = $state(false);
 	let newCustomService = $state({ category: '', name: '', mrp: '', price: '' });
+	let showCategoryDropdown = $state(false);
+
+	let existingCategories = $derived.by(() => {
+		const cats = new Set<string>();
+		for (const service of $staffServices) {
+			if (service.category) cats.add(service.category);
+		}
+		for (const service of $customServices) {
+			if (service.category) cats.add(service.category);
+		}
+		return Array.from(cats).sort();
+	});
+
+	let filteredCategories = $derived.by(() => {
+		const query = newCustomService.category.toLowerCase().trim();
+		if (!query) return existingCategories;
+		return existingCategories.filter((c) => c.toLowerCase().includes(query));
+	});
 
 	let sortedServices = $derived.by(() => {
 		let s = [...$staffServices];
@@ -214,23 +232,35 @@
 		selectedServices[index].price = newPrice;
 	}
 
-	function openCustomServiceModal() {
+	async function openCustomServiceModal() {
 		newCustomService = { category: '', name: serviceSearchQuery.trim(), mrp: '', price: '' };
 		showCustomServiceModal = true;
+		await tick();
+		setTimeout(() => {
+			const catInput = document.getElementById('cs-category');
+			if (catInput) {
+				(catInput as HTMLInputElement).focus();
+			}
+		}, 50);
 	}
 
 	async function saveNewCustomService() {
-		if (!newCustomService.name || !newCustomService.category || !newCustomService.price) {
+		if (!newCustomService.name.trim() || newCustomService.price === '' || newCustomService.price === null || newCustomService.price === undefined) {
 			showToast('Please fill all required fields', 'error');
 			return;
 		}
 
 		try {
+			const name = newCustomService.name.trim();
+			const category = newCustomService.category.trim() || 'Uncategorized';
+			const price = Number(newCustomService.price);
+			const mrp = Number(newCustomService.mrp) || price;
+
 			const id = await addCustomServiceToDb({
-				name: newCustomService.name,
-				category: newCustomService.category,
-				mrp: Number(newCustomService.mrp) || Number(newCustomService.price),
-				price: Number(newCustomService.price)
+				name,
+				category,
+				mrp,
+				price
 			});
 
 			// Add directly to selected services
@@ -238,8 +268,8 @@
 				...selectedServices,
 				{
 					id,
-					name: newCustomService.name,
-					price: Number(newCustomService.price),
+					name,
+					price,
 					mrp: Number(newCustomService.mrp) || undefined
 				}
 			];
@@ -247,8 +277,9 @@
 			serviceSearchQuery = '';
 			showServiceSearchDropdown = false;
 			showToast('Custom service added', 'success');
-		} catch (error) {
-			showToast('Failed to save custom service', 'error');
+		} catch (error: any) {
+			console.error('Failed to save custom service:', error);
+			showToast(`Failed to save custom service: ${error?.message || error}`, 'error');
 		}
 	}
 
@@ -796,8 +827,8 @@
 							{/if}
 							{#if showUserDropdown}
 								<ul class="autocomplete-dropdown">
-									{#each userSearchResults as user}
-										<li class="autocomplete-item" onmousedown={() => selectUser(user)}>
+									{#each userSearchResults as user, i}
+										<li class="autocomplete-item" class:selected={i === 0} onmousedown={() => selectUser(user)}>
 											<div class="ac-avatar">{user.name?.[0] || user.displayName?.[0] || 'U'}</div>
 											<div class="ac-info">
 												<span class="ac-name">{user.name || user.displayName || 'Unknown'}</span>
@@ -830,8 +861,8 @@
 							{/if}
 							{#if showUserNameDropdown}
 								<ul class="autocomplete-dropdown">
-									{#each userNameSearchResults as user}
-										<li class="autocomplete-item" onmousedown={() => selectUser(user)}>
+									{#each userNameSearchResults as user, i}
+										<li class="autocomplete-item" class:selected={i === 0} onmousedown={() => selectUser(user)}>
 											<div class="ac-avatar">{user.name?.[0] || user.displayName?.[0] || 'U'}</div>
 											<div class="ac-info">
 												<span class="ac-name">{user.name || user.displayName || 'Unknown'}</span>
@@ -866,56 +897,48 @@
 
 						<div class="service-list">
 							{#each selectedServices as item, i}
-								<div class="service-item manual-entry-card">
-									<div class="s-info">
-										<div class="input-container">
-											<input
-												type="text"
-												bind:value={item.name}
-												class="name-input"
-												placeholder="Type service name..."
-												onkeydown={(e) => {
-													if (e.key === 'Enter') {
-														e.preventDefault();
-														const row = e.currentTarget.closest('.s-info');
-														if (row) {
-															const priceInput = row.querySelector('.price-input');
-															if (priceInput) (priceInput as HTMLInputElement).focus();
-														}
+								<div class="selected-service-row">
+									<div class="service-details-left">
+										<input
+											type="text"
+											bind:value={item.name}
+											class="name-input-flat"
+											placeholder="Type service name..."
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													const row = e.currentTarget.closest('.selected-service-row');
+													if (row) {
+														const priceInput = row.querySelector('.price-input-flat');
+														if (priceInput) (priceInput as HTMLInputElement).focus();
 													}
-												}}
-											/>
-										</div>
-										<div
-											class="s-price-edit input-container"
-											style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"
-										>
-											<div style="display: flex; align-items: center;">
-												<span class="currency-symbol">₹</span>
-												<input
-													type="number"
-													value={item.price}
-													oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
-													class="price-input"
-													placeholder="Amount"
-												/>
-											</div>
-											{#if item.mrp && item.mrp > (Number(item.price) || 0)}
-												<span
-													style="font-size: 0.75rem; color: var(--s-text-tertiary); text-decoration: line-through; margin-right: 8px;"
-													>₹{item.mrp}</span
-												>
-											{/if}
-										</div>
+												}
+											}}
+										/>
+										{#if item.mrp}
+											<span class="selected-service-mrp">
+												MRP: ₹{item.mrp}
+											</span>
+										{/if}
+									</div>
+									<div class="service-price-right">
+										<span class="currency-symbol-flat">₹</span>
+										<input
+											type="number"
+											value={item.price}
+											oninput={(e) => updateServicePrice(i, Number(e.currentTarget.value))}
+											class="price-input-flat"
+											placeholder="0"
+										/>
 									</div>
 									<button
-										class="remove-btn"
+										class="remove-btn-flat"
 										onclick={() => removeService(i)}
 										aria-label="Remove Service"
 									>
 										<svg
-											width="16"
-											height="16"
+											width="14"
+											height="14"
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"
@@ -931,6 +954,7 @@
 							{/each}
 						</div>
 
+						{#if !showCustomServiceModal}
 						<div
 							class="smart-service-input-container"
 							style="position: relative; margin-top: 24px;"
@@ -1019,9 +1043,10 @@
 									class="autocomplete-dropdown"
 									style="position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px;"
 								>
-									{#each serviceSearchResults as service}
+									{#each serviceSearchResults as service, i}
 										<li
 											class="autocomplete-item"
+											class:selected={i === 0}
 											onmousedown={() => {
 												selectServiceFromCatalog(service);
 												serviceSearchQuery = '';
@@ -1045,7 +1070,7 @@
 										</li>
 									{/each}
 									{#if serviceSearchResults.length === 0}
-										<li class="autocomplete-item" onmousedown={() => openCustomServiceModal()}>
+										<li class="autocomplete-item" class:selected={true} onmousedown={() => openCustomServiceModal()}>
 											<div class="ac-info" style="color: var(--s-text-primary);">
 												<span class="ac-name" style="color: #10b981;"
 													>+ Add "{serviceSearchQuery}" as Custom Service</span
@@ -1056,6 +1081,7 @@
 								</ul>
 							{/if}
 						</div>
+						{/if}
 
 						{#if showCustomServiceModal}
 							<div
@@ -1065,20 +1091,6 @@
 								<h4 style="margin: 0 0 16px 0; font-size: 1rem; color: var(--s-text-primary);">
 									Add Custom Service
 								</h4>
-								<div class="form-group" style="margin-bottom: 12px;">
-									<label
-										for="cs-category"
-										style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);"
-										>Category</label
-									>
-									<input
-										id="cs-category"
-										type="text"
-										class="input-lg"
-										bind:value={newCustomService.category}
-										placeholder="e.g. Haircut"
-									/>
-								</div>
 								<div class="form-group" style="margin-bottom: 12px;">
 									<label
 										for="cs-name"
@@ -1091,7 +1103,50 @@
 										class="input-lg"
 										bind:value={newCustomService.name}
 										placeholder="e.g. Special Trim"
+										onkeydown={(e) => {
+											if (e.key === 'Enter') {
+												e.preventDefault();
+												document.getElementById('cs-category')?.focus();
+											}
+										}}
 									/>
+								</div>
+								<div class="form-group" style="position: relative; margin-bottom: 12px;">
+									<label
+										for="cs-category"
+										style="display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--s-text-secondary);"
+										>Category</label
+									>
+									<input
+										id="cs-category"
+										type="text"
+										class="input-lg"
+										bind:value={newCustomService.category}
+										onfocus={() => (showCategoryDropdown = true)}
+										onblur={() => setTimeout(() => (showCategoryDropdown = false), 200)}
+										placeholder="e.g. Haircut"
+										autocomplete="off"
+										onkeydown={(e) => {
+											if (e.key === 'Enter') {
+												e.preventDefault();
+												document.getElementById('cs-mrp')?.focus();
+											}
+										}}
+									/>
+									{#if showCategoryDropdown && filteredCategories.length > 0}
+										<ul class="autocomplete-dropdown" style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 999; max-height: 180px; overflow-y: auto; list-style: none; margin: 0; padding: 4px;">
+											{#each filteredCategories as cat, i}
+												<li class="autocomplete-item" class:selected={i === 0} onmousedown={() => {
+													newCustomService.category = cat;
+													setTimeout(() => {
+														document.getElementById('cs-mrp')?.focus();
+													}, 50);
+												}}>
+													<span class="ac-name">{cat}</span>
+												</li>
+											{/each}
+										</ul>
+									{/if}
 								</div>
 								<div class="row" style="display: flex; gap: 12px; margin-bottom: 16px;">
 									<div class="form-group" style="flex: 1; margin-bottom: 0;">
@@ -1106,6 +1161,12 @@
 											class="input-lg"
 											bind:value={newCustomService.mrp}
 											placeholder="Optional"
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													document.getElementById('cs-price')?.focus();
+												}
+											}}
 										/>
 									</div>
 									<div class="form-group" style="flex: 1; margin-bottom: 0;">
@@ -1120,6 +1181,12 @@
 											class="input-lg"
 											bind:value={newCustomService.price}
 											placeholder="Final Price"
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													saveNewCustomService();
+												}
+											}}
 										/>
 									</div>
 								</div>
@@ -1489,7 +1556,7 @@
 
 	/* Modal Content */
 	.modal-content {
-		background: var(--s-bg-primary);
+		background: linear-gradient(180deg, #fdfbf7 0%, #f7f5ef 100%);
 		width: 100%;
 		max-width: 100%;
 		height: 100%;
@@ -1500,6 +1567,11 @@
 		animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 		box-shadow: none;
 		overflow: hidden;
+		transition: background 0.3s ease;
+	}
+
+	:global(.staff-app.dark) .modal-content {
+		background: linear-gradient(180deg, #1c1c1e 0%, #0c0c0d 100%);
 	}
 
 	@media (min-width: 768px) {
@@ -1938,22 +2010,35 @@
 	}
 
 	.form-section {
-		margin-bottom: 20px;
-		background: var(--s-surface, white);
-		padding: 20px 16px;
+		background: rgba(255, 255, 255, 0.7);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.8);
 		border-radius: var(--s-radius-xl, 16px);
-		border: 1px solid var(--s-border, #e5e7eb);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+		box-shadow: 0 4px 24px rgba(26, 10, 46, 0.03);
+		padding: 20px 20px;
+		margin-bottom: 24px;
+		transition: all 0.3s ease;
+	}
+
+	:global(.staff-app.dark) .form-section {
+		background: rgba(28, 28, 30, 0.7);
+		border-color: rgba(255, 255, 255, 0.05);
+		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 	}
 
 	h3 {
-		margin: 0 0 16px 0;
+		margin: 0 0 18px 0;
 		font-size: 0.75rem;
-		text-transform: uppercase;
-		color: var(--s-text-tertiary, #9ca3af);
 		font-weight: 700;
+		text-transform: uppercase;
+		color: var(--s-accent, #c9a24f);
 		letter-spacing: 0.08em;
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
+
 
 	.input-lg {
 		font-size: 1.15rem;
@@ -2010,16 +2095,24 @@
 	select,
 	textarea {
 		width: 100%;
-		padding: 12px 14px;
-		border: 1px solid var(--s-border, #e5e7eb);
-		border-radius: var(--s-radius-md, 10px);
+		background: rgba(255, 255, 255, 0.9);
+		border: 1px solid rgba(26, 10, 46, 0.08);
+		border-radius: var(--s-radius-md, 12px);
 		font-size: 0.95rem;
-		background: var(--s-bg-tertiary);
+		padding: 14px 16px;
+		color: var(--s-text-primary);
+		box-shadow: inset 0 1px 2px rgba(26, 10, 46, 0.02);
+		transition: all 0.25s ease-out;
 		font-family: inherit;
-		color: var(--s-text-primary, #1a1a2e);
-		transition:
-			border-color 0.2s ease,
-			box-shadow 0.2s ease;
+	}
+
+	:global(.staff-app.dark) input,
+	:global(.staff-app.dark) select,
+	:global(.staff-app.dark) textarea {
+		background: rgba(0, 0, 0, 0.2);
+		border-color: rgba(255, 255, 255, 0.08);
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+		color: var(--s-text-primary);
 	}
 
 	input:focus,
@@ -2027,8 +2120,14 @@
 	textarea:focus {
 		outline: none;
 		border-color: var(--s-accent, #c9a24f);
-		box-shadow: 0 0 0 3px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
-		background: var(--s-surface, white);
+		box-shadow: 0 0 0 4px var(--s-accent-bg, rgba(201, 162, 79, 0.12));
+		background: #ffffff;
+	}
+
+	:global(.staff-app.dark) input:focus,
+	:global(.staff-app.dark) select:focus,
+	:global(.staff-app.dark) textarea:focus {
+		background: rgba(0, 0, 0, 0.3);
 	}
 
 	textarea {
@@ -2050,16 +2149,26 @@
 
 	.country-code {
 		position: absolute;
-		left: 16px;
-		font-size: 1.15rem;
-		font-weight: 600;
-		color: var(--s-text-primary, #1a1a2e);
-		z-index: 1;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		padding: 0 12px 0 16px;
+		font-weight: 700;
+		color: var(--s-text-secondary);
+		border-right: 1px solid rgba(26, 10, 46, 0.08);
+		height: 100%;
 		pointer-events: none;
+		z-index: 1;
+	}
+
+	:global(.staff-app.dark) .country-code {
+		border-right-color: rgba(255, 255, 255, 0.08);
 	}
 
 	.phone-input {
-		padding-left: 60px !important;
+		padding-left: 68px !important;
 	}
 
 	:global(.staff-app.dark) .country-code {
@@ -2129,7 +2238,8 @@
 		border-bottom: none;
 	}
 
-	.autocomplete-item:hover {
+	.autocomplete-item:hover,
+	.autocomplete-item.selected {
 		background: var(--s-bg-tertiary, #f3f4f6);
 	}
 
@@ -2244,11 +2354,12 @@
 	}
 
 	.total-badge {
-		font-size: 0.85rem;
-		font-weight: 800;
-		background: var(--s-brand, #1a1a2e);
+		background: linear-gradient(135deg, var(--s-brand, #1a0a2e) 0%, var(--s-accent-2, #7c3aed) 100%);
 		color: white;
-		padding: 4px 12px;
+		font-weight: 700;
+		box-shadow: 0 4px 16px rgba(124, 58, 237, 0.25);
+		padding: 6px 14px;
+		font-size: 0.85rem;
 		border-radius: var(--s-radius-full, 20px);
 	}
 
@@ -2259,152 +2370,126 @@
 		margin-bottom: 18px;
 	}
 
-	.service-item.manual-entry-card {
-		padding: 16px;
+	.selected-service-row {
 		display: flex;
+		align-items: center;
 		justify-content: space-between;
-		align-items: flex-start;
-		background: var(--s-surface, white);
-		border: 1px solid var(--s-border, #e5e7eb);
+		background: rgba(255, 255, 255, 0.95);
+		border: 1px solid rgba(26, 10, 46, 0.06);
 		border-radius: var(--s-radius-lg, 12px);
-		position: relative;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-		transition:
-			border-color 0.2s ease,
-			box-shadow 0.2s ease;
+		padding: 12px 16px;
+		gap: 12px;
+		box-shadow: 0 2px 8px rgba(26, 10, 46, 0.02);
+		transition: all 0.2s ease;
 	}
 
-	:global(.staff-app.dark) .service-item.manual-entry-card {
-		background: var(--s-bg-tertiary, #1e1e1e);
-		border-color: #333;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	:global(.staff-app.dark) .selected-service-row {
+		background: rgba(28, 28, 30, 0.9);
+		border-color: rgba(255, 255, 255, 0.04);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 	}
 
-	.service-item.manual-entry-card:focus-within {
+	.selected-service-row:focus-within {
 		border-color: var(--s-accent, #c9a24f);
-		box-shadow: 0 4px 12px rgba(201, 162, 79, 0.15);
+		box-shadow: 0 4px 16px rgba(201, 162, 79, 0.1);
 	}
 
-	.s-info {
-		width: 100%;
+	.service-details-left {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		min-width: 0;
 	}
 
-	.input-container {
-		position: relative;
-		display: flex;
-		align-items: center;
-		width: 100%;
-	}
-
-	.name-input {
+	.name-input-flat {
+		border: none !important;
+		background: transparent !important;
+		box-shadow: none !important;
+		padding: 0 !important;
 		font-weight: 600;
-		font-size: 1.05rem;
-		padding: 14px 16px;
-		border-radius: var(--s-radius-md, 8px);
-		background: var(--s-bg-tertiary, #f3f4f6);
-		border: 1.5px solid transparent;
+		font-size: 1.02rem;
+		color: var(--s-text-primary);
 		width: 100%;
-		color: var(--s-text-primary, #1a1a2e);
-		transition: all 0.2s ease;
-		box-shadow: none;
 	}
 
-	:global(.staff-app.dark) .name-input {
-		background: #121212;
-		color: #ffffff;
+	.selected-service-mrp {
+		font-size: 0.72rem;
+		color: var(--s-text-tertiary, #94a3b8);
+		font-weight: 500;
+		margin-top: 2px;
 	}
 
-	.name-input:focus {
-		background: var(--s-surface, white);
-		border-color: var(--s-accent, #c9a24f);
-		box-shadow: 0 0 0 4px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
-		outline: none;
-	}
-
-	:global(.staff-app.dark) .name-input:focus {
-		background: #1e1e1e;
-	}
-
-	.s-price-edit {
+	.service-price-right {
 		display: flex;
 		align-items: center;
-		width: 100%;
+		background: var(--s-accent-bg, rgba(232, 167, 48, 0.06));
+		border: 1px solid rgba(232, 167, 48, 0.15);
+		padding: 6px 12px;
+		border-radius: var(--s-radius-full, 30px);
+		transition: all 0.2s ease;
 	}
 
-	.currency-symbol {
-		position: absolute;
-		left: 16px;
+	.service-price-right:focus-within {
+		background: #ffffff;
+		border-color: var(--s-accent, #c9a24f);
+	}
+
+	:global(.staff-app.dark) .service-price-right:focus-within {
+		background: rgba(0, 0, 0, 0.25);
+	}
+
+	.currency-symbol-flat {
 		font-weight: 700;
-		color: var(--s-text-secondary, #6b7280);
-		font-size: 1.1rem;
-		pointer-events: none;
-		z-index: 1;
+		color: var(--s-accent, #e8a730);
+		font-size: 0.95rem;
+		margin-right: 2px;
 	}
 
-	.price-input {
-		width: 100%;
-		padding: 14px 16px 14px 38px;
-		border: 1.5px solid transparent;
-		border-radius: var(--s-radius-md, 8px);
-		font-size: 1.05rem;
-		font-weight: 600;
-		background: var(--s-bg-tertiary, #f3f4f6);
-		color: var(--s-text-primary, #1a1a2e);
-		transition: all 0.2s ease;
-		box-shadow: none;
-	}
-
-	:global(.staff-app.dark) .price-input {
-		background: #121212;
-		color: #ffffff;
-	}
-
-	.price-input:focus {
-		background: var(--s-surface, white);
-		border-color: var(--s-accent, #c9a24f);
-		box-shadow: 0 0 0 4px var(--s-accent-bg, rgba(201, 162, 79, 0.1));
+	.price-input-flat {
+		border: none !important;
+		background: transparent !important;
+		box-shadow: none !important;
+		padding: 0 !important;
+		font-weight: 700;
+		font-size: 1rem;
+		color: var(--s-text-primary);
+		width: 52px;
+		text-align: right;
 		outline: none;
 	}
 
-	:global(.staff-app.dark) .price-input:focus {
-		background: #1e1e1e;
+	/* Remove Chrome spinner arrows */
+	.price-input-flat::-webkit-outer-spin-button,
+	.price-input-flat::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+	.price-input-flat {
+		-moz-appearance: textfield;
 	}
 
-	.remove-btn {
-		position: absolute;
-		top: -10px;
-		right: -10px;
-		background: var(--s-error, #ef4444);
-		color: white;
-		border: 2px solid var(--s-surface, white);
+	.remove-btn-flat {
+		background: rgba(244, 63, 94, 0.08);
+		color: var(--s-accent-3, #f43f5e);
+		border: none;
 		width: 28px;
 		height: 28px;
-		border-radius: 50%;
+		border-radius: var(--s-radius-full, 50%);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
 		flex-shrink: 0;
-		transition:
-			transform 0.1s ease,
-			background 0.2s ease;
-		box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
-		padding: 0;
+		transition: all 0.2s ease;
 	}
 
-	:global(.staff-app.dark) .remove-btn {
-		border-color: #1e1e1e;
+	.remove-btn-flat:hover {
+		background: var(--s-accent-3, #f43f5e);
+		color: white;
 	}
 
-	.remove-btn:active {
-		transform: scale(0.85);
-	}
-
-	.remove-btn:hover {
-		background: #dc2626;
+	.remove-btn-flat:active {
+		transform: scale(0.9);
 	}
 
 	.add-service-row {
@@ -2795,7 +2880,15 @@
 		padding-bottom: max(24px, env(safe-area-inset-bottom, 16px));
 		border-top: 1px solid var(--s-border, #e5e7eb);
 		flex-shrink: 0;
-		background: var(--s-bg, #f8f9fa);
+		background: rgba(255, 255, 255, 0.4);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		border-top: 1px solid rgba(232, 167, 48, 0.1);
+	}
+
+	:global(.staff-app.dark) .modal-footer {
+		background: rgba(18, 18, 18, 0.4);
+		border-top-color: rgba(255, 255, 255, 0.05);
 	}
 
 	.status-actions {
@@ -2888,13 +2981,28 @@
 	}
 
 	.save-btn {
-		background: var(--s-brand, #1a1a2e);
+		background: linear-gradient(135deg, var(--s-brand, #1a0a2e) 0%, var(--s-brand-light, #2e1a50) 100%);
+		box-shadow: 0 4px 16px rgba(26, 10, 46, 0.2);
 		color: white;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		border-radius: var(--s-radius-lg, 12px);
+		transition: all 0.2s ease;
 	}
 
 	:global(.staff-app.dark) .save-btn {
-		background: var(--s-accent, #c9a24f);
-		color: #1a1a2e;
+		background: linear-gradient(135deg, var(--s-accent, #f5c040) 0%, var(--s-accent-dark, #e8a730) 100%);
+		box-shadow: 0 4px 16px rgba(245, 192, 64, 0.2);
+		color: #1a0a2e;
+	}
+
+	.save-btn:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 6px 20px rgba(26, 10, 46, 0.3);
+	}
+
+	:global(.staff-app.dark) .save-btn:hover {
+		box-shadow: 0 6px 20px rgba(245, 192, 64, 0.3);
 	}
 
 	.save-btn:disabled {
