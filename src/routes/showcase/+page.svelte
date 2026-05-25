@@ -9,10 +9,21 @@
 		if (typeof document === 'undefined' || document.fullscreenElement) return;
 		try {
 			const docEl = document.documentElement as any;
+			let p;
 			if (docEl.requestFullscreen) {
-				docEl.requestFullscreen();
+				p = docEl.requestFullscreen();
 			} else if (docEl.webkitRequestFullscreen) {
-				docEl.webkitRequestFullscreen();
+				p = docEl.webkitRequestFullscreen();
+			}
+			
+			// If it returns a promise, wait for success to remove listeners
+			if (p && typeof p.then === 'function') {
+				p.then(() => {
+					document.removeEventListener('click', requestFullscreen);
+					document.removeEventListener('touchend', requestFullscreen);
+				}).catch(() => {
+					// Browser rejected it (e.g. strict gesture requirement), we will try again next touch
+				});
 			}
 		} catch (err) {
 			console.warn('Fullscreen request failed:', err);
@@ -24,9 +35,9 @@
 		mounted = true;
 		await tick();
 		
-		// Attach fullscreen triggers for first interaction
-		document.addEventListener('click', requestFullscreen, { once: true });
-		document.addEventListener('touchstart', requestFullscreen, { once: true, passive: true });
+		// Attach fullscreen triggers. We use touchend because touchstart is often rejected by browsers for fullscreen.
+		document.addEventListener('click', requestFullscreen);
+		document.addEventListener('touchend', requestFullscreen, { passive: true });
 		
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -54,7 +65,7 @@
 		return () => {
 			observer.disconnect();
 			document.removeEventListener('click', requestFullscreen);
-			document.removeEventListener('touchstart', requestFullscreen);
+			document.removeEventListener('touchend', requestFullscreen);
 		};
 	});
 
