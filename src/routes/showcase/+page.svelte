@@ -4,10 +4,29 @@
 
 	let mounted = $state(false);
 
+	// Fullscreen logic for immersive experience
+	function requestFullscreen() {
+		if (typeof document === 'undefined' || document.fullscreenElement) return;
+		try {
+			const docEl = document.documentElement as any;
+			if (docEl.requestFullscreen) {
+				docEl.requestFullscreen();
+			} else if (docEl.webkitRequestFullscreen) {
+				docEl.webkitRequestFullscreen();
+			}
+		} catch (err) {
+			console.warn('Fullscreen request failed:', err);
+		}
+	}
+
 	// Intersection Observer for scroll reveal and marquee playback
 	onMount(async () => {
 		mounted = true;
 		await tick();
+		
+		// Attach fullscreen triggers for first interaction
+		document.addEventListener('click', requestFullscreen, { once: true });
+		document.addEventListener('touchstart', requestFullscreen, { once: true, passive: true });
 		
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -32,7 +51,11 @@
 		);
 		document.querySelectorAll('.sc-reveal, .sc-screenshots').forEach((el) => observer.observe(el));
 		
-		return () => observer.disconnect();
+		return () => {
+			observer.disconnect();
+			document.removeEventListener('click', requestFullscreen);
+			document.removeEventListener('touchstart', requestFullscreen);
+		};
 	});
 
 	// ========== DATA ==========

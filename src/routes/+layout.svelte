@@ -43,7 +43,7 @@
 	let showSplash = $state(true);
 
 	// Derived theme color for address bar (Android Chrome, Safari, Edge, etc.)
-	let metaThemeColor = $derived(isShowcaseRoute ? '#0c0a1a' : THEME_COLORS[$theme]);
+	let metaThemeColor = $derived(isShowcaseRoute ? '#1d1533' : THEME_COLORS[$theme]);
 	let appleStatusBarStyle = $derived(isShowcaseRoute ? 'black-translucent' : ($theme === 'gold' ? 'black-translucent' : 'default'));
 
 	onMount(async () => {
@@ -199,8 +199,8 @@
 
 	<!-- Mobile browser address bar & status bar color -->
 	{#if isShowcaseRoute}
-		<meta name="theme-color" content="#0c0a1a" media="(prefers-color-scheme: light)" />
-		<meta name="theme-color" content="#0c0a1a" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#1d1533" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#1d1533" media="(prefers-color-scheme: dark)" />
 	{:else}
 		<meta name="theme-color" content={metaThemeColor} />
 	{/if}
