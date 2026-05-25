@@ -338,6 +338,7 @@
 
 <svelte:head>
 	<title>Blancbeu — Premium Salon & Spa Software Ecosystem</title>
+	<meta name="theme-color" content="#0c0a1a" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 </svelte:head>
