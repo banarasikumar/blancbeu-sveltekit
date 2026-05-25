@@ -4,40 +4,10 @@
 
 	let mounted = $state(false);
 
-	// Fullscreen logic for immersive experience
-	function requestFullscreen() {
-		if (typeof document === 'undefined' || document.fullscreenElement) return;
-		try {
-			const docEl = document.documentElement as any;
-			let p;
-			if (docEl.requestFullscreen) {
-				p = docEl.requestFullscreen();
-			} else if (docEl.webkitRequestFullscreen) {
-				p = docEl.webkitRequestFullscreen();
-			}
-			
-			// If it returns a promise, wait for success to remove listeners
-			if (p && typeof p.then === 'function') {
-				p.then(() => {
-					document.removeEventListener('click', requestFullscreen);
-					document.removeEventListener('touchend', requestFullscreen);
-				}).catch(() => {
-					// Browser rejected it (e.g. strict gesture requirement), we will try again next touch
-				});
-			}
-		} catch (err) {
-			console.warn('Fullscreen request failed:', err);
-		}
-	}
-
 	// Intersection Observer for scroll reveal and marquee playback
 	onMount(async () => {
 		mounted = true;
 		await tick();
-		
-		// Attach fullscreen triggers. We use touchend because touchstart is often rejected by browsers for fullscreen.
-		document.addEventListener('click', requestFullscreen);
-		document.addEventListener('touchend', requestFullscreen, { passive: true });
 		
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -62,11 +32,7 @@
 		);
 		document.querySelectorAll('.sc-reveal, .sc-screenshots').forEach((el) => observer.observe(el));
 		
-		return () => {
-			observer.disconnect();
-			document.removeEventListener('click', requestFullscreen);
-			document.removeEventListener('touchend', requestFullscreen);
-		};
+		return () => observer.disconnect();
 	});
 
 	// ========== DATA ==========
@@ -372,8 +338,18 @@
 
 <svelte:head>
 	<title>Blancbeu — Premium Salon & Spa Software Ecosystem</title>
+	<meta name="theme-color" content="#050505" media="(prefers-color-scheme: light)" />
+	<meta name="theme-color" content="#050505" media="(prefers-color-scheme: dark)" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+	<style>
+		:global(html), :global(body) {
+			background-color: #050505 !important;
+			overscroll-behavior-y: none;
+		}
+	</style>
 </svelte:head>
 
 {#if mounted}
