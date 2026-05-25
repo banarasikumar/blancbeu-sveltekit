@@ -344,13 +344,6 @@
 
 {#if mounted}
 	<div class="sc-page">
-		<!-- ===== AMBIENT AURORA BACKGROUND ===== -->
-		<div class="sc-aurora-bg">
-			<div class="sc-orb orb-1"></div>
-			<div class="sc-orb orb-2"></div>
-			<div class="sc-orb orb-3"></div>
-		</div>
-
 		<!-- ===== HERO ===== -->
 		<section class="sc-hero sc-section">
 			<div class="sc-container sc-hero-inner">
@@ -368,22 +361,22 @@
 		</section>
 
 		<!-- ===== STATS BAR ===== -->
-		<section class="sc-stats sc-section" style="padding: 2rem 0;">
+		<section class="sc-stats sc-section" style="padding: 3rem 0;">
 			<div class="sc-container">
-				<div class="sc-stats-grid sc-reveal">
-					<div class="sc-stat-card sc-glass sc-glow-hover">
+				<div class="sc-stats-grid">
+					<div>
 						<div class="sc-stat-num sc-gradient">6</div>
 						<div class="sc-stat-label">Applications</div>
 					</div>
-					<div class="sc-stat-card sc-glass sc-glow-hover">
+					<div>
 						<div class="sc-stat-num sc-gradient">3</div>
 						<div class="sc-stat-label">Native Android Apps</div>
 					</div>
-					<div class="sc-stat-card sc-glass sc-glow-hover">
+					<div>
 						<div class="sc-stat-num sc-gradient">AI</div>
 						<div class="sc-stat-label">Virtual Assistants</div>
 					</div>
-					<div class="sc-stat-card sc-glass sc-glow-hover">
+					<div>
 						<div class="sc-stat-num sc-gradient">300%</div>
 						<div class="sc-stat-label">Revenue Growth</div>
 					</div>
