@@ -94,7 +94,7 @@
 			title: 'Customer Web App',
 			platform: 'Web (PWA)',
 			pages: '12+ Pages',
-			color: '#7c3aed',
+			color: '#c084fc',
 			features: [
 				'Immersive Mobile-First UI',
 				'Virtual Try-On Integration',
@@ -107,7 +107,7 @@
 			title: 'Customer Android',
 			platform: 'Android App',
 			pages: 'Native',
-			color: '#a855f7',
+			color: '#f472b6',
 			features: [
 				'Native Performance & Feel',
 				'Push Notifications',
@@ -120,7 +120,7 @@
 			title: 'Admin Dashboard',
 			platform: 'Desktop Web',
 			pages: '20+ Pages',
-			color: '#06b6d4',
+			color: '#22d3ee',
 			features: [
 				'Advanced Analytics Overview',
 				'Staff Role Management',
@@ -133,7 +133,7 @@
 			title: 'Staff Web Portal',
 			platform: 'Web (PWA)',
 			pages: '8+ Pages',
-			color: '#0ea5e9',
+			color: '#38bdf8',
 			features: [
 				'Daily Schedule View',
 				'One-Tap Status Updates',
@@ -146,7 +146,7 @@
 			title: 'Staff Android App',
 			platform: 'Android App',
 			pages: 'Native',
-			color: '#f59e0b',
+			color: '#fbbf24',
 			features: [
 				'Instant Booking Alerts',
 				'QR Code Scanner for Check-ins',
@@ -159,7 +159,7 @@
 			title: 'Companion Ani',
 			platform: 'Android App',
 			pages: 'Native AI',
-			color: '#ef4444',
+			color: '#fb7185',
 			features: [
 				'Grok-like Avatar Interface',
 				'Conversational Booking Engine',
@@ -338,15 +338,11 @@
 
 <svelte:head>
 	<title>Blancbeu — Premium Salon & Spa Software Ecosystem</title>
-	<meta name="theme-color" content="#050505" media="(prefers-color-scheme: light)" />
-	<meta name="theme-color" content="#050505" media="(prefers-color-scheme: dark)" />
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 	<style>
 		:global(html), :global(body) {
-			background-color: #050505 !important;
+			background-color: #0B081F !important;
 			overscroll-behavior-y: none;
 		}
 	</style>
@@ -458,7 +454,7 @@
 					{#each appEcosystem as app}
 						<div class="sc-eco-card sc-glass sc-reveal sc-glow-hover">
 							<div class="sc-eco-head">
-								<h3 style="color: {app.color}">{app.title}</h3>
+								<h3>{app.title}</h3>
 								<div class="sc-eco-meta">
 									<span class="sc-eco-tag platform" style="background: {app.color}15; color: {app.color}; border-color: {app.color}30;">{app.platform}</span>
 									<span class="sc-eco-tag pages">{app.pages}</span>
