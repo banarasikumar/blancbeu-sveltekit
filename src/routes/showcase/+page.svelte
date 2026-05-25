@@ -4,91 +4,168 @@
 
 	let mounted = $state(false);
 
-	// Intersection Observer for scroll reveal
+	// Intersection Observer for scroll reveal and marquee playback
 	onMount(async () => {
 		mounted = true;
 		await tick();
+		
 		const observer = new IntersectionObserver(
 			(entries) => {
 				entries.forEach((e) => {
 					if (e.isIntersecting) {
 						e.target.classList.add('visible');
+						// If the screenshots wrapper enters the viewport, start the CSS marquee
+						if (e.target.classList.contains('sc-screenshots')) {
+							const track = e.target.querySelector('.sc-slides-track');
+							if (track) track.classList.add('is-running');
+						}
+					} else {
+						// Pause the CSS marquee when out of view to save battery
+						if (e.target.classList.contains('sc-screenshots')) {
+							const track = e.target.querySelector('.sc-slides-track');
+							if (track) track.classList.remove('is-running');
+						}
 					}
 				});
 			},
-			{ threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+			{ threshold: 0, rootMargin: '100px 0px 100px 0px' }
 		);
-		document.querySelectorAll('.sc-reveal').forEach((el) => observer.observe(el));
+		document.querySelectorAll('.sc-reveal, .sc-screenshots').forEach((el) => observer.observe(el));
+		
 		return () => observer.disconnect();
 	});
 
 	// ========== DATA ==========
 	const usps = [
 		{
+			title: 'Virtual AI Assistant',
+			desc: 'Intelligent AI handles customer questions and books appointments instantly via voice or text.',
+			icon: '<img src="/Assistant.webp" alt="AI Assistant" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />'
+		},
+		{
+			title: 'Companion "Ani" Avatar',
+			desc: 'Interactive 3D avatar that engages customers, handles queries, and drives sales conversationally.',
+			icon: '<img src="/Ani.webp" alt="Ani" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />'
+		},
+		{
+			title: 'Virtual Try-On',
+			desc: 'Upload a photo or use the camera to see real-time previews of haircuts and colors before booking.',
+			icon: '📸'
+		},
+		{
+			title: 'Live Slots & Booking',
+			desc: 'Real-time slot availability powered by Firebase RTDB. No double bookings. Millisecond sync.',
+			icon: '⚡'
+		},
+		{
+			title: 'Comprehensive Payment Gateway',
+			desc: 'Seamless checkout experience with full support for local and international payment methods.',
+			icon: '💳'
+		},
+		{
+			title: 'Desktop-Class Admin & Staff Panels',
+			desc: 'Full desktop support with installable apps. Easily assign tasks, optimize your workforce, and track staff performance with crystal clarity.',
+			icon: '💻'
+		},
+		{
+			title: 'Premium Desktop Simulator',
+			desc: 'The User Web App features a specialized smartphone simulator on desktop, preserving the flawless mobile aesthetic and usability perfectly.',
+			icon: '📱'
+		},
+		{
+			title: 'Coupons & Beu Cash',
+			desc: 'Built-in loyalty program with Beu Cash per user, plus robust promotional coupon management.',
+			icon: '🎁'
+		},
+		{
 			title: 'Cost-Free WhatsApp Auth',
 			desc: 'Custom WhatsApp login bot — no paid Business API required. Save thousands monthly.',
 			icon: '💬'
 		},
 		{
-			title: 'Edge Deployment',
-			desc: 'Deployed on Vercel\u0027s global edge network with auto load-balancing & zero downtime.',
-			icon: '🚀'
-		},
-		{
-			title: 'SVG-to-PDF Invoices',
-			desc: 'Pixel-perfect invoice generation on the client-side. No server overhead.',
-			icon: '📄'
-		},
-		{
-			title: 'Real-Time Sync',
-			desc: 'Firebase RTDB — bookings update across all apps in milliseconds.',
-			icon: '⚡'
+			title: 'Multi-Branch Expansion',
+			desc: 'Scale from a single salon to a premium multi-branch brand. Centralized control, branch-level analytics, and unified customer experience across all locations.',
+			icon: '🏢'
 		}
 	];
 
 	const appEcosystem = [
 		{
-			title: 'Customer App',
-			platform: 'Web & Android',
+			title: 'Customer Web App',
+			platform: 'Web (PWA)',
 			pages: '12+ Pages',
-			color: '#6366f1',
+			color: '#7c3aed',
 			features: [
 				'Immersive Mobile-First UI',
-				'WhatsApp OTP Auth',
-				'Real-time Slot Booking',
-				'Service Categories & Gallery',
-				'Profile & History',
+				'Virtual Try-On Integration',
+				'AI Voice Assistant Booking',
+				'Live Slot Availability',
+				'Coupons & Beu Cash Wallet'
+			]
+		},
+		{
+			title: 'Customer Android',
+			platform: 'Android App',
+			pages: 'Native',
+			color: '#a855f7',
+			features: [
+				'Native Performance & Feel',
 				'Push Notifications',
-				'PWA Installable'
+				'Camera Integration for Try-On',
+				'Offline Caching',
+				'Seamless Payment Gateway'
 			]
 		},
 		{
 			title: 'Admin Dashboard',
 			platform: 'Desktop Web',
-			pages: '15+ Pages',
-			color: '#a855f7',
+			pages: '20+ Pages',
+			color: '#06b6d4',
 			features: [
-				'Analytics Overview',
+				'Advanced Analytics Overview',
 				'Staff Role Management',
 				'Service & Pricing Config',
-				'Real-time Appointments',
-				'Invoice Generation',
-				'Multi-Theme Engine',
-				'Customer Database'
+				'Invoice & Tax Generation',
+				'Total Customer Database Control'
 			]
 		},
 		{
-			title: 'Staff Portal',
-			platform: 'Web & Android',
+			title: 'Staff Web Portal',
+			platform: 'Web (PWA)',
 			pages: '8+ Pages',
-			color: '#f97316',
+			color: '#0ea5e9',
 			features: [
 				'Daily Schedule View',
 				'One-Tap Status Updates',
 				'WhatsApp Customer Link',
-				'Earnings Tracking',
-				'Offline-Ready',
-				'Personal Profile'
+				'Earnings & Commission Tracking',
+				'Offline-Ready'
+			]
+		},
+		{
+			title: 'Staff Android App',
+			platform: 'Android App',
+			pages: 'Native',
+			color: '#f59e0b',
+			features: [
+				'Instant Booking Alerts',
+				'QR Code Scanner for Check-ins',
+				'Native Device Calendar Sync',
+				'Leave & Shift Management',
+				'Performance Analytics'
+			]
+		},
+		{
+			title: 'Companion Ani',
+			platform: 'Android App',
+			pages: 'Native AI',
+			color: '#ef4444',
+			features: [
+				'Grok-like Avatar Interface',
+				'Conversational Booking Engine',
+				'Voice-activated Commands',
+				'Service Recommendations',
+				'Deep Customer Engagement'
 			]
 		}
 	];
@@ -97,20 +174,37 @@
 		'Glassmorphic UI/UX',
 		'SvelteKit 5 Runes',
 		'Firebase Cloud Messaging',
-		'PWA Installable',
+		'Razorpay/Stripe Gateway',
 		'Offline Fallback',
 		'Capacitor Native Bridge',
-		'4 Theme Engines',
+		'Multi-Theme Engines',
 		'Role-Based Access Control',
-		'Dynamic Route Guards',
-		'Lazy Loading',
+		'Virtual Try-On Engine',
+		'AI LLM Integration',
 		'Container Queries',
 		'SVG Invoice Engine'
 	];
 
-	// Screenshots — put your image paths here
+	// Screenshots
 	const screenshots: string[] = [
-		// '/showcase/screen1.png', '/showcase/screen2.png', etc.
+		'/screenshots/1.png',
+		'/screenshots/2.png',
+		'/screenshots/3.png',
+		'/screenshots/3aa.png',
+		'/screenshots/3b.png',
+		'/screenshots/4.png',
+		'/screenshots/4ab.png',
+		'/screenshots/4b.png',
+		'/screenshots/6.png',
+		'/screenshots/7.png',
+		'/screenshots/7a.png',
+		'/screenshots/7b.png',
+		'/screenshots/8.png',
+		'/screenshots/9.png',
+		'/screenshots/9a.png',
+		'/screenshots/localhost_5173_(Samsung Galaxy S20 Ultra) (23).png',
+		'/screenshots/localhost_5173_(Samsung Galaxy S20 Ultra) (24).png',
+		'/screenshots/localhost_5173_(Samsung Galaxy S20 Ultra) (28).png'
 	];
 
 	// ========== PRICING STATE ==========
@@ -118,70 +212,77 @@
 
 	const pricingCategories = [
 		{
-			name: 'Essential SaaS',
-			price: '49,999',
-			priceUsd: '599',
-			priceValue: 49999,
-			priceUsdValue: 599,
-			target: 'Single salons & spas',
+			name: 'Starter',
+			price: '79,999',
+			priceUsd: '949',
+			priceValue: 79999,
+			priceUsdValue: 949,
+			target: 'Single salons & independent spas',
 			details: [
-				'Fully Hosted on Vercel',
-				'Customer & Staff Web Apps',
-				'Admin Control Panel',
-				'Cost-free WhatsApp Bot',
-				'1 Year Free Hosting',
-				'Standard Support'
+				'Customer & Staff Web Apps (PWA)',
+				'Admin Dashboard (Desktop)',
+				'Live Slot Booking & Scheduling',
+				'WhatsApp Authentication Bot',
+				'Fully Hosted on Vercel (1 Year)',
+				'Standard Email Support'
 			]
 		},
 		{
-			name: 'Professional Suite',
-			price: '89,999',
-			priceUsd: '1,099',
-			priceValue: 89999,
-			priceUsdValue: 1099,
-			target: 'Growing brands',
-			details: [
-				'Everything in Essential',
-				'Customer Android APK',
-				'Staff Android APK',
-				'Custom Branding & Logo',
-				'Push Notification Setup',
-				'Dedicated Account Manager'
-			]
-		},
-		{
-			name: 'Enterprise Source',
+			name: 'Professional',
 			price: '1,49,999',
 			priceUsd: '1,799',
 			priceValue: 149999,
 			priceUsdValue: 1799,
-			target: 'Agencies & developers',
+			target: 'Growing brands & multi-staff salons',
 			details: [
+				'Everything in Starter',
+				'3 Native Android Apps (APKs)',
+				'Virtual AI Assistant (Text & Voice)',
+				'Payment Gateway Integration',
+				'Coupons & Beu Cash Loyalty System',
+				'Desktop Smartphone Simulator',
+				'Custom Branding & Logo',
+				'Priority Support (48hr SLA)'
+			]
+		},
+		{
+			name: 'Enterprise AI',
+			price: '2,49,999',
+			priceUsd: '2,999',
+			priceValue: 249999,
+			priceUsdValue: 2999,
+			target: 'Premium chains & franchise brands',
+			details: [
+				'Everything in Professional',
+				'Companion "Ani" Avatar App',
+				'Virtual Try-On Engine',
+				'Staff Performance Analytics',
 				'Full SvelteKit Source Code',
-				'Android Studio Projects',
-				'White-label & IP Rights',
-				'Deployment Support',
-				'Firebase Security Config',
-				'Lifetime Usage Rights'
+				'White-Label & IP Rights',
+				'Firebase Security Hardening',
+				'Lifetime Usage Rights',
+				'Dedicated Account Manager'
 			]
 		}
 	];
 
 	let addons = $state([
 		{
-			title: 'Payment Gateway',
-			desc: 'Razorpay / Stripe setup for online bookings.',
-			icon: '💳',
-			price: '14,999',
-			priceUsd: '179',
-			priceValue: 14999,
-			priceUsdValue: 179,
+			title: 'Domain (.in / .com) + SSL',
+			desc: 'Premium domain registration, DNS configuration & SSL certificate for 1 year.',
+			icon: '🌐',
+			prevPrice: '',
+			price: '4,999',
+			priceUsd: '59',
+			priceValue: 4999,
+			priceUsdValue: 59,
 			selected: false
 		},
 		{
-			title: 'WhatsApp Business API & Badge',
-			desc: 'Official API, green tick badge & automated flows.',
-			icon: '✅',
+			title: 'SEO & Google Business Profile',
+			desc: 'Complete local SEO setup, Google Business Profile optimization & on-page salon SEO.',
+			icon: '📈',
+			prevPrice: '',
 			price: '24,999',
 			priceUsd: '299',
 			priceValue: 24999,
@@ -189,23 +290,36 @@
 			selected: false
 		},
 		{
-			title: 'SEO & Google Profile',
-			desc: 'Google Business Profile & on-page salon SEO.',
-			icon: '📈',
-			price: '19,999',
-			priceUsd: '239',
-			priceValue: 19999,
-			priceUsdValue: 239,
+			title: 'WhatsApp Business API & Badge',
+			desc: 'Official Meta API, verified green tick badge, automated booking reminders & flows.',
+			icon: '✅',
+			prevPrice: '',
+			price: '29,999',
+			priceUsd: '349',
+			priceValue: 29999,
+			priceUsdValue: 349,
 			selected: false
 		},
 		{
-			title: 'Domain (.in / .com)',
-			desc: 'One year registration & DNS configuration.',
-			icon: '🌐',
-			price: '2,999',
-			priceUsd: '35',
-			priceValue: 2999,
-			priceUsdValue: 35,
+			title: 'AI Companion Customization',
+			desc: 'Custom 3D avatar models, tailored LLM personality, and branded voice for your salon.',
+			icon: '🧠',
+			prevPrice: '',
+			price: '49,999',
+			priceUsd: '599',
+			priceValue: 49999,
+			priceUsdValue: 599,
+			selected: false
+		},
+		{
+			title: 'Multi-Branch Salon Support',
+			desc: 'Expand to a premium multi-branch brand. Centralized control, branch-level analytics & unified customer experience across all locations.',
+			icon: '🏢',
+			prevPrice: '99,999',
+			price: '69,999',
+			priceUsd: '849',
+			priceValue: 69999,
+			priceUsdValue: 849,
 			selected: false
 		}
 	]);
@@ -233,11 +347,11 @@
 		<!-- ===== HERO ===== -->
 		<section class="sc-hero sc-section">
 			<div class="sc-container sc-hero-inner">
-				<div class="sc-badge"><span class="sc-badge-dot"></span> Enterprise Ready</div>
-				<h1>The complete <span class="sc-gradient">Salon & Spa</span> software ecosystem</h1>
+				<div class="sc-badge"><span class="sc-badge-dot"></span> Next-Gen AI Ecosystem</div>
+				<h1>Transform your salon into a <span class="sc-gradient">Premium Brand</span></h1>
 				<p>
-					3 web apps. 2 native Android apps. Zero-cost WhatsApp auth. One unified Firebase backend —
-					deployed on Vercel's global edge.
+					A revolutionary 6-app ecosystem. Virtual Try-On, Conversational AI Booking, Companion Avatars, 
+					and an all-in-one Dashboard designed to dramatically increase your revenue and bookings.
 				</p>
 				<div class="sc-hero-actions">
 					<a href="#pricing" class="sc-btn sc-btn-primary sc-btn-lg">View Pricing</a>
@@ -251,20 +365,20 @@
 			<div class="sc-container">
 				<div class="sc-stats-grid">
 					<div>
-						<div class="sc-stat-num sc-gradient">5</div>
+						<div class="sc-stat-num sc-gradient">6</div>
 						<div class="sc-stat-label">Applications</div>
 					</div>
 					<div>
-						<div class="sc-stat-num sc-gradient">35+</div>
-						<div class="sc-stat-label">Total Pages</div>
+						<div class="sc-stat-num sc-gradient">3</div>
+						<div class="sc-stat-label">Native Android Apps</div>
 					</div>
 					<div>
-						<div class="sc-stat-num sc-gradient">2</div>
-						<div class="sc-stat-label">Android APKs</div>
+						<div class="sc-stat-num sc-gradient">AI</div>
+						<div class="sc-stat-label">Virtual Assistants</div>
 					</div>
 					<div>
-						<div class="sc-stat-num sc-gradient">0</div>
-						<div class="sc-stat-label">Monthly API Fees</div>
+						<div class="sc-stat-num sc-gradient">300%</div>
+						<div class="sc-stat-label">Revenue Growth</div>
 					</div>
 				</div>
 			</div>
@@ -275,12 +389,12 @@
 			<div class="sc-container">
 				<div class="sc-sec-head sc-reveal">
 					<h2>Why this stands apart</h2>
-					<p>Built for salon owners who refuse to pay monthly API subscriptions.</p>
+					<p>Engineered to maximize customer engagement, automate bookings, and scale your business effortlessly.</p>
 				</div>
 				<div class="sc-usp-grid">
 					{#each usps as usp}
-						<div class="sc-usp-card sc-glass sc-reveal">
-							<div class="sc-usp-icon">{usp.icon}</div>
+						<div class="sc-usp-card sc-glass sc-reveal sc-glow-hover">
+							<div class="sc-usp-icon">{@html usp.icon}</div>
 							<h3>{usp.title}</h3>
 							<p>{usp.desc}</p>
 						</div>
@@ -309,15 +423,15 @@
 				<div class="sc-container">
 					<div class="sc-sec-head sc-reveal">
 						<h2>See it in action</h2>
-						<p>Live screenshots from all production applications.</p>
+						<p>Stunning interfaces across all 6 applications.</p>
 					</div>
 				</div>
 				<div class="sc-slides-track">
-					{#each Array(8) as _, i}
-						<div class="sc-slide"><div class="sc-slide-placeholder">Screenshot {i + 1}</div></div>
+					{#each Array(6) as _, i}
+						<div class="sc-slide"><div class="sc-slide-placeholder">Interface {i + 1}</div></div>
 					{/each}
-					{#each Array(8) as _, i}
-						<div class="sc-slide"><div class="sc-slide-placeholder">Screenshot {i + 1}</div></div>
+					{#each Array(6) as _, i}
+						<div class="sc-slide"><div class="sc-slide-placeholder">Interface {i + 1}</div></div>
 					{/each}
 				</div>
 			</section>
@@ -327,24 +441,23 @@
 		<section class="sc-section">
 			<div class="sc-container">
 				<div class="sc-sec-head sc-reveal">
-					<h2>3 Apps. 2 Android builds. <span class="sc-muted">One database.</span></h2>
-					<p>Each application is production-ready with comprehensive page coverage.</p>
+					<h2>3 Web Apps. 3 Android Apps. <span class="sc-muted">One Ecosystem.</span></h2>
+					<p>A completely unified experience for your customers, staff, and management.</p>
 				</div>
 				<div class="sc-eco-grid">
 					{#each appEcosystem as app}
-						<div class="sc-eco-card sc-glass sc-reveal">
+						<div class="sc-eco-card sc-glass sc-reveal sc-glow-hover">
 							<div class="sc-eco-head">
 								<h3 style="color: {app.color}">{app.title}</h3>
 								<div class="sc-eco-meta">
-									<span class="sc-eco-tag platform">{app.platform}</span>
+									<span class="sc-eco-tag platform" style="background: {app.color}15; color: {app.color}; border-color: {app.color}30;">{app.platform}</span>
 									<span class="sc-eco-tag pages">{app.pages}</span>
 								</div>
 							</div>
 							<ul class="sc-feat-list">
 								{#each app.features as feat}
 									<li>
-										<span class="dot" style="background:{app.color};box-shadow:0 0 6px {app.color}"
-										></span>{feat}
+										<span class="dot" style="background:{app.color};box-shadow:0 0 6px {app.color}"></span>{feat}
 									</li>
 								{/each}
 							</ul>
@@ -360,7 +473,7 @@
 				<div class="sc-glass sc-mega sc-reveal">
 					<div class="sc-mega-head">
 						<h2>Under the hood</h2>
-						<p class="sc-muted">Enterprise-grade architecture & developer experience.</p>
+						<p class="sc-muted">Enterprise-grade architecture & state-of-the-art tech stack.</p>
 					</div>
 					<div class="sc-mega-grid">
 						{#each megaFeatures as item}
@@ -376,7 +489,7 @@
 			<div class="sc-container">
 				<div class="sc-sec-head sc-reveal">
 					<h2>Transparent pricing</h2>
-					<p>Select a plan. Toggle add-ons. See your total instantly.</p>
+					<p>Invest in your salon's future. One-time purchase, lifetime value.</p>
 				</div>
 				<div class="sc-pricing-grid sc-reveal">
 					{#each pricingCategories as cat, i}
@@ -453,6 +566,7 @@
 								<div class="sc-addon-top">
 									<h3>{addon.title}</h3>
 									<div class="sc-addon-pricing">
+										{#if addon.prevPrice}<span class="sc-addon-prev">₹{addon.prevPrice}</span>{/if}
 										<span class="sc-addon-inr">₹{addon.price}</span><span class="sc-addon-usd"
 											>${addon.priceUsd}</span
 										>
@@ -470,7 +584,7 @@
 		<footer class="sc-footer sc-section sc-center" style="z-index:1;">
 			<div class="sc-container">
 				<h2>Ready to own your platform?</h2>
-				<p>Skip the monthly subscriptions. Own the entire ecosystem.</p>
+				<p>Elevate your brand. Multiply your bookings. Own the entire ecosystem.</p>
 				<div class="sc-total-box">
 					<div class="sc-total-label">Your Estimated Total</div>
 					<div class="sc-total-row">
