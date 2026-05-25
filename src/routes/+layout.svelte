@@ -43,8 +43,8 @@
 	let showSplash = $state(true);
 
 	// Derived theme color for address bar (Android Chrome, Safari, Edge, etc.)
-	let metaThemeColor = $derived(THEME_COLORS[$theme]);
-	let appleStatusBarStyle = $derived($theme === 'gold' ? 'black-translucent' : 'default');
+	let metaThemeColor = $derived(isShowcaseRoute ? '#0c0a1a' : THEME_COLORS[$theme]);
+	let appleStatusBarStyle = $derived(isShowcaseRoute ? 'black-translucent' : ($theme === 'gold' ? 'black-translucent' : 'default'));
 
 	onMount(async () => {
 		// CRITICAL: Disable browser's native scroll restoration.
@@ -198,7 +198,12 @@
 	{/if}
 
 	<!-- Mobile browser address bar & status bar color -->
-	<meta name="theme-color" content={metaThemeColor} />
+	{#if isShowcaseRoute}
+		<meta name="theme-color" content="#0c0a1a" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#0c0a1a" media="(prefers-color-scheme: dark)" />
+	{:else}
+		<meta name="theme-color" content={metaThemeColor} />
+	{/if}
 	<!-- iOS Safari status bar -->
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<meta name="apple-mobile-web-app-status-bar-style" content={appleStatusBarStyle} />

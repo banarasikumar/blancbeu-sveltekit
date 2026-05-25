@@ -338,10 +338,6 @@
 
 <svelte:head>
 	<title>Blancbeu — Premium Salon & Spa Software Ecosystem</title>
-	<meta name="theme-color" content="#0c0a1a" media="(prefers-color-scheme: light)" />
-	<meta name="theme-color" content="#0c0a1a" media="(prefers-color-scheme: dark)" />
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 </svelte:head>
