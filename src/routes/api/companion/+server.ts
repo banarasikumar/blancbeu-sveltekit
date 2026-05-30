@@ -159,25 +159,25 @@ export async function POST({ request }) {
 				// Strips [Suggestions:...] and [Booking:...] tags so they never reach TTS
 				const stripActionTags = (text: string): string => {
 					// Extract suggestions if present
-					const sugMatch = text.match(/\[Suggestions:\s*(.+?)\]/is);
+					const sugMatch = text.match(/\[\s*Suggestions?\s*:\s*(.+?)\]/is);
 					if (sugMatch) {
 						extractedSuggestions = sugMatch[1].split('|').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
 					}
 					// Extract booking if present
-					const bookMatch = text.match(/\[Booking:\s*(.+?)\]/is);
+					const bookMatch = text.match(/\[\s*Booking\s*:\s*(.+?)\]/is);
 					if (bookMatch) {
 						extractedBooking = bookMatch[1];
 					}
 					// Extract phone if present
-					const phoneMatch = text.match(/\[Phone:\s*(.+?)\]/is);
+					const phoneMatch = text.match(/\[\s*Phone\s*:\s*(.+?)\]/is);
 					if (phoneMatch) {
 						extractedPhone = phoneMatch[1].trim();
 					}
 					// Strip all known action tags completely (using 's' flag for multiline)
 					return text
-						.replace(/\[Suggestions:.*?\]/gis, '')
-						.replace(/\[Booking:.*?\]/gis, '')
-						.replace(/\[Phone:.*?\]/gis, '')
+						.replace(/\[\s*Suggestions?\s*:.*?\]/gis, '')
+						.replace(/\[\s*Booking\s*:.*?\]/gis, '')
+						.replace(/\[\s*Phone\s*:.*?\]/gis, '')
 						.trim();
 				};
 
@@ -221,7 +221,7 @@ export async function POST({ request }) {
 
 					// WAIT for action tags to close before processing the buffer
 					// If the buffer contains an open tag, wait for more chunks so we don't fragment it!
-					if (buffer.match(/\[(Suggestions|Booking|Phone):[^\]]*$/i)) {
+					if (buffer.match(/\[\s*(Suggestions?|Booking|Phone)\s*:[^\]]*$/i)) {
 						continue;
 					}
 
@@ -277,7 +277,7 @@ export async function POST({ request }) {
 				}
 
 				// Flush remaining buffer (strip tags one final time, and forcefully remove dangling incomplete tags)
-				const finalClean = (text: string) => text.replace(/\[(Suggestions|Booking|Phone):[^\]]*$/i, '').trim();
+				const finalClean = (text: string) => text.replace(/\[\s*(Suggestions?|Booking|Phone)\s*:[^\]]*$/i, '').trim();
 				const cleanedBuffer = finalClean(stripActionTags(buffer));
 				if (cleanedBuffer.length > 0) {
 					const finalSentence = cleanedBuffer;
@@ -300,7 +300,7 @@ export async function POST({ request }) {
 				
 				// Emit booking event (may have been eagerly extracted during streaming)
 				if (!extractedBooking) {
-					const bookingMatch = fullReply.match(/\[Booking:\s*(.+?)\]/i);
+					const bookingMatch = fullReply.match(/\[\s*Booking\s*:\s*(.+?)\]/i);
 					if (bookingMatch) extractedBooking = bookingMatch[1];
 				}
 				if (extractedBooking) {
@@ -320,22 +320,22 @@ export async function POST({ request }) {
 							payment: paymentMatch[1]
 						});
 					}
-					fullReply = fullReply.replace(/\[Booking:.*?\]/gi, '').trim();
+					fullReply = fullReply.replace(/\[\s*Booking\s*:.*?\]/gi, '').trim();
 				}
 
 				// Emit phone event if present
 				if (!extractedPhone) {
-					const phoneMatch = fullReply.match(/\[Phone:\s*(.+?)\]/i);
+					const phoneMatch = fullReply.match(/\[\s*Phone\s*:\s*(.+?)\]/i);
 					if (phoneMatch) extractedPhone = phoneMatch[1].trim();
 				}
 				if (extractedPhone) {
 					sendEvent({ type: 'phone', phone: extractedPhone });
-					fullReply = fullReply.replace(/\[Phone:.*?\]/gi, '').trim();
+					fullReply = fullReply.replace(/\[\s*Phone\s*:.*?\]/gi, '').trim();
 				}
 
 				// Emit suggestions event (may have been eagerly extracted during streaming)
 				if (extractedSuggestions.length === 0) {
-					const sugMatch = fullReply.match(/\[Suggestions:\s*(.+?)\]/i);
+					const sugMatch = fullReply.match(/\[\s*Suggestions?\s*:\s*(.+?)\]/i);
 					if (sugMatch) {
 						extractedSuggestions = sugMatch[1].split('|').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
 					}
@@ -343,7 +343,7 @@ export async function POST({ request }) {
 				if (extractedSuggestions.length > 0) {
 					sendEvent({ type: 'suggestions', suggestions: extractedSuggestions.slice(0, 3) });
 				}
-				fullReply = fullReply.replace(/\[Suggestions:.*?\]/gi, '').trim();
+				fullReply = fullReply.replace(/\[\s*Suggestions?\s*:.*?\]/gi, '').trim();
 				
 				// Send the cleaned assistant reply back for client-side chat history
 				sendEvent({ type: 'chat_history_update', assistantReply: fullReply.trim() });

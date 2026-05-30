@@ -532,7 +532,7 @@
 								// Show call button in suggestions
 								salonPhone = data.phone || '';
 								// Clean leaked [Phone] tags from subtitle/messages
-								const phoneTagRe = /\[Phone:.*?\]/gi;
+								const phoneTagRe = /\[\s*Phone\s*:.*?\]/gi;
 								showSubtitle = showSubtitle.replace(phoneTagRe, '').trim();
 								if (messages.length > 0) {
 									messages[messages.length - 1].text = messages[messages.length - 1].text.replace(phoneTagRe, '').trim();
@@ -540,7 +540,7 @@
 							} else if (data.type === 'suggestions') {
 								smartReplies = data.suggestions || [];
 								// Clean any leaked tags from displayed text
-								const tagCleanRe = /\[(Suggestions|Booking|Phone):.*?\]/gi;
+								const tagCleanRe = /\[\s*(Suggestions?|Booking|Phone)\s*:.*?\]/gi;
 								showSubtitle = showSubtitle.replace(tagCleanRe, '').trim();
 								if (messages.length > 0) {
 									messages[messages.length - 1].text = messages[messages.length - 1].text.replace(tagCleanRe, '').trim();
@@ -640,7 +640,7 @@
 		const { service, price, date, time, payment } = data;
 
 		// Clean leaked [Booking] tag from subtitle/messages
-		const bookingTagRe = /\[Booking:.*?\]/gi;
+		const bookingTagRe = /\[\s*Booking\s*:.*?\]/gi;
 		showSubtitle = showSubtitle.replace(bookingTagRe, '').trim();
 		if (messages.length > 0) {
 			messages[messages.length - 1].text = messages[messages.length - 1].text.replace(bookingTagRe, '').trim();
