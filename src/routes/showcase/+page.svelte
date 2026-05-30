@@ -40,7 +40,7 @@
 		{
 			title: 'Virtual AI Assistant',
 			desc: 'Intelligent AI handles customer questions and books appointments instantly via voice or text.',
-			image: '/ai_assistant.png'
+			image: '/Assistant.webp'
 		},
 		{
 			title: 'Companion "Ani" Avatar',
