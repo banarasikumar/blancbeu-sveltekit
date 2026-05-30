@@ -2,12 +2,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
-	import { Video, Volume2, VolumeX, Mic, MicOff, Settings, Menu, Camera, Square, Send, X } from 'lucide-svelte';
+	import { Video, Volume2, VolumeX, Mic, MicOff, Settings, Menu, Camera, Square, Send, X, Clock, Phone } from 'lucide-svelte';
 	import VrmViewer from '$lib/components/VrmViewer.svelte';
 	import { AudioAnalyser } from '$lib/audioAnalyser';
 	import { db, auth } from '$lib/firebase';
 	import { onAuthStateChanged } from 'firebase/auth';
-	import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+	import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 	import { appServices, initAppServiceListener } from '$lib/stores/appData';
 	import { cart } from '$lib/stores/booking';
 
@@ -28,6 +28,7 @@
 	let showMenu = $state(false);
 	let showSubtitle = $state('');
 	let smartReplies: string[] = $state([]);
+	let salonPhone = $state(''); // Phone number from AI [Phone] tag
 	let persistentStream: MediaStream | null = null; // Holds hardware mic open for the entire session
 	let inputCtx: AudioContext | null = null;
 	let inputAnalyser: AnalyserNode | null = null;
@@ -57,10 +58,146 @@
 	let heartsKey = $state(0);
 	let petalsKey = $state(0);
 
+	// User profile for Ani's personalization
+	let userProfile: { name?: string; dob?: string; gender?: string } | null = $state(null);
+
+	// Chat history persistence (localStorage per user)
+	const CHAT_STORAGE_KEY = 'ani_chat_history';
+	let chatHistoryStore: { role: string; text: string }[] = [];
+
+	function loadChatHistory(uid: string) {
+		try {
+			const stored = localStorage.getItem(`${CHAT_STORAGE_KEY}_${uid}`);
+			if (stored) {
+				const parsed = JSON.parse(stored);
+				chatHistoryStore = Array.isArray(parsed) ? parsed.slice(-20) : [];
+				// Restore messages into the UI
+				messages = chatHistoryStore.map(m => ({
+					role: m.role as 'user' | 'assistant',
+					text: m.text
+				}));
+			}
+		} catch (e) {
+			console.warn('[Ani Chat] Failed to load chat history:', e);
+		}
+	}
+
+	function saveChatHistory(uid: string) {
+		try {
+			const trimmed = chatHistoryStore.slice(-20);
+			localStorage.setItem(`${CHAT_STORAGE_KEY}_${uid}`, JSON.stringify(trimmed));
+		} catch (e) {
+			console.warn('[Ani Chat] Failed to save chat history:', e);
+		}
+	}
+
+	// Fetch user profile from Firestore
+	async function loadUserProfile(uid: string) {
+		try {
+			const userDoc = await getDoc(doc(db, 'users', uid));
+			if (userDoc.exists()) {
+				const data = userDoc.data();
+				userProfile = {
+					name: data.name || data.displayName || undefined,
+					dob: data.dob || undefined,
+					gender: data.gender || undefined
+				};
+			}
+		} catch (e) {
+			console.warn('[Ani] Could not load user profile:', e);
+		}
+	}
+
+	// Session timer — 5 min total, shows after 3 min, blocks for 24h when expired
+	const SESSION_MAX_SECONDS = 5 * 60;  // 5 minutes
+	const TIMER_VISIBLE_AFTER = 3 * 60;  // show timer after 3 minutes
+	const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+	let sessionElapsed = $state(0); // seconds elapsed
+	let sessionTimerInterval: ReturnType<typeof setInterval> | null = null;
+	let isSessionBlocked = $state(false);
+	let blockExpiresAt = $state(0); // timestamp when block lifts
+	let currentUserId = $state('');
+
+	// Derived: remaining minutes (rounded up), timer visibility
+	let remainingMinutes = $derived(Math.ceil((SESSION_MAX_SECONDS - sessionElapsed) / 60));
+	let showTimer = $derived(sessionElapsed >= TIMER_VISIBLE_AFTER && !isSessionBlocked);
+	let isSessionExpired = $derived(sessionElapsed >= SESSION_MAX_SECONDS);
+
+	// Check if user is blocked and start session timer
+	async function initSessionTimer(uid: string) {
+		currentUserId = uid;
+		try {
+			const blockRef = doc(db, 'aniBlocks', uid);
+			const blockSnap = await getDoc(blockRef);
+			if (blockSnap.exists()) {
+				const data = blockSnap.data();
+				if (data.blockedUntil && data.blockedUntil > Date.now()) {
+					isSessionBlocked = true;
+					blockExpiresAt = data.blockedUntil;
+					return; // Don't start timer, user is blocked
+				}
+			}
+		} catch (e) {
+			console.warn('[Ani Timer] Could not check block status:', e);
+		}
+
+		// Start the session timer
+		sessionElapsed = 0;
+		sessionTimerInterval = setInterval(() => {
+			sessionElapsed++;
+			if (sessionElapsed >= SESSION_MAX_SECONDS) {
+				expireSession();
+			}
+		}, 1000);
+	}
+
+	async function expireSession() {
+		if (sessionTimerInterval) {
+			clearInterval(sessionTimerInterval);
+			sessionTimerInterval = null;
+		}
+
+		// Block user for 24 hours
+		const blockedUntil = Date.now() + BLOCK_DURATION_MS;
+		isSessionBlocked = true;
+		blockExpiresAt = blockedUntil;
+
+		// Stop any playing audio
+		audioAnalyser.stop();
+		isSpeaking = false;
+		isProcessing = false;
+		streamComplete = true;
+
+		// Persist block to Firestore
+		if (currentUserId) {
+			try {
+				await setDoc(doc(db, 'aniBlocks', currentUserId), {
+					blockedUntil,
+					blockedAt: Date.now()
+				});
+			} catch (e) {
+				console.error('[Ani Timer] Failed to persist block:', e);
+			}
+		}
+	}
+
+	function getBlockRemainingText(): string {
+		const remaining = blockExpiresAt - Date.now();
+		if (remaining <= 0) return 'now';
+		const hours = Math.floor(remaining / (1000 * 60 * 60));
+		const mins = Math.ceil((remaining % (1000 * 60 * 60)) / (1000 * 60));
+		if (hours > 0) return `${hours}h ${mins}m`;
+		return `${mins}m`;
+	}
+
 	$effect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (user) => {
 			if (!user) {
 				goto('/login', { replaceState: true });
+			} else {
+				initSessionTimer(user.uid);
+				loadUserProfile(user.uid);
+				loadChatHistory(user.uid);
 			}
 		});
 		return unsubscribe;
@@ -87,7 +224,8 @@
 		} else if (!currentlyPlaying && isSpeaking) {
 			isSpeaking = false;
 			// Clear UI state shortly after speaking ends
-			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 3000);
+			const cleanupDelay = ['Dance'].includes(activeAction) ? 10000 : 3000;
+			setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, cleanupDelay);
 		}
 
 		if (streamComplete && !currentlyPlaying && isProcessing) {
@@ -97,11 +235,13 @@
 				// Text-Only Fallback Mode (e.g. Voice Quota Exhausted)
 				enterTextMode();
 			} else if (!hasPlayedAudioThisTurn) {
-				// No audio AND no text — just clean up
-				setTimeout(() => { activeEmotion = 'Neutral'; activeAction = 'None'; }, 1000);
+				// No audio AND no text — just clean up (but give sustained actions time)
+				const cleanupDelay = ['Dance'].includes(activeAction) ? 10000 : 1000;
+				setTimeout(() => { activeEmotion = 'Neutral'; activeAction = 'None'; }, cleanupDelay);
 			} else {
 				// Failsafe clear if audio played but state got stuck
-				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, 3000);
+				const cleanupDelay = ['Dance'].includes(activeAction) ? 10000 : 3000;
+				setTimeout(() => { showSubtitle = ''; activeEmotion = 'Neutral'; activeAction = 'None'; }, cleanupDelay);
 			}
 		}
 	}
@@ -117,9 +257,17 @@
 		// Calculate comfortable reading time: ~65ms per character (~3.5 words/sec)
 		const readingTimeMs = Math.max(3000, showSubtitle.length * 65);
 
-		// Force her to "speak" visually so she performs talking gestures
-		textModeSpeaking = true;
-		isSpeaking = true;
+		// If a sustained action like Dance is active, let it play for the full reading duration
+		// without overriding it with talking gestures
+		const SUSTAINED_ACTIONS = ['Dance'];
+		const hasSustainedAction = SUSTAINED_ACTIONS.includes(activeAction);
+
+		if (!hasSustainedAction) {
+			// Normal text mode: force her to "speak" visually so she performs talking gestures
+			textModeSpeaking = true;
+			isSpeaking = true;
+		}
+		// If sustained action, she keeps dancing while subtitle displays
 
 		setTimeout(() => {
 			textModeSpeaking = false;
@@ -279,6 +427,7 @@
 		voiceModeEnabled = false;
 		if (volumeRafId) cancelAnimationFrame(volumeRafId);
 		if (vadRafId) cancelAnimationFrame(vadRafId);
+		if (sessionTimerInterval) clearInterval(sessionTimerInterval);
 		audioAnalyser.dispose();
 
 		if (inputCtx && inputCtx.state !== 'closed') {
@@ -293,7 +442,7 @@
 
 	async function sendMessage(text?: string, isHidden: boolean = false) {
 		const msg = text || inputText.trim();
-		if (!msg || isThinking) return;
+		if (!msg || isThinking || isSessionBlocked || isSessionExpired) return;
 
 		// Software mute enabled (isThinking becomes true below, which derives isSoftwareMuted)
 		// We no longer hardware-stop the recognition here
@@ -323,7 +472,9 @@
 					services: $appServices.filter(s => s.isActive !== false).map(s => ({
 						name: s.name, category: s.category, price: s.price,
 						originalPrice: s.originalPrice, duration: s.duration
-					}))
+					})),
+					userProfile,
+					chatHistory: chatHistoryStore
 				}),
 				signal: abortController.signal
 			});
@@ -377,14 +528,29 @@
 								}
 							} else if (data.type === 'booking') {
 								handleBookingEvent(data);
+							} else if (data.type === 'phone') {
+								// Show call button in suggestions
+								salonPhone = data.phone || '';
+								// Clean leaked [Phone] tags from subtitle/messages
+								const phoneTagRe = /\[Phone:.*?\]/gi;
+								showSubtitle = showSubtitle.replace(phoneTagRe, '').trim();
+								if (messages.length > 0) {
+									messages[messages.length - 1].text = messages[messages.length - 1].text.replace(phoneTagRe, '').trim();
+								}
 							} else if (data.type === 'suggestions') {
 								smartReplies = data.suggestions || [];
 								// Clean any leaked tags from displayed text
-								const tagCleanRe = /\[(Suggestions|Booking):.*?\]/gi;
+								const tagCleanRe = /\[(Suggestions|Booking|Phone):.*?\]/gi;
 								showSubtitle = showSubtitle.replace(tagCleanRe, '').trim();
 								if (messages.length > 0) {
 									messages[messages.length - 1].text = messages[messages.length - 1].text.replace(tagCleanRe, '').trim();
 								}
+							} else if (data.type === 'chat_history_update') {
+								// Server sends cleaned assistant reply — store in chatHistory
+								chatHistoryStore.push({ role: 'user', text: msg });
+								chatHistoryStore.push({ role: 'assistant', text: data.assistantReply });
+								if (chatHistoryStore.length > 20) chatHistoryStore.splice(0, chatHistoryStore.length - 20);
+								if (currentUserId) saveChatHistory(currentUserId);
 							} else if (data.type === 'error') {
 								console.error(data.message);
 							}
@@ -571,7 +737,18 @@
 	</defs>
 </svg>
 
-<div class="companion-page">
+{#if isSessionBlocked}
+	<div class="blocked-overlay">
+		<div class="blocked-card">
+			<div class="blocked-icon">🔒</div>
+			<h2 class="blocked-title">Session Limit Reached</h2>
+			<p class="blocked-desc">Ani needs to rest for a while. Your session will be available again in <strong>{getBlockRemainingText()}</strong>.</p>
+			<button class="blocked-btn" onclick={() => goto('/assistant', { replaceState: true })}>Back to Assistant</button>
+		</div>
+	</div>
+{/if}
+
+<div class="companion-page" class:blocked={isSessionBlocked}>
 	<div class="bg-ambient"></div>
 	<div class="bg-glow glow-top"></div>
 	<div class="bg-glow glow-bottom"></div>
@@ -652,6 +829,12 @@
 			<Menu size={22} strokeWidth={1.5} />
 		</button>
 		<div style="display:flex;gap:8px;align-items:center;">
+			{#if showTimer}
+				<div class="session-timer" class:urgent={remainingMinutes <= 1} transition:fade={{ duration: 300 }}>
+					<Clock size={13} strokeWidth={2.5} />
+					<span>{remainingMinutes} min</span>
+				</div>
+			{/if}
 			{#if isTextMode}
 				<div class="text-mode-badge" transition:fade={{ duration: 200 }}>
 					<span class="badge-dot"></span>
@@ -697,13 +880,20 @@
 	{/if}
 
 	<!-- Smart Reply Suggestions -->
-	{#if smartReplies.length > 0 && !isThinking && !isSpeaking}
+	{#if (smartReplies.length > 0 || salonPhone) && !isThinking && !isSpeaking}
 		<div class="smart-replies" transition:fly={{ y: 20, duration: 250 }}>
+			{#if salonPhone}
+				<a
+					class="smart-pill call-pill"
+					href="tel:{salonPhone}"
+					style="animation-delay: 0ms"
+				><Phone size={14} strokeWidth={2.5} /><span>Call Salon</span></a>
+			{/if}
 			{#each smartReplies as reply, i}
 				<button 
 					class="smart-pill"
-					style="animation-delay: {i * 80}ms"
-					onclick={() => { sendMessage(reply); smartReplies = []; }}
+					style="animation-delay: {(salonPhone ? i + 1 : i) * 80}ms"
+					onclick={() => { sendMessage(reply); smartReplies = []; salonPhone = ''; }}
 				>{reply}</button>
 			{/each}
 		</div>
@@ -904,7 +1094,69 @@
 		opacity: 0; animation: pill-appear 0.3s ease forwards;
 	}
 	.smart-pill:hover { background: rgba(220, 50, 100, 0.2); border-color: rgba(220, 50, 100, 0.45); transform: translateY(-2px); box-shadow: 0 4px 18px rgba(220, 50, 100, 0.15); }
+	.smart-pill.call-pill {
+		display: flex; align-items: center; gap: 6px;
+		background: rgba(20, 45, 30, 0.8); border-color: rgba(50, 200, 100, 0.35);
+		color: rgba(100, 255, 150, 0.95); text-decoration: none;
+	}
+	.smart-pill.call-pill:hover { background: rgba(50, 200, 100, 0.2); border-color: rgba(50, 200, 100, 0.6); box-shadow: 0 4px 18px rgba(50, 200, 100, 0.2); }
 	.smart-pill:active { transform: scale(0.95) translateY(0); }
 	@keyframes pill-appear { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+
+	/* Session Timer Badge */
+	.session-timer {
+		display: flex; align-items: center; gap: 5px;
+		padding: 6px 14px; border-radius: 20px;
+		background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(12px);
+		border: 1px solid rgba(255, 180, 50, 0.3);
+		color: rgba(255, 220, 150, 0.9); font-size: 0.72rem; font-weight: 600;
+		letter-spacing: 0.4px; text-transform: uppercase;
+		animation: timer-fade-in 0.5s ease;
+	}
+	.session-timer.urgent {
+		border-color: rgba(255, 60, 60, 0.5);
+		color: rgba(255, 120, 120, 0.95);
+		animation: timer-urgent-pulse 1.5s ease-in-out infinite;
+	}
+	@keyframes timer-fade-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+	@keyframes timer-urgent-pulse {
+		0%, 100% { border-color: rgba(255, 60, 60, 0.5); box-shadow: none; }
+		50% { border-color: rgba(255, 60, 60, 0.8); box-shadow: 0 0 12px rgba(255, 50, 50, 0.25); }
+	}
+
+	/* Blocked Overlay */
+	.blocked-overlay {
+		position: fixed; inset: 0; z-index: 10000;
+		background: rgba(8, 5, 15, 0.97);
+		display: flex; align-items: center; justify-content: center;
+		font-family: 'Inter', -apple-system, sans-serif;
+	}
+	.blocked-card {
+		text-align: center; padding: 40px 32px; max-width: 340px;
+		background: rgba(20, 14, 30, 0.8); backdrop-filter: blur(20px);
+		border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 28px;
+		box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+	}
+	.blocked-icon { font-size: 3rem; margin-bottom: 16px; }
+	.blocked-title {
+		color: rgba(255, 255, 255, 0.92); font-size: 1.2rem; font-weight: 600;
+		margin: 0 0 12px; letter-spacing: -0.01em;
+	}
+	.blocked-desc {
+		color: rgba(255, 255, 255, 0.55); font-size: 0.88rem; line-height: 1.6;
+		margin: 0 0 28px;
+	}
+	.blocked-desc strong { color: rgba(255, 180, 50, 0.9); font-weight: 600; }
+	.blocked-btn {
+		padding: 12px 32px; border-radius: 25px;
+		background: linear-gradient(135deg, rgba(220, 50, 100, 0.6), rgba(160, 40, 180, 0.5));
+		border: 1px solid rgba(220, 50, 100, 0.3); color: #fff;
+		font-size: 0.9rem; font-weight: 500; cursor: pointer;
+		transition: all 0.2s; font-family: inherit;
+	}
+	.blocked-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(220, 50, 100, 0.2); }
+	.blocked-btn:active { transform: scale(0.97); }
+
+	.companion-page.blocked { pointer-events: none; filter: blur(8px); }
 
 </style>

@@ -71,26 +71,54 @@ export class AnimationManager {
 
 	constructor(vrm: VRM) {
 		this.vrm = vrm;
-		this.mixer = new THREE.AnimationMixer(vrm.scene);
+		
+		// The mixer MUST target the normalizedHumanBonesRoot so it can find the 'Normalized_*' bone proxies.
+		// These proxy bones are not necessarily direct descendants of vrm.scene in three-vrm 3.x.
+		const mixerRoot = vrm.humanoid?.normalizedHumanBonesRoot || vrm.scene;
+		this.mixer = new THREE.AnimationMixer(mixerRoot);
+		
 		this.loader = new FBXLoader();
 
 		// Automatically return to Idle when a one-shot animation finishes
 		this.mixer.addEventListener('finished', (e) => {
-			if (this.currentAction === e.action) {
+			// Don't auto-idle for Dance — it's handled by the AvatarManager state machine
+			if (this.currentAction === e.action && this.currentState !== 'Dance') {
 				this.playState('Idle', 0.5);
 			}
 		});
 	}
 
 	async preload() {
-		// Preload only essential ones to speed up initial load
+		// Preload essentials AND action animations for instant responsiveness
 		const essentials = ['Idle', 'Talking', 'Wave'];
-		await Promise.all(essentials.map(name => {
+		// Preload all action animations so they play instantly (no 2-sec load delay)
+		const actions = ['Dance', 'TurnAround', 'Happy', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Greeting', 'LeanForward', 'RomanticPose', 'Cry'];
+		const preloadPromises: Promise<any>[] = [];
+
+		for (const name of essentials) {
 			const paths = ANIMATION_MAP[name];
-			if (paths && paths.length > 0) {
-				return this.loadAnimationByPath(paths[0], name);
+			if (!paths || paths.length === 0) continue;
+
+			if (name === 'Talking') {
+				// Preload ALL talking variants so gestures are always ready
+				for (const path of paths) {
+					preloadPromises.push(this.loadAnimationByPath(path, name));
+				}
+			} else {
+				preloadPromises.push(this.loadAnimationByPath(paths[0], name));
 			}
-		}));
+		}
+
+		await Promise.allSettled(preloadPromises);
+
+		// Preload action animations in the background (non-blocking)
+		for (const name of actions) {
+			const paths = ANIMATION_MAP[name];
+			if (!paths || paths.length === 0) continue;
+			for (const path of paths) {
+				this.loadAnimationByPath(path, name).catch(() => {});
+			}
+		}
 	}
 
 	private async loadAnimationByPath(path: string, name: string): Promise<THREE.AnimationClip | null> {
@@ -102,11 +130,30 @@ export class AnimationManager {
 				const fbxClip = fbx.animations[0];
 				fbxClip.name = name;
 				const vrmClip = AnimationRetargeter.retargetClip(this.vrm, fbxClip, fbx);
+				
+				// Send debug info to server
+				fetch('/api/debug', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						event: 'LOADED',
+						path,
+						fbxTrackCount: fbxClip.tracks.length,
+						vrmTrackCount: vrmClip.tracks.length,
+						tracksSample: vrmClip.tracks.slice(0, 5).map(t => ({ name: t.name, keyframes: t.times.length }))
+					})
+				}).catch(() => {});
+
 				this.clips.set(path, vrmClip);
 				return vrmClip;
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.warn(`Failed to load animation ${name} from ${path}`, error);
+			fetch('/api/debug', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ event: 'ERROR', path, error: error?.message || error?.toString() || 'Unknown error' })
+			}).catch(() => {});
 		}
 		return null;
 	}
@@ -114,7 +161,8 @@ export class AnimationManager {
 	async playState(stateName: string, fadeDuration: number = 0.5, forceRestart: boolean = false) {
 		if (!forceRestart && this.currentState === stateName) return;
 
-		// Immediately update state to prevent async race conditions when called rapidly
+		// Capture the intended state for async race-condition detection
+		const intendedState = stateName;
 		this.currentState = stateName;
 
 		const paths = ANIMATION_MAP[stateName];
@@ -137,17 +185,40 @@ export class AnimationManager {
 		if (!forceRestart && this.currentPath === randomPath) return;
 		// Update path immediately as well
 		this.currentPath = randomPath;
+		
+		fetch('/api/debug', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ event: 'PLAY_STATE', state: stateName, path: randomPath })
+		}).catch(() => {});
 
 		let clip = this.clips.get(randomPath);
 		if (!clip) {
 			clip = await this.loadAnimationByPath(randomPath, stateName);
 		}
 
+		// Race-condition guard: if state changed during async load, abort this transition
+		if (this.currentState !== intendedState) return;
+
 		if (!clip) {
-			if (stateName !== 'Idle') {
-				this.playState('Idle', fadeDuration, forceRestart);
+			// This specific path failed to load — try another variant
+			const fallbackPaths = paths.filter(p => p !== randomPath);
+			for (const fbPath of fallbackPaths) {
+				const fbClip = this.clips.get(fbPath) || await this.loadAnimationByPath(fbPath, stateName);
+				if (this.currentState !== intendedState) return;
+				if (fbClip) {
+					clip = fbClip;
+					randomPath = fbPath;
+					this.currentPath = fbPath;
+					break;
+				}
 			}
-			return;
+			if (!clip) {
+				if (stateName !== 'Idle') {
+					this.playState('Idle', fadeDuration, forceRestart);
+				}
+				return;
+			}
 		}
 
 		let action = this.actions.get(randomPath);
@@ -159,10 +230,12 @@ export class AnimationManager {
 		action.reset();
 		
 		// Adjust looping based on state
-		if (['Wave', 'Greeting', 'TurnAround', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Happy', 'LeanForward', 'RomanticPose', 'Dance'].includes(stateName)) {
+		const ONE_SHOT_STATES = ['Wave', 'Greeting', 'TurnAround', 'Bow', 'FlyingKiss', 'Laugh', 'Shrug', 'Happy', 'LeanForward', 'RomanticPose'];
+		if (ONE_SHOT_STATES.includes(stateName)) {
 			action.setLoop(THREE.LoopOnce, 1);
 			action.clampWhenFinished = true;
 		} else {
+			// Dance, Idle, Talking, etc. all loop
 			action.setLoop(THREE.LoopRepeat, Infinity);
 		}
 

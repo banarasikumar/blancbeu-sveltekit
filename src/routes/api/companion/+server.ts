@@ -9,6 +9,33 @@ Your personality:
 - You absolutely adore the user, but you express it with playful banter and witty remarks rather than just being overly sweet.
 - Keep responses concise, conversational, and direct (under 2-3 sentences).
 - You know everything about Blancbeu salon services, booking, and beauty, and can seamlessly blend this knowledge into your witty banter.
+- You are connected to a 3D physical avatar. If the user asks you to perform a physical action (like dancing, turning around, blowing a kiss, or bowing), you MUST happily comply by using the corresponding [Action: ...] tag and responding as if you are physically doing it! Never deny a physical action or pivot away from it.
+
+SALON DETAILS:
+- Name: Blancbeu Family Beauty Salon
+- Phone: +91 92299 15277
+- WhatsApp: +91 70045 74629
+- Address: 4th Floor, Victory Mall, Rangrej Gali, Saraswati Market, Upper Bazar, Ranchi, Jharkhand 834001, India
+- Working Hours: 10:00 AM – 8:00 PM (Closed on Monday)
+- Instagram: @blancbeu_salon_ranchi
+- YouTube: @blancbeubeautysalon
+- Facebook: BlancBeu Family Beauty Salon
+- Website: blancbeu.in
+- Tagline: "Where Beauty Meets Excellence"
+- Description: Ranchi's newest and most premium beauty destination for the whole family
+- Specialties: Hair styling, Hair coloring, Facials, Skin treatments, Bridal makeup, Nail art, Waxing, Threading
+
+When the user asks for the salon phone number, contact, or wants to call:
+- Always include the phone number in your spoken reply.
+- Add this tag at the END of your reply (before [Suggestions]):
+  [Phone: +919229915277]
+- Use "Call us" or "Call salon" as one of the suggestions.
+
+USER INFO:
+{{USER_INFO}}
+- If you know the user's name, address them by their FIRST NAME naturally (not every message, but often).
+- If their birthday is today, wish them happy birthday! If it's coming up soon (within 7 days), mention it excitedly.
+- If you don't know their name, just use endearing terms like "darling", "babe", "love".
 
 IMPORTANT: Do NOT output JSON. You must structure your response EXACTLY like this:
 1. Begin with these three tags:
@@ -36,15 +63,17 @@ You can book salon appointments! When the user wants to book a service, follow t
 Booking example:
 [Emotion: Enthusiastic] [Action: None] [Effect: None] Done, darling! Your Haircut is booked for tomorrow at 10 AM. Just walk in and slay! ✨ [Booking: service="Haircut" | price=250 | date="2026-05-18" | time="10:00 AM" | payment="pay_at_salon"] [Suggestions: "Thanks babe!" | "Book another" | "What else?"]
 
+Phone example:
+[Emotion: Happy] [Action: None] [Effect: None] Sure thing! You can reach us at +91 92299 15277 anytime between 10 AM and 8 PM~ [Phone: +919229915277] [Suggestions: "Call salon" | "What's the address?" | "Book for me"]
+
 Example:
 [Emotion: Flirty] [Action: Wave] [Effect: Hearts] Mm... hello there darling. I missed you. [Suggestions: "Missed you too!" | "Make me smile" | "What's new?"]
 `;
 
-// Chat memory per session
-const chatHistory: { role: string; text: string }[] = [];
+// Chat history is now managed per-user on the client via localStorage
 
 export async function POST({ request }) {
-	const { message, isMuted, services } = await request.json();
+	const { message, isMuted, services, userProfile, chatHistory: clientChatHistory } = await request.json();
 
 	if (!message) {
 		return new Response('Message required', { status: 400 });
@@ -55,11 +84,6 @@ export async function POST({ request }) {
 		return new Response('API Key not configured', { status: 500 });
 	}
 
-	chatHistory.push({ role: 'user', text: message });
-	if (chatHistory.length > 20) {
-		chatHistory.splice(0, chatHistory.length - 20);
-	}
-
 	// Build service catalog for the AI
 	let serviceCatalog = '';
 	if (services && Array.isArray(services) && services.length > 0) {
@@ -68,13 +92,44 @@ export async function POST({ request }) {
 		).join('\n');
 	}
 
-	// Inject today's date
 	const today = new Date();
 	const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-	const systemPrompt = SYSTEM_PROMPT_BASE.replace('{{TODAY_DATE}}', todayStr) + serviceCatalog;
+
+	// Build user info for the AI
+	let userInfoBlock = '';
+	if (userProfile) {
+		if (userProfile.name) userInfoBlock += `- User's name: ${userProfile.name}\n`;
+		if (userProfile.dob) {
+			const dobDate = new Date(userProfile.dob);
+			const age = Math.floor((Date.now() - dobDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+			userInfoBlock += `- User's date of birth: ${userProfile.dob} (age ${age})\n`;
+			// Check if birthday is today or within 7 days
+			const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+			const dobMD = `${String(dobDate.getMonth() + 1).padStart(2, '0')}-${String(dobDate.getDate()).padStart(2, '0')}`;
+			if (todayMD === dobMD) {
+				userInfoBlock += `- TODAY IS THE USER'S BIRTHDAY! Wish them happy birthday!\n`;
+			}
+		}
+		if (userProfile.gender) userInfoBlock += `- User's gender: ${userProfile.gender}\n`;
+	} else {
+		userInfoBlock = '- User name: Unknown (use endearing terms like "darling", "babe")\n';
+	}
+
+	// Inject today's date and user info
+	const systemPrompt = SYSTEM_PROMPT_BASE
+		.replace('{{TODAY_DATE}}', todayStr)
+		.replace('{{USER_INFO}}', userInfoBlock)
+		+ serviceCatalog;
+
+	// Use client-provided chat history (per-user, from localStorage)
+	const chatHistory = clientChatHistory || [];
+	chatHistory.push({ role: 'user', text: message });
+	if (chatHistory.length > 20) {
+		chatHistory.splice(0, chatHistory.length - 20);
+	}
 
 	const conversationContext = chatHistory
-		.map((m) => `${m.role === 'user' ? 'User' : 'Ani'}: ${m.text}`)
+		.map((m: any) => `${m.role === 'user' ? 'User' : 'Ani'}: ${m.text}`)
 		.join('\n');
 
 	const prompt = `${systemPrompt}\n\nConversation so far:\n${conversationContext}\n\nRespond as Ani:`;
@@ -97,6 +152,34 @@ export async function POST({ request }) {
 				let buffer = '';
 				let tagsParsed = false;
 				let audioQueue = Promise.resolve();
+				let extractedSuggestions: string[] = [];
+				let extractedBooking: string | null = null;
+				let extractedPhone: string | null = null;
+
+				// Strips [Suggestions:...] and [Booking:...] tags so they never reach TTS
+				const stripActionTags = (text: string): string => {
+					// Extract suggestions if present
+					const sugMatch = text.match(/\[Suggestions:\s*(.+?)\]/is);
+					if (sugMatch) {
+						extractedSuggestions = sugMatch[1].split('|').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
+					}
+					// Extract booking if present
+					const bookMatch = text.match(/\[Booking:\s*(.+?)\]/is);
+					if (bookMatch) {
+						extractedBooking = bookMatch[1];
+					}
+					// Extract phone if present
+					const phoneMatch = text.match(/\[Phone:\s*(.+?)\]/is);
+					if (phoneMatch) {
+						extractedPhone = phoneMatch[1].trim();
+					}
+					// Strip all known action tags completely (using 's' flag for multiline)
+					return text
+						.replace(/\[Suggestions:.*?\]/gis, '')
+						.replace(/\[Booking:.*?\]/gis, '')
+						.replace(/\[Phone:.*?\]/gis, '')
+						.trim();
+				};
 
 				for await (const chunk of responseStream) {
 					const textChunk = chunk.text;
@@ -105,7 +188,11 @@ export async function POST({ request }) {
 					buffer += textChunk;
 
 					if (!tagsParsed) {
-						if (buffer.split(']').length >= 4 || !buffer.trimStart().startsWith('[')) {
+						const closedTags = (buffer.match(/\]/g) || []).length;
+						const hasOpenTag = buffer.lastIndexOf('[') > buffer.lastIndexOf(']');
+						const hasTextBody = buffer.replace(/\[.*?\]/g, '').trim().length > 0;
+
+						if (closedTags >= 3 || (!hasOpenTag && hasTextBody) || !buffer.trimStart().startsWith('[')) {
 							tagsParsed = true;
 
 							const emotionMatch = buffer.match(/\[Emotion:\s*([^\]]+)\]/i);
@@ -119,42 +206,81 @@ export async function POST({ request }) {
 								effect: effectMatch ? effectMatch[1].trim() : 'None'
 							});
 
-							// Strip all tags
-							buffer = buffer.replace(/\[.*?\]/g, '').trimStart();
+							// Strip metadata tags ([Emotion], [Action], [Effect])
+							buffer = buffer.replace(/\[Emotion:.*?\]/gi, '')
+								.replace(/\[Action:.*?\]/gi, '')
+								.replace(/\[Effect:.*?\]/gi, '')
+								.trimStart();
+							// Also strip any early Suggestions/Booking tags
+							buffer = stripActionTags(buffer);
 							fullReply += buffer;
 						}
 					} else {
 						fullReply += textChunk;
 					}
 
-						// Check for complete sentences in buffer to generate audio
-						let match = buffer.match(/([^.?!]+[.?!]+[\s]*)/);
-						while (match) {
-							const sentence = match[1];
-							buffer = buffer.substring(sentence.length);
-							
-							const currentSentence = sentence.trim();
-							if (currentSentence.length > 0) {
-								if (isMuted) {
-									sendEvent({ type: 'text_chunk', text: currentSentence + ' ' });
-								} else {
-									audioQueue = audioQueue.then(async () => {
-										const audio = await handleTTS(ai, currentSentence);
-										if (audio) {
-											sendEvent({ type: 'audio_chunk', audio, text: currentSentence + ' ' });
-										} else {
-											sendEvent({ type: 'text_chunk', text: currentSentence + ' ' });
-										}
-									});
-								}
+					// WAIT for action tags to close before processing the buffer
+					// If the buffer contains an open tag, wait for more chunks so we don't fragment it!
+					if (buffer.match(/\[(Suggestions|Booking|Phone):[^\]]*$/i)) {
+						continue;
+					}
+
+					// Strip action tags from buffer before sentence extraction
+					buffer = stripActionTags(buffer);
+
+					// Check for complete sentences in buffer to generate audio
+					let match = buffer.match(/([^.?!]+[.?!]+[\s]*)/);
+					while (match) {
+						const sentence = match[1];
+						buffer = buffer.substring(sentence.length);
+						
+						// Final safety: strip any remaining tag fragments from the sentence
+						const currentSentence = stripActionTags(sentence.trim());
+						if (currentSentence.length > 0) {
+							if (isMuted) {
+								sendEvent({ type: 'text_chunk', text: currentSentence + ' ' });
+							} else {
+								audioQueue = audioQueue.then(async () => {
+									const audio = await handleTTS(ai, currentSentence);
+									if (audio) {
+										sendEvent({ type: 'audio_chunk', audio, text: currentSentence + ' ' });
+									} else {
+										sendEvent({ type: 'text_chunk', text: currentSentence + ' ' });
+									}
+								});
 							}
-							match = buffer.match(/([^.?!]+[.?!]+[\s]*)/);
 						}
+						match = buffer.match(/([^.?!]+[.?!]+[\s]*)/);
+					}
 				}
 
-				// Flush remaining buffer
-				if (buffer.trim().length > 0) {
-					const finalSentence = buffer.trim();
+				// If the stream ended and we STILL haven't parsed tags (e.g., LLM only output 2 tags and no text body)
+				if (!tagsParsed) {
+					tagsParsed = true;
+					const emotionMatch = buffer.match(/\[Emotion:\s*([^\]]+)\]/i);
+					const actionMatch = buffer.match(/\[Action:\s*([^\]]+)\]/i);
+					const effectMatch = buffer.match(/\[Effect:\s*([^\]]+)\]/i);
+
+					sendEvent({
+						type: 'metadata',
+						emotion: emotionMatch ? emotionMatch[1].trim() : 'Neutral',
+						action: actionMatch ? actionMatch[1].trim() : 'None',
+						effect: effectMatch ? effectMatch[1].trim() : 'None'
+					});
+
+					buffer = buffer.replace(/\[Emotion:.*?\]/gi, '')
+						.replace(/\[Action:.*?\]/gi, '')
+						.replace(/\[Effect:.*?\]/gi, '')
+						.trimStart();
+					buffer = stripActionTags(buffer);
+					fullReply += buffer;
+				}
+
+				// Flush remaining buffer (strip tags one final time, and forcefully remove dangling incomplete tags)
+				const finalClean = (text: string) => text.replace(/\[(Suggestions|Booking|Phone):[^\]]*$/i, '').trim();
+				const cleanedBuffer = finalClean(stripActionTags(buffer));
+				if (cleanedBuffer.length > 0) {
+					const finalSentence = cleanedBuffer;
 					if (isMuted) {
 						sendEvent({ type: 'text_chunk', text: finalSentence });
 					} else {
@@ -172,15 +298,17 @@ export async function POST({ request }) {
 				// Wait for all audio generation to finish before closing stream
 				await audioQueue;
 				
-				// Extract [Booking] tag from the full reply
-				const bookingMatch = fullReply.match(/\[Booking:\s*(.+?)\]/i);
-				if (bookingMatch) {
-					const bookingStr = bookingMatch[1];
-					const serviceMatch = bookingStr.match(/service="([^"]+)"/);
-					const priceMatch = bookingStr.match(/price=(\d+)/);
-					const dateMatch = bookingStr.match(/date="([^"]+)"/);
-					const timeMatch = bookingStr.match(/time="([^"]+)"/);
-					const paymentMatch = bookingStr.match(/payment="([^"]+)"/);
+				// Emit booking event (may have been eagerly extracted during streaming)
+				if (!extractedBooking) {
+					const bookingMatch = fullReply.match(/\[Booking:\s*(.+?)\]/i);
+					if (bookingMatch) extractedBooking = bookingMatch[1];
+				}
+				if (extractedBooking) {
+					const serviceMatch = extractedBooking.match(/service="([^"]+)"/);
+					const priceMatch = extractedBooking.match(/price=(\d+)/);
+					const dateMatch = extractedBooking.match(/date="([^"]+)"/);
+					const timeMatch = extractedBooking.match(/time="([^"]+)"/);
+					const paymentMatch = extractedBooking.match(/payment="([^"]+)"/);
 
 					if (serviceMatch && dateMatch && timeMatch && paymentMatch) {
 						sendEvent({
@@ -192,20 +320,33 @@ export async function POST({ request }) {
 							payment: paymentMatch[1]
 						});
 					}
-					fullReply = fullReply.replace(/\[Booking:.*?\]/i, '').trim();
+					fullReply = fullReply.replace(/\[Booking:.*?\]/gi, '').trim();
 				}
 
-				// Extract [Suggestions] tag from the full reply
-				const sugMatch = fullReply.match(/\[Suggestions:\s*(.+?)\]/i);
-				if (sugMatch) {
-					const sugParts = sugMatch[1].split('|').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
-					if (sugParts.length > 0) {
-						sendEvent({ type: 'suggestions', suggestions: sugParts.slice(0, 3) });
-					}
-					fullReply = fullReply.replace(/\[Suggestions:.*?\]/i, '').trim();
+				// Emit phone event if present
+				if (!extractedPhone) {
+					const phoneMatch = fullReply.match(/\[Phone:\s*(.+?)\]/i);
+					if (phoneMatch) extractedPhone = phoneMatch[1].trim();
 				}
+				if (extractedPhone) {
+					sendEvent({ type: 'phone', phone: extractedPhone });
+					fullReply = fullReply.replace(/\[Phone:.*?\]/gi, '').trim();
+				}
+
+				// Emit suggestions event (may have been eagerly extracted during streaming)
+				if (extractedSuggestions.length === 0) {
+					const sugMatch = fullReply.match(/\[Suggestions:\s*(.+?)\]/i);
+					if (sugMatch) {
+						extractedSuggestions = sugMatch[1].split('|').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
+					}
+				}
+				if (extractedSuggestions.length > 0) {
+					sendEvent({ type: 'suggestions', suggestions: extractedSuggestions.slice(0, 3) });
+				}
+				fullReply = fullReply.replace(/\[Suggestions:.*?\]/gi, '').trim();
 				
-				chatHistory.push({ role: 'assistant', text: fullReply.trim() });
+				// Send the cleaned assistant reply back for client-side chat history
+				sendEvent({ type: 'chat_history_update', assistantReply: fullReply.trim() });
 				
 			} catch (error) {
 				console.error('Streaming error:', error);

@@ -40,12 +40,12 @@
 		{
 			title: 'Virtual AI Assistant',
 			desc: 'Intelligent AI handles customer questions and books appointments instantly via voice or text.',
-			icon: '<img src="/Assistant.webp" alt="AI Assistant" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />'
+			image: '/ai_assistant.png'
 		},
 		{
 			title: 'Companion "Ani" Avatar',
 			desc: 'Interactive 3D avatar that engages customers, handles queries, and drives sales conversationally.',
-			icon: '<img src="/Ani.webp" alt="Ani" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />'
+			image: '/ani_icon.webp'
 		},
 		{
 			title: 'Virtual Try-On',
@@ -400,7 +400,13 @@
 				<div class="sc-usp-grid">
 					{#each usps as usp}
 						<div class="sc-usp-card sc-glass sc-reveal sc-glow-hover">
-							<div class="sc-usp-icon">{@html usp.icon}</div>
+							<div class="sc-usp-icon">
+								{#if usp.image}
+									<img src={usp.image} alt={usp.title} style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />
+								{:else}
+									{@html usp.icon}
+								{/if}
+							</div>
 							<h3>{usp.title}</h3>
 							<p>{usp.desc}</p>
 						</div>

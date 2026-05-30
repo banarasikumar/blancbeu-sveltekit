@@ -9,8 +9,8 @@ export const mixamoVRMRigMap: Record<string, string> = {
 	mixamorigSpine: 'spine',
 	mixamorigSpine1: 'chest',
 	mixamorigSpine2: 'upperChest',
-	// mixamorigNeck: 'neck', // Disabled so VRM LookAt can control head
-	// mixamorigHead: 'head', // Disabled so VRM LookAt can control head
+	mixamorigNeck: 'neck', // Re-enabled so she nods and moves her head naturally
+	mixamorigHead: 'head', // Re-enabled so she nods and moves her head naturally
 	mixamorigLeftShoulder: 'leftShoulder',
 	mixamorigLeftArm: 'leftUpperArm',
 	mixamorigLeftForeArm: 'leftLowerArm',
@@ -77,21 +77,43 @@ export class AnimationRetargeter {
 		const _vec3 = new THREE.Vector3();
 
 		// Adjust with reference to hips height
-		const motionHipsNode = fbxAsset.getObjectByName('mixamorigHips');
+		let motionHipsNode: THREE.Object3D | null = null;
+		fbxAsset.traverse((node) => {
+			if (node.name.replace(':', '').startsWith('mixamorigHips')) {
+				motionHipsNode = node;
+			}
+		});
 		const vrmHipsY = vrm.humanoid?.getNormalizedBoneNode('hips' as VRMHumanBoneName)?.position?.y ?? 1;
 		const motionHipsY = motionHipsNode?.position?.y ?? 100;
 		const hipsPositionScale = vrmHipsY / motionHipsY;
 
+		const knownMixamoNames = Object.keys(mixamoVRMRigMap).sort((a, b) => b.length - a.length);
+
 		fbxClip.tracks.forEach((track) => {
 			const trackSplitted = track.name.split('.');
-			const mixamoRigName = trackSplitted[0];
+			const originalRigName = trackSplitted[0];
+			
+			// Normalize Mixamo rig name (e.g. "mixamorig:LeftArmModelSLimbNode" -> "mixamorigLeftArm")
+			let mixamoRigName = originalRigName.replace(':', '');
+			const matchedName = knownMixamoNames.find(name => mixamoRigName.startsWith(name));
+			if (matchedName) {
+				mixamoRigName = matchedName;
+			}
+
 			const propertyName = trackSplitted[1];
 
 			const vrmBoneName = mixamoVRMRigMap[mixamoRigName];
 			if (!vrmBoneName) return;
 
 			const vrmNodeName = vrm.humanoid?.getNormalizedBoneNode(vrmBoneName as VRMHumanBoneName)?.name;
-			const mixamoRigNode = fbxAsset.getObjectByName(mixamoRigName);
+			
+			let mixamoRigNode: THREE.Object3D | null = null;
+			fbxAsset.traverse((node) => {
+				const nodeNameClean = node.name.replace(':', '');
+				if (node.name === originalRigName || nodeNameClean.startsWith(mixamoRigName)) {
+					mixamoRigNode = node;
+				}
+			});
 
 			if (vrmNodeName != null && mixamoRigNode != null) {
 				// Store rotations of rest-pose

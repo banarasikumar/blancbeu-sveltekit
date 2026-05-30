@@ -171,6 +171,20 @@ registerRoute(
 	})
 );
 
+// 8. VRM model + FBX animations (Ani companion 3D assets) — CacheFirst
+//    These are large binary files (~20-50MB total) that rarely change.
+//    Caching ensures the companion loads instantly after first visit.
+registerRoute(
+	({ url }) => /\.(vrm|fbx)$/i.test(url.pathname),
+	new CacheFirst({
+		cacheName: 'avatar-assets-cache',
+		plugins: [
+			new CacheableResponsePlugin({ statuses: [0, 200] }),
+			new ExpirationPlugin({ maxEntries: 30, maxAgeSeconds: 90 * 24 * 60 * 60 })
+		]
+	})
+);
+
 // ── Persistent "Listening for orders" notification click handler ──
 self.addEventListener('notificationclick', (event) => {
 	const data = event.notification.data;
