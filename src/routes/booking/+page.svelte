@@ -1185,12 +1185,14 @@
 					</div>
 
 					<!-- Offers & Rewards Section -->
+					{#if $appSettings.enableCoupons || $appSettings.enableBeuCash}
 					<div class="offers-rewards-section mt-4 mb-2">
 						<h4 class="text-sm font-bold text-secondary uppercase tracking-wider mb-3 ml-1">
 							Offers & Rewards
 						</h4>
 
 						<!-- View Coupons Button / Applied Coupon -->
+						{#if $appSettings.enableCoupons}
 						<div class="coupon-input-wrapper mb-3">
 							{#if couponApplied}
 								<div class="coupon-applied">
@@ -1212,8 +1214,10 @@
 								</button>
 							{/if}
 						</div>
+						{/if}
 
 						<!-- Beu Cash Toggle -->
+						{#if $appSettings.enableBeuCash}
 						<div class="beu-cash-card {beuCashBalance === 0 ? 'empty-balance' : ''}">
 							<div class="beu-cash-info">
 								<div class="beu-cash-header">
@@ -1245,7 +1249,9 @@
 								</label>
 							</div>
 						</div>
+						{/if}
 					</div>
+					{/if}
 
 					<!-- Price Breakdown Section -->
 					<div class="totals-section mt-2">
@@ -1263,14 +1269,14 @@
 									</div>
 								{/if}
 
-								{#if couponDiscount > 0}
+								{#if $appSettings.enableCoupons && couponDiscount > 0}
 									<div class="breakdown-row discount">
 										<span>Coupon Discount</span>
 										<span class="text-green">-{fmt(couponDiscount)}</span>
 									</div>
 								{/if}
 
-								{#if actualBeuCashApplied > 0}
+								{#if $appSettings.enableBeuCash && actualBeuCashApplied > 0}
 									<div class="breakdown-row discount">
 										<span>Beu Cash Used</span>
 										<span class="text-green">-{fmt(actualBeuCashApplied)}</span>
@@ -1470,7 +1476,7 @@
 	{/if}
 
 	<!-- COUPONS MODAL -->
-	{#if showCouponsModal}
+	{#if $appSettings.enableCoupons && showCouponsModal}
 		<div
 			class="modal-backdrop"
 			transition:fade={{ duration: 200 }}

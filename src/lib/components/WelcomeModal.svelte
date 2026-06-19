@@ -6,6 +6,8 @@
 	import { Sparkles, Heart, Star, X } from 'lucide-svelte';
 	import { auth, db } from '$lib/firebase';
 	import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+	import { appSettings } from '$lib/stores/appSettings';
+	import { get } from 'svelte/store';
 
 	export let user: any;
 	export let onClose: () => void;
@@ -74,10 +76,11 @@
 		if (!user?.uid) return;
 		try {
 			const userRef = doc(db, 'users', user.uid);
-			await updateDoc(userRef, {
-				welcomeBonusClaimed: true,
-				beuCash: increment(500)
-			});
+			const updateData: Record<string, any> = { welcomeBonusClaimed: true };
+			if (get(appSettings).enableBeuCash) {
+				updateData.beuCash = increment(500);
+			}
+			await updateDoc(userRef, updateData);
 			console.log('Welcome bonus claimed and Beu Cash updated.');
 		} catch (error) {
 			console.error('Error claiming welcome bonus:', error);

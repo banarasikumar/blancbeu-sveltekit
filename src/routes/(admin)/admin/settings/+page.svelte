@@ -2,7 +2,7 @@
 	import { adminUser, adminLogout } from '$lib/stores/adminAuth';
 	import { goto } from '$app/navigation';
 	import { showToast } from '$lib/stores/toast';
-	import { UserCircle, Bell, LogOut, ChevronRight, Database, CreditCard } from 'lucide-svelte';
+	import { UserCircle, Bell, LogOut, ChevronRight, Database, CreditCard, ToggleLeft } from 'lucide-svelte';
 	import { migrateServices } from '$lib/migrateServices';
 	import { onMount, onDestroy } from 'svelte';
 	import {
@@ -367,6 +367,63 @@
 					/>
 				</label>
 			</div>
+		</div>
+	</div>
+
+	<div class="admin-settings-subcard" style="margin-top: 16px; animation: none;">
+		<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+			<ToggleLeft size={20} color="var(--admin-accent)" />
+			<h4 style="font-size: 15px; color: var(--admin-text-primary); margin: 0; font-weight: 700;">
+				Feature Toggles
+			</h4>
+		</div>
+
+		<div class="admin-settings-subitem">
+			<div style="display: flex; flex-direction: column;">
+				<span style="font-size: 15px; font-weight: 500;">🎟️ Enable Coupons</span>
+				<span style="font-size: 12px; color: var(--admin-text-secondary);">
+					{$appSettings.enableCoupons ? 'Visible to customers' : 'Hidden from customers'}
+				</span>
+			</div>
+			<button
+				class="sub-toggle-switch"
+				class:on={$appSettings.enableCoupons}
+				onclick={() => {
+					updateAppSetting('enableCoupons', !$appSettings.enableCoupons);
+					showToast(
+						$appSettings.enableCoupons
+							? 'Coupons disabled for customers'
+							: 'Coupons enabled for customers',
+						'success'
+					);
+				}}
+			>
+				<div class="sub-toggle-thumb"></div>
+			</button>
+		</div>
+
+		<div class="admin-settings-subitem" style="border-bottom: none; padding-bottom: 0;">
+			<div style="display: flex; flex-direction: column;">
+				<span style="font-size: 15px; font-weight: 500;">💎 Enable Beu Cash</span>
+				<span style="font-size: 12px; color: var(--admin-text-secondary);">
+					{$appSettings.enableBeuCash ? 'Visible to customers' : 'Hidden from customers'}
+				</span>
+			</div>
+			<button
+				class="sub-toggle-switch"
+				class:on={$appSettings.enableBeuCash}
+				onclick={() => {
+					updateAppSetting('enableBeuCash', !$appSettings.enableBeuCash);
+					showToast(
+						$appSettings.enableBeuCash
+							? 'Beu Cash disabled for customers'
+							: 'Beu Cash enabled for customers',
+						'success'
+					);
+				}}
+			>
+				<div class="sub-toggle-thumb"></div>
+			</button>
 		</div>
 	</div>
 

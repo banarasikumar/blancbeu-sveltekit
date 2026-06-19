@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 
 	import { browser } from '$app/environment';
+	import { appSettings } from '$lib/stores/appSettings';
 
 	let deferredPrompt: any = $state(null);
 	let isVisible = $state(false);
@@ -31,7 +32,9 @@
 				? 'Manage the salon anywhere.'
 				: appType === 'staff'
 					? 'Manage your schedule on the go.'
-					: 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
+					: $appSettings.enableCoupons
+						? 'Install now & get a <strong>₹500 Coupon</strong> for your first booking!'
+						: 'Install now for the <strong>best experience</strong> & faster bookings!'
 	);
 
 	let btnText = $derived(promptMode === 'open' ? 'Open in App' : 'Install App');

@@ -4,10 +4,14 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export interface AppSettings {
 	defaultPaymentGateway: 'default' | 'razorpay';
+	enableCoupons: boolean;
+	enableBeuCash: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-	defaultPaymentGateway: 'default'
+	defaultPaymentGateway: 'default',
+	enableCoupons: false,
+	enableBeuCash: false
 };
 
 export const appSettings = writable<AppSettings>(DEFAULT_SETTINGS);
