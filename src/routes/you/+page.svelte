@@ -15,6 +15,7 @@
 	import UnifiedStatusCard from '$lib/components/you/UnifiedStatusCard.svelte';
 	import QuickActions from '$lib/components/you/QuickActions.svelte';
 	import WalletCard from '$lib/components/you/WalletCard.svelte';
+	import { appSettings } from '$lib/stores/appSettings';
 
 	// Svelte 5 Runes
 	let user = $state<User | null>(null);
@@ -332,7 +333,9 @@
 				/>
 
 				<!-- BEU CASH WALLET CARD -->
-				<WalletCard balance={beuCash} loading={loadingProfile} />
+				{#if $appSettings.enableBeuCash}
+					<WalletCard balance={beuCash} loading={loadingProfile} />
+				{/if}
 
 				<!-- LATEST BOOKING WIDGET (TICKET STYLE) -->
 				<h2 class="section-title">Upcoming Appointment</h2>
